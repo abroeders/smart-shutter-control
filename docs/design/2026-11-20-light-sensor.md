@@ -1,7 +1,7 @@
 # Light sensors as the sun source
 
-- Issue: to be created
-- Status: draft
+- Issue: #26
+- Status: **approved** (2026-11-20)
 - Date: 2026-11-20
 - Depends on: #3 (sun factor, clear-sky reference, heat protection)
 
