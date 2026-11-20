@@ -12,6 +12,7 @@ class Reason(StrEnum):
     IDLE = "idle"  # no rule wants anything
     OFF = "off"  # automatic control switched off
     MANUAL = "manual"
+    CALIBRATING = "calibrating"  # the calibration assistant is moving the shutter
 
 
 class Direction(StrEnum):
