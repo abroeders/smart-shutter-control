@@ -30,7 +30,8 @@ flowchart LR
 |---|---|
 | Single responsibility | one module per concern; one class per rule |
 | Dependency inversion | `core/` depends on its own protocols, not on Home Assistant |
-| **Chain of responsibility** | `RuleChain` asks the `Rule`s by priority; the first decision wins (#2) |
+| **Chain of responsibility** | `RuleChain` asks every `Rule` by priority: the first target wins, caps may lower it, a final target (safety) is not lowered (#2, #3) |
+| **State** | `HeatProtectionRule` phases open → pending → shading → leaving (#3) |
 | **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
@@ -316,3 +317,98 @@ stateDiagram-v2
 ```
 
 During the assistant the controller is paused (`Reason.CALIBRATING`); ending the flow in any way resumes it.
+
+## 6. Sun on the window (#3)
+
+Design: [`design/2026-11-20-sun-on-the-window.md`](design/2026-11-20-sun-on-the-window.md).
+
+### 6.1 Classes
+
+```mermaid
+classDiagram
+    direction TB
+    class SunPosition {
+        +azimuth float
+        +elevation float
+        +at(latitude, longitude, epoch)$ SunPosition
+    }
+    class WindowGeometry {
+        +azimuth float
+        +tilt float
+        +min_elevation float
+        +max_elevation float
+        +incidence(sun) float
+        +sun_on(sun, max_incidence) bool
+    }
+    class ClearSkyReference {
+        +cells dict
+        +observe(sun, pv_power, now)
+        +reference(sun) float|None
+        +to_dict() dict
+        +from_dict(data)$
+    }
+    class SunnyDetector {
+        +threshold float
+        +pv_peak_kw float|None
+        +sunny bool
+        +factor float|None
+        +source str
+        +update(sun, pv_power, weather, now) bool
+    }
+    class HeatProtectionRule {
+        +priority 40
+        +settings SunSettings
+        +phase Phase
+        +sun_on bool
+        +incidence float|None
+        +propose(ctx) Decision|None
+    }
+    class Decision {
+        +position int|None
+        +reason str
+        +kind target|cap
+        +final bool
+    }
+    SunnyDetector o-- ClearSkyReference
+    HeatProtectionRule ..> WindowGeometry
+    HeatProtectionRule ..> Decision : cap
+    BaseCoordinator o-- SunnyDetector
+    BaseCoordinator ..> SunPosition : once per tick
+    ShutterController o-- HeatProtectionRule
+```
+
+### 6.2 A tick with the sun
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant SP as SunPosition
+    participant SD as SunnyDetector
+    participant SC as ShutterController
+    participant R as RuleChain
+    participant H as HeatProtectionRule
+    C->>SP: at(latitude, longitude, now)
+    C->>SD: update(sun, PV power, weather)
+    SD-->>C: sunny, factor, source (learned / pv_peak / weather / geometry)
+    C->>SC: async_evaluate(inputs with sun and sunny)
+    SC->>R: decide(ctx: room temperature, heat protection, shading position)
+    R->>H: propose(ctx)
+    H-->>R: cap shading position (or nothing)
+    R-->>SC: min(target or current position, caps)
+```
+
+### 6.3 Heat protection phases
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open
+    Open --> Pending: sun on window, sunny, warm
+    Pending --> Open: a condition falls away
+    Pending --> Shading: held for close_delay
+    Shading --> Leaving: a condition falls away
+    Leaving --> Shading: conditions back
+    Leaving --> Open: open_delay passed, or the sun left the window
+```
+
+The learned clear-sky reference is kept with the runtime state (`RuntimeStore.globals`, saved every few
+minutes).

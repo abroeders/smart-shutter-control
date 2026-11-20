@@ -52,7 +52,8 @@
       "init": {
         "title": "Instellingen",
         "menu_options": {
-          "storm": "Storm"
+          "storm": "Storm",
+          "sun": "Zon"
         }
       },
       "storm": {
@@ -62,6 +63,24 @@
         },
         "data_description": {
           "storm_limit": "Boven deze windsnelheid of windstoot staan rolluiken alleen helemaal open of helemaal dicht."
+        }
+      },
+      "sun": {
+        "title": "Zon",
+        "data": {
+          "sunny_threshold": "Zonnig vanaf",
+          "max_incidence": "Grootste invalshoek",
+          "heat_outdoor": "Hittewering vanaf (buiten)",
+          "heat_room": "Hittewering vanaf (kamer)",
+          "close_delay": "Sluiten na",
+          "open_delay": "Openen na"
+        },
+        "data_description": {
+          "sunny_threshold": "Pv-vermogen als deel van de waarde bij heldere lucht, voor deze zonnestand.",
+          "max_incidence": "Zon onder een grotere hoek met het raam telt als niet op het raam.",
+          "heat_room": "Alleen voor rolluiken met een kamertemperatuursensor.",
+          "close_delay": "Minuten zon op het raam voordat het rolluik zakt.",
+          "open_delay": "Minuten zonder zon voordat het weer omhoog gaat."
         }
       }
     }
@@ -84,7 +103,11 @@
             "min_elevation": "Laagste zonshoogte",
             "max_elevation": "Hoogste zonshoogte",
             "room_temperature": "Kamertemperatuursensor",
-            "max_position": "Maximale stand"
+            "max_position": "Maximale stand",
+            "heat_protection": "Hittewering",
+            "shading_position": "Schaduwstand",
+            "heat_outdoor": "Hittewering vanaf (buiten)",
+            "heat_room": "Hittewering vanaf (kamer)"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -93,7 +116,10 @@
             "tilt": "90 = verticaal raam; minder voor een dakraam.",
             "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
-            "max_position": "De automaat opent het rolluik nooit verder; met de hand wel."
+            "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
+            "shading_position": "Stand terwijl de zon op het raam staat.",
+            "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
+            "heat_room": "Leeg laten voor de waarde van de basiscontroller."
           }
         },
         "settings": {
@@ -106,7 +132,11 @@
             "min_elevation": "Laagste zonshoogte",
             "max_elevation": "Hoogste zonshoogte",
             "room_temperature": "Kamertemperatuursensor",
-            "max_position": "Maximale stand"
+            "max_position": "Maximale stand",
+            "heat_protection": "Hittewering",
+            "shading_position": "Schaduwstand",
+            "heat_outdoor": "Hittewering vanaf (buiten)",
+            "heat_room": "Hittewering vanaf (kamer)"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -115,7 +145,10 @@
             "tilt": "90 = verticaal raam; minder voor een dakraam.",
             "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
-            "max_position": "De automaat opent het rolluik nooit verder; met de hand wel."
+            "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
+            "shading_position": "Stand terwijl de zon op het raam staat.",
+            "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
+            "heat_room": "Leeg laten voor de waarde van de basiscontroller."
           }
         },
         "reconfigure": {
@@ -183,11 +216,17 @@
     "switch": {
       "automatic": {
         "name": "Automatisch"
+      },
+      "heat_protection": {
+        "name": "Hittewering"
       }
     },
     "number": {
       "max_position": {
         "name": "Maximale stand"
+      },
+      "shading_position": {
+        "name": "Schaduwstand"
       }
     },
     "sensor": {
@@ -197,7 +236,8 @@
           "idle": "Geen actie",
           "off": "Automatisch uit",
           "manual": "Handmatig",
-          "calibrating": "Kalibreren"
+          "calibrating": "Kalibreren",
+          "sun": "Zon"
         }
       },
       "next_action": {
@@ -209,6 +249,17 @@
           "calibrated": "Gekalibreerd",
           "not_calibrated": "Niet gekalibreerd"
         }
+      },
+      "sun_factor": {
+        "name": "Zonfactor"
+      }
+    },
+    "binary_sensor": {
+      "sunny": {
+        "name": "Zonnig"
+      },
+      "sun_on_window": {
+        "name": "Zon op het raam"
       }
     }
   },

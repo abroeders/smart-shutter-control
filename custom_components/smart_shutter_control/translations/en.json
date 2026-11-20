@@ -52,7 +52,8 @@
       "init": {
         "title": "Settings",
         "menu_options": {
-          "storm": "Storm"
+          "storm": "Storm",
+          "sun": "Sun"
         }
       },
       "storm": {
@@ -62,6 +63,24 @@
         },
         "data_description": {
           "storm_limit": "Above this wind speed or gust shutters are only fully open or fully closed."
+        }
+      },
+      "sun": {
+        "title": "Sun",
+        "data": {
+          "sunny_threshold": "Sunny from",
+          "max_incidence": "Largest angle of incidence",
+          "heat_outdoor": "Heat protection from (outdoor)",
+          "heat_room": "Heat protection from (room)",
+          "close_delay": "Close after",
+          "open_delay": "Open after"
+        },
+        "data_description": {
+          "sunny_threshold": "PV power as a share of its clear-sky value at this position of the sun.",
+          "max_incidence": "Sun at a larger angle to the window counts as not shining on it.",
+          "heat_room": "Only for shutters with a room temperature sensor.",
+          "close_delay": "Minutes of sun on the window before the shutter goes down.",
+          "open_delay": "Minutes without sun before it goes up again."
         }
       }
     }
@@ -84,7 +103,11 @@
             "min_elevation": "Lowest sun elevation",
             "max_elevation": "Highest sun elevation",
             "room_temperature": "Room temperature sensor",
-            "max_position": "Maximum position"
+            "max_position": "Maximum position",
+            "heat_protection": "Heat protection",
+            "shading_position": "Shading position",
+            "heat_outdoor": "Heat protection from (outdoor)",
+            "heat_room": "Heat protection from (room)"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -93,7 +116,10 @@
             "tilt": "90 = vertical window; less for a roof window.",
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
-            "max_position": "Automatic control never opens the shutter further; by hand it can."
+            "max_position": "Automatic control never opens the shutter further; by hand it can.",
+            "shading_position": "Position while the sun shines on the window.",
+            "heat_outdoor": "Leave empty to use the base controller's value.",
+            "heat_room": "Leave empty to use the base controller's value."
           }
         },
         "settings": {
@@ -106,7 +132,11 @@
             "min_elevation": "Lowest sun elevation",
             "max_elevation": "Highest sun elevation",
             "room_temperature": "Room temperature sensor",
-            "max_position": "Maximum position"
+            "max_position": "Maximum position",
+            "heat_protection": "Heat protection",
+            "shading_position": "Shading position",
+            "heat_outdoor": "Heat protection from (outdoor)",
+            "heat_room": "Heat protection from (room)"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -115,7 +145,10 @@
             "tilt": "90 = vertical window; less for a roof window.",
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
-            "max_position": "Automatic control never opens the shutter further; by hand it can."
+            "max_position": "Automatic control never opens the shutter further; by hand it can.",
+            "shading_position": "Position while the sun shines on the window.",
+            "heat_outdoor": "Leave empty to use the base controller's value.",
+            "heat_room": "Leave empty to use the base controller's value."
           }
         },
         "reconfigure": {
@@ -183,11 +216,17 @@
     "switch": {
       "automatic": {
         "name": "Automatic control"
+      },
+      "heat_protection": {
+        "name": "Heat protection"
       }
     },
     "number": {
       "max_position": {
         "name": "Maximum position"
+      },
+      "shading_position": {
+        "name": "Shading position"
       }
     },
     "sensor": {
@@ -197,7 +236,8 @@
           "idle": "Idle",
           "off": "Automatic control off",
           "manual": "Manual",
-          "calibrating": "Calibrating"
+          "calibrating": "Calibrating",
+          "sun": "Sun"
         }
       },
       "next_action": {
@@ -209,6 +249,17 @@
           "calibrated": "Calibrated",
           "not_calibrated": "Not calibrated"
         }
+      },
+      "sun_factor": {
+        "name": "Sun factor"
+      }
+    },
+    "binary_sensor": {
+      "sunny": {
+        "name": "Sunny"
+      },
+      "sun_on_window": {
+        "name": "Sun on the window"
       }
     }
   },

@@ -15,7 +15,12 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     add_per_shutter(
-        entry.runtime_data, async_add_entities, lambda c, s: [MaxPositionNumber(c, s, "max_position")]
+        entry.runtime_data,
+        async_add_entities,
+        lambda c, s: [
+            MaxPositionNumber(c, s, "max_position"),
+            ShadingPositionNumber(c, s, "shading_position"),
+        ],
     )
 
 
@@ -33,4 +38,16 @@ class MaxPositionNumber(ShutterEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         self.controller.set_max_position(int(value))
+        await self.coordinator.async_tick()
+
+
+class ShadingPositionNumber(MaxPositionNumber):
+    """Position while the sun shines on the window (heat protection)."""
+
+    @property
+    def native_value(self) -> float:
+        return self.controller.shading_position
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.controller.set_shading_position(int(value))
         await self.coordinator.async_tick()
