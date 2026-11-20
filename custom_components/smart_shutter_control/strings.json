@@ -490,7 +490,8 @@
       "options": {
         "until_next_phase": "Pause until the next phase",
         "for_duration": "Pause for a while",
-        "ignore": "Ignore"
+        "ignore": "Ignore",
+        "inherit": "Inherit"
       }
     },
     "weekday": {

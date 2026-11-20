@@ -490,7 +490,8 @@
       "options": {
         "until_next_phase": "Pauze tot de volgende fase",
         "for_duration": "Een tijd lang pauze",
-        "ignore": "Negeren"
+        "ignore": "Negeren",
+        "inherit": "Overnemen"
       }
     },
     "weekday": {

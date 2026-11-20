@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   overrides it), and the dusk position never raises a closed shutter. Per shutter on/off and limit, inherited
   from the base schedule. Sensor *Winter* with the 24-hour mean (#7).
 
+### Changed
+
+- *Schedule overrides*: the choice fields show *Inherit* when the shutter follows the base schedule, also
+  after *Reset to the base schedule*; *After a manual action* can now be inherited too.
+
 ## [0.4.0] - 2026-11-20
 
 ### Added
