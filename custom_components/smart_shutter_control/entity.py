@@ -26,6 +26,8 @@ class ShutterEntity(CoordinatorEntity[BaseCoordinator]):
         entry_id = coordinator.entry.entry_id
         self._attr_translation_key = key
         self._attr_unique_id = f"{entry_id}_{controller.id}_{key}"
+        if name := coordinator.entity_names.get(key):
+            self._attr_name = name  # the integration's language instead of the system language (#9)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, controller.id)},
             name=controller.title,
@@ -45,6 +47,8 @@ class BaseEntity(CoordinatorEntity[BaseCoordinator]):
         entry_id = coordinator.entry.entry_id
         self._attr_translation_key = key
         self._attr_unique_id = f"{entry_id}_{key}"
+        if name := coordinator.entity_names.get(key):
+            self._attr_name = name  # the integration's language instead of the system language (#9)
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry_id)})
 
 

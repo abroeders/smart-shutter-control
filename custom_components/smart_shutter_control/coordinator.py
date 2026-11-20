@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
@@ -41,6 +43,7 @@ from .const import (
     OPT_HOLIDAYS_DISABLED,
     OPT_HOLIDAYS_EXCLUDED,
     OPT_HOLIDAYS_EXTRA,
+    OPT_LANGUAGE,
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
     OPT_SCHEDULE,
@@ -121,6 +124,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self._quick = None
         self.outdoor_mean = OutdoorMean()
         self.winter = WinterDetector(float(o[OPT_WINTER_LIMIT]))
+        self.language: str | None = None if o[OPT_LANGUAGE] == "system" else str(o[OPT_LANGUAGE])
+        self.entity_names: dict[str, str] = {}
         self.store = RuntimeStore(hass, entry.entry_id)
         self.shutters: dict[str, ShutterController] = {}
         self.inputs = Inputs(now=time.time())
@@ -142,6 +147,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
 
     async def async_start(self) -> None:
         await self.store.async_load()
+        if self.language:
+            self.entity_names = await self.hass.async_add_executor_job(entity_names, self.language)
         self.outdoor_mean = OutdoorMean.from_dict(self.store.globals.get("outdoor_mean"))
         self.winter.mode = str(self.store.globals.get("winter_mode", "auto"))
         self.sunny = SunnyDetector(
@@ -332,3 +339,12 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             await self.async_tick()
 
         self._pending = async_call_later(self.hass, INPUT_DEBOUNCE, _run)
+
+
+def entity_names(language: str) -> dict[str, str]:
+    """Entity names by translation key in one of the integration's own languages (#9)."""
+    path = Path(__file__).parent / "translations" / f"{language}.json"
+    if not path.exists():
+        return {}
+    entities = json.loads(path.read_text(encoding="utf-8")).get("entity", {})
+    return {key: v["name"] for platform in entities.values() for key, v in platform.items() if v.get("name")}

@@ -13,7 +13,9 @@ A Home Assistant integration (HACS) that controls roller shutters.
 - **Safety:** in a storm a shutter is only fully open or fully closed.
 - **Manual operation is respected.**
 - **Lovelace card:** a drawing of each shutter that you can drag to a position, with up, stop and down, and
-  its status.
+  its status; or all shutters at a glance. See [the card](docs/card.md).
+
+![The card](docs/images/card-light.png)
 
 Status: in development. See the [issues](https://github.com/abroeders/smart-shutter-control/issues) for the
 plan.
@@ -26,6 +28,9 @@ plan.
 - Code style: `ruff check .` and `ruff format .`.
 - Designs: [`docs/design/`](docs/design/), architecture and UML: [`docs/architecture.md`](docs/architecture.md).
 - Icons: edit `brand/*.svg`, then `python scripts/render_icons.py`.
+- Card: in `frontend/`, `npm ci`, `npm test`, `npm run build` (the bundle in
+  `custom_components/smart_shutter_control/frontend/` is committed); screenshots with
+  `python scripts/screenshot_card.py`.
 
 ## License
 

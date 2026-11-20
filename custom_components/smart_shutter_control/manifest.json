@@ -3,7 +3,9 @@
   "name": "Smart Shutter Control",
   "after_dependencies": [
     "calendar",
+    "frontend",
     "holiday",
+    "http",
     "recorder",
     "sun",
     "weather"

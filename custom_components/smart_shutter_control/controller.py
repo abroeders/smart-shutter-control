@@ -267,6 +267,26 @@ class ShutterController:
     def next_change(self):
         return self.schedule.next_change(datetime.now(UTC))
 
+    def next_changes(self, count: int) -> list:
+        """The next `count` phase changes of the schedule."""
+        changes, at = [], datetime.now(UTC)
+        while len(changes) < count and (change := self.schedule.next_change(at)) is not None:
+            changes.append(change)
+            at = change.at
+        return changes
+
+    def target_of(self, phase: Phase) -> int | str:
+        return "slit" if phase is Phase.SLIT else self.schedule.target(phase)
+
+    def moving(self) -> str | None:
+        """opening or closing while the physical cover moves (its state, else the motor power)."""
+        state = self.hass.states.get(self.config.cover)
+        if state is not None and state.state in ("opening", "closing"):
+            return state.state
+        if self._motor_running():
+            return "opening" if self.direction() is Direction.UP else "closing"
+        return None
+
     def _module_target(self, position: int) -> tuple[int, Direction]:
         current = self.position()
         direction = Direction.UP if current is None or position >= current else Direction.DOWN

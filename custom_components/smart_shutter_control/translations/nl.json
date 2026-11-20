@@ -56,7 +56,8 @@
           "sun": "Zon",
           "schedule": "Schema",
           "holidays": "Feestdagen",
-          "winter": "Winter"
+          "winter": "Winter",
+          "language": "Taal"
         }
       },
       "storm": {
@@ -161,6 +162,13 @@
         "description": "De winterstand is aan zolang de gemiddelde buitentemperatuur van de afgelopen 24 uur onder de grens ligt (met de keuzelijst Winterstand op auto).",
         "data": {
           "winter_limit": "Winter onder (gemiddelde 24 uur)"
+        }
+      },
+      "language": {
+        "title": "Taal",
+        "description": "Taal van de kaart en de namen van de entiteiten. Instelschermen en waarden in de standaardkaarten van Home Assistant volgen de taal van je profiel.",
+        "data": {
+          "language": "Taal"
         }
       }
     },
@@ -511,6 +519,13 @@
         "nearest": "Dichtstbijzijnde eind",
         "open": "Helemaal open",
         "closed": "Helemaal dicht"
+      }
+    },
+    "language": {
+      "options": {
+        "system": "Systeemtaal",
+        "en": "English",
+        "nl": "Nederlands"
       }
     }
   }
