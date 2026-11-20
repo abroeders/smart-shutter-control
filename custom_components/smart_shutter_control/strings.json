@@ -157,7 +157,8 @@
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
-            "motor_power": "Motor power sensor"
+            "motor_power": "Motor power sensor",
+            "travel_time": "Travel time"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -170,7 +171,8 @@
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
-            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used."
+            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
+            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand."
           }
         },
         "settings": {
@@ -188,7 +190,8 @@
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
-            "motor_power": "Motor power sensor"
+            "motor_power": "Motor power sensor",
+            "travel_time": "Travel time"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -201,7 +204,8 @@
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
-            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used."
+            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
+            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand."
           }
         },
         "reconfigure": {
@@ -287,7 +291,8 @@
         "not_loaded": "The integration is not loaded; try again after it has started."
       },
       "progress": {
-        "moving": "The shutter moves to module position {position} %…"
+        "moving": "The shutter moves to module position {position} %…",
+        "timing": "Measuring the travel time: the shutter opens fully and then closes fully…"
       }
     }
   },

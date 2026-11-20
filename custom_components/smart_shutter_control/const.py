@@ -54,6 +54,7 @@ CONF_TILT = "tilt"
 CONF_MIN_ELEVATION = "min_elevation"
 CONF_MAX_ELEVATION = "max_elevation"
 CONF_ROOM_TEMPERATURE = "room_temperature"
+CONF_TRAVEL_TIME = "travel_time"  # s from fully open to fully closed (#18)
 CONF_MOTOR_POWER = "motor_power"  # optional; found on the cover's device when left empty
 CONF_MAX_POSITION = "max_position"
 CONF_CALIBRATION = "calibration"

@@ -39,6 +39,7 @@ from .const import (
     CONF_SCHEDULE,
     CONF_SHADING_POSITION,
     CONF_TILT,
+    CONF_TRAVEL_TIME,
     CONF_WEATHER,
     CONF_WIND_GUST,
     CONF_WIND_SPEED,
@@ -290,6 +291,7 @@ SHUTTER = {
     vol.Required(CONF_MAX_ELEVATION): _number(0, 90, 1, "°"),
     vol.Optional(CONF_ROOM_TEMPERATURE): _sensor("temperature"),
     vol.Optional(CONF_MOTOR_POWER): _sensor("power"),
+    vol.Optional(CONF_TRAVEL_TIME): _number(5, 300, 0.5, "s"),
     vol.Required(CONF_MAX_POSITION): _number(0, 100, 5, "%"),
     vol.Required(CONF_HEAT_PROTECTION): selector.BooleanSelector(),
     vol.Required(CONF_SHADING_POSITION): _number(0, 100, 5, "%"),
@@ -413,7 +415,8 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
             return self.async_abort(reason="not_loaded")
         if user_input is not None:
             height = user_input.get("window_height_cm") or None
-            self._start(CalibrationSession.full(controller, height))
+            travel = self._get_reconfigure_subentry().data.get(CONF_TRAVEL_TIME)
+            self._start(CalibrationSession.full(controller, height, float(travel) if travel else None))
             return await self.async_step_cal_next()
         schema = vol.Schema({vol.Optional("window_height_cm"): _number(10, 500, 1, "cm")})
         return self.async_show_form(step_id="calibrate", data_schema=schema)
@@ -452,11 +455,14 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
     async def async_step_cal_move(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         action = self._action
         if self._task is None:
-            self._task = self.hass.async_create_task(self._session.move(action.module))
+            job = (
+                self._session.measure_travel() if action.kind == "time" else self._session.move(action.module)
+            )
+            self._task = self.hass.async_create_task(job)
         if not self._task.done():
             return self.async_show_progress(
                 step_id="cal_move",
-                progress_action="moving",
+                progress_action="timing" if action.kind == "time" else "moving",
                 progress_task=self._task,
                 description_placeholders={"position": str(action.module)},
             )
@@ -514,7 +520,7 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
             return self.async_update_and_abort(
                 self._get_entry(),
                 self._get_reconfigure_subentry(),
-                data_updates={CONF_CALIBRATION: session.data()},
+                data_updates=session.updates(),
             )
         arrows = {"up": "↑", "down": "↓"}
         lines = [

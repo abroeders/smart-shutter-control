@@ -25,6 +25,7 @@ from .const import (
     CONF_SCHEDULE,
     CONF_SHADING_POSITION,
     CONF_TILT,
+    CONF_TRAVEL_TIME,
     DEFAULT_SHUTTER,
 )
 from .core.calibration import Calibration, DirectionTracker, RollerCalibration
@@ -114,7 +115,8 @@ class ShutterController:
         self.sleep_in = SleepIn(bool(stored_sleep.get("armed")), float(stored_sleep.get("armed_at", 0.0)))
         self.sleep_in.on_change = self._save_sleep_in
         # manual operation (#5)
-        self.detector = ManualDetector()
+        travel = subentry.data.get(CONF_TRAVEL_TIME)
+        self.detector = ManualDetector(float(travel) if travel else None)
         self.detector.observe(self.adapter.module_position(), self._motor_running(), time.time())
         self.pause = ManualPause.from_dict(store.get(self.id, KEY_PAUSE))
         self.pause_rule = ManualPauseRule(self.pause, lambda now: str(self.schedule_rule.phase(now)))

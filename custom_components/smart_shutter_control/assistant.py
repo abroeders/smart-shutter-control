@@ -17,8 +17,11 @@ RUNNING_W = 5.0  # motor power above this: the motor runs
 START_WAIT = 6.0  # s for the motor to start after a command
 IDLE = 2.0  # s of motor power below RUNNING_W: the motor has stopped
 REPORT_WAIT = 30.0  # s after the motor stopped for a fresh position report (modules report up to ~20 s late)
-STABLE = 12.0  # without a power sensor: s without a position change (modules report rarely while moving)
+STABLE = 12.0  # without a power sensor and travel time: s without a position change
 END_SETTLE = 5.0  # s extra after an end position: the module runs on to its limit switch
+END_STABLE_NO_POWER = 15.0  # s the end position must be reported unchanged without a power sensor (#18)
+END_SETTLE_NO_POWER = 15.0  # s run-on after an end position without a power sensor (#18)
+TRAVEL_MARGIN = 5.0  # s added to the expected travel without a power sensor (#18)
 RETRIES = 2  # times a command is sent again when the shutter stopped short of an intermediate target
 MAX_WAIT = 180.0  # s per attempt before the assistant goes on anyway
 LIFT_STEP = 2  # % module position per step while looking for the lift point
@@ -43,13 +46,38 @@ class CalibrationSession:
     lift_at: int = 0
     reached: bool = True  # the last move ended at its target
     measuring: list[int] = field(default_factory=list)  # module positions of the measuring points
+    travel_time: float | None = None  # s, fully open to fully closed (#18)
+    measured_travel: bool = False
+
+    @property
+    def has_power(self) -> bool:
+        return self.controller.adapter.motor_power() is not None
 
     @classmethod
-    def full(cls, controller: ShutterController, height_cm: float | None) -> CalibrationSession:
-        """First find where the bottom bar leaves the sill, then measure above it in both directions."""
-        session = cls(controller, height_cm)
-        session.queue = [Action("goto", 0), Action("lift")]
+    def full(
+        cls, controller: ShutterController, height_cm: float | None, travel_time: float | None = None
+    ) -> CalibrationSession:
+        """First find where the bottom bar leaves the sill, then measure above it in both directions.
+
+        Without a motor power sensor and without a known travel time, the travel time is measured first.
+        """
+        session = cls(controller, height_cm, travel_time=travel_time)
+        timing = [Action("time")] if not session.has_power and not travel_time else [Action("goto", 0)]
+        session.queue = [*timing, Action("lift")]
         return session
+
+    async def measure_travel(self) -> None:
+        """Fully open, then time the travel to fully closed (until the module reports 0)."""
+        await self.move(100)
+        start = time.monotonic()
+        self.controller.tracker.expect(Direction.DOWN)
+        await self.controller.adapter.async_move(0)
+        first = await self._wait_for_end(0)
+        if first is not None:
+            self.travel_time = round(first - start, 1)
+            self.measured_travel = True
+            self.reached = True
+            await asyncio.sleep(END_SETTLE_NO_POWER)
 
     def plan_measuring(self, lift: int) -> None:
         """Points spread over the travel above the lift point: none of them on the sill."""
@@ -122,6 +150,15 @@ class CalibrationSession:
     def data(self) -> dict:
         return {"window_height_cm": self.height_cm, "points": self.points, "slit": self.slit}
 
+    def updates(self) -> dict:
+        """What the assistant saves in the shutter's settings."""
+        from .const import CONF_CALIBRATION, CONF_TRAVEL_TIME
+
+        out = {CONF_CALIBRATION: self.data()}
+        if self.measured_travel and self.travel_time:
+            out[CONF_TRAVEL_TIME] = self.travel_time
+        return out
+
     def summary(self) -> dict:
         calibration = RollerCalibration.from_data(self.data())
         return calibration.summary() if isinstance(calibration, RollerCalibration) else {}
@@ -147,15 +184,15 @@ class CalibrationSession:
             self.controller.tracker.expect(Direction.UP if module > (current or 0) else Direction.DOWN)
             await adapter.async_move(module)
             if end:
-                self.reached = await self._wait_for_end(module)
+                self.reached = await self._wait_for_end(module) is not None
             else:
-                await self._wait_until_stopped()
+                await self._wait_until_stopped(current, module)
                 position = adapter.module_position()
                 self.reached = position is not None and abs(position - module) <= 1
             if self.reached:
                 break
         if self.reached and end:
-            await asyncio.sleep(END_SETTLE)
+            await asyncio.sleep(END_SETTLE if self.has_power else END_SETTLE_NO_POWER)
 
     def _motor_running(self) -> bool:
         power = self.controller.adapter.motor_power()
@@ -172,9 +209,11 @@ class CalibrationSession:
                 return
             await asyncio.sleep(POLL)
 
-    async def _wait_for_end(self, module: int) -> bool:
-        """Until the module reports the end position and the motor has been idle for a while."""
+    async def _wait_for_end(self, module: int) -> float | None:
+        """Until the module reports the end position and the motor has been idle for a while (without a
+        power sensor: the end reported unchanged for a while). Returns when the end was first reported."""
         adapter = self.controller.adapter
+        hold = IDLE if self.has_power else END_STABLE_NO_POWER
         start = time.monotonic()
         idle_since: float | None = None
         while time.monotonic() - start < MAX_WAIT:
@@ -182,16 +221,28 @@ class CalibrationSession:
             now = time.monotonic()
             if adapter.module_position() == module and not self._motor_running():
                 idle_since = idle_since or now
-                if now - idle_since >= IDLE:
-                    return True
+                if now - idle_since >= hold:
+                    return idle_since
             else:
                 idle_since = None
-        return False
+        return None
 
-    async def _wait_until_stopped(self) -> None:
-        """Until the motor stops (with a power sensor), or the position stops changing (without one)."""
+    async def _wait_until_stopped(self, start_position: int | None = None, target: int | None = None) -> None:
+        """Until the motor stops (with a power sensor); without one for the expected travel time (#18), or
+        until the position stops changing when the travel time is unknown."""
         adapter = self.controller.adapter
         start = time.monotonic()
+        if (
+            adapter.motor_power() is None
+            and self.travel_time
+            and start_position is not None
+            and target is not None
+        ):
+            expected = abs(target - start_position) / 100 * self.travel_time + TRAVEL_MARGIN
+            while time.monotonic() - start < expected:
+                await asyncio.sleep(POLL)
+            await self._fresh_report()
+            return
         if adapter.motor_power() is not None:
             started = False
             idle_since: float | None = None
