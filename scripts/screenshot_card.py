@@ -28,15 +28,53 @@ SHOTS = (
     ("card-overview.png", BASE, "light", 900, "", None),
     ("card-overview-dark.png", BASE, "dark", 900, "", None),
     ("card-slit.png", LIVING, "light", 520, "", None),
+    ("card-view-summer.png", LIVING, "light", 520, "", None),
+    ("card-view-storm.png", LIVING, "light", 520, "", None),
+    ("card-view-night.png", LIVING, "dark", 520, "", None),
+    ("card-view-snow.png", LIVING, "light", 520, "", None),
 )
+# the moment of each shot (the card computes the season and the moon from it); default: a November midday
+TIMES = {
+    "card-view-summer.png": "2026-07-01T12:00:00Z",
+    "card-view-storm.png": "2026-10-20T11:00:00Z",
+    "card-view-night.png": "2026-11-24T17:30:00Z",
+    "card-view-snow.png": "2027-01-15T11:00:00Z",
+}
+OPEN = ("open", {"current_position": 100})
+STAND_OPEN = ("open", {"opening": 100})
 # per shot: states that differ from the example (the slit: bar on the sill, gaps open, not closed)
 OVERRIDES = {
+    "card-view-summer.png": {
+        "sensor.living_stand": STAND_OPEN,
+        "cover.living_shutter": OPEN,
+        "sensor.base_sun_factor": ("100", {"sun_azimuth": 175, "sun_elevation": 60, "weather": "sunny"}),
+    },
+    "card-view-storm.png": {
+        "sensor.living_stand": STAND_OPEN,
+        "cover.living_shutter": ("open", {"current_position": 100}),
+        "sensor.base_sun_factor": ("10", {"sun_azimuth": 165, "sun_elevation": 24, "weather": "rainy"}),
+        "binary_sensor.base_storm": ("on", {"wind": 55, "gust": 85}),
+        "sensor.living_reason": ("storm", {"target_position": 100, "max_position": 80, "language": None}),
+    },
+    "card-view-night.png": {  # the full moon rising in the east, seen through a south-east window
+        "cover.living_shutter": ("open", {"current_position": 70}),
+        "sensor.base_sun_factor": ("0", {"sun_azimuth": 245, "sun_elevation": -15, "weather": "clear-night"}),
+        "binary_sensor.living_sun_on_window": ("off", {"window_azimuth": 120, "window_tilt": 90}),
+        "sensor.living_reason": ("schedule", {"target_position": 70, "max_position": 80, "language": None}),
+        "sensor.living_phase": ("night", {}),
+    },
+    "card-view-snow.png": {
+        "sensor.living_stand": STAND_OPEN,
+        "cover.living_shutter": OPEN,
+        "sensor.base_sun_factor": ("5", {"sun_azimuth": 170, "sun_elevation": 14, "weather": "snowy"}),
+        "binary_sensor.base_storm": ("off", {"wind": 22, "gust": 35}),
+    },
     "card-slit.png": {
         "cover.living_shutter": ("open", {"current_position": 0}),
         "sensor.living_stand": ("slit", {}),
         "sensor.living_reason": ("schedule", {"target_position": 0, "max_position": 80, "language": None}),
         "sensor.living_phase": ("slit", {}),
-    }
+    },
 }
 
 
@@ -59,6 +97,7 @@ def hass_json() -> dict:
             "sleep_in": ("switch", s("off")),
             "manual_pause": ("binary_sensor", s("off")),
             "resume": ("button", s("unknown")),
+            "sun_on_window": ("binary_sensor", s("on", window_azimuth=180, window_tilt=90)),
         }),
         KITCHEN: ("Kitchen", {
             "shutter": ("cover", s("closed", current_position=0)),
@@ -73,7 +112,8 @@ def hass_json() -> dict:
             "automatic": ("switch", s("on")),
         }),
         BASE: ("House", {
-            "storm": ("binary_sensor", s("off")),
+            "sun_factor": ("sensor", s(70, sun_azimuth=190, sun_elevation=17, weather="partlycloudy")),
+            "storm": ("binary_sensor", s("off", wind=18, gust=30)),
             "frost": ("binary_sensor", s("off")),
             "sleep_in_all": ("switch", s("off")),
         }),
@@ -90,7 +130,7 @@ def hass_json() -> dict:
         "entities": entities,
         "devices": devices,
         "locale": {"language": "en"},
-        "config": {"time_zone": "Europe/Amsterdam"},
+        "config": {"time_zone": "Europe/Amsterdam", "latitude": 52.1, "longitude": 5.1},
     }
 
 
@@ -118,6 +158,7 @@ def main() -> None:
                     timezone_id="Europe/Amsterdam",
                 )
                 page.emulate_media(reduced_motion="reduce")
+                page.clock.set_fixed_time(TIMES.get(name, "2026-11-18T12:00:00Z"))
                 page.goto(
                     f"http://127.0.0.1:{port}/scripts/screenshots/harness.html"
                     f"?theme={theme}&width={width}&device={device}&lang={lang}"

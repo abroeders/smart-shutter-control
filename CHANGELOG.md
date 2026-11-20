@@ -6,6 +6,15 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Card: the view through the window. A cartoon landscape with the real light, weather (clouds, rain, snow,
+  fog, lightning), the sun and the moon with its phase at their place as seen through the window, leaves by
+  season, and trees that sway with the wind, harder in a storm. Fully closed nothing shows; otherwise through
+  the slots and below the bottom bar (#30).
+- Attributes for the card: `window_azimuth` and `window_tilt` on *Sun on the window*, `weather` on *Sun
+  factor*, `wind` and `gust` on *Storm* (#30).
+
 ## [2026.11.1] - 2026-11-20
 
 ### Fixed
