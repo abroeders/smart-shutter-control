@@ -55,7 +55,8 @@
           "storm": "Storm en vorst",
           "sun": "Zon",
           "schedule": "Schema",
-          "holidays": "Feestdagen"
+          "holidays": "Feestdagen",
+          "winter": "Winter"
         }
       },
       "storm": {
@@ -119,12 +120,15 @@
           "sleep_in_until": "Uitslapen tot",
           "manual_mode": "Na handbediening",
           "manual_duration": "Pauze na handbediening",
-          "storm_position": "Stand bij storm"
+          "storm_position": "Stand bij storm",
+          "winter": "Winterstand",
+          "winter_closed_below": "Winter: de hele dag dicht bij of onder"
         },
         "data_description": {
           "slit_module": "Alleen zonder kalibratie; met kalibratie is de spleetstand het gemeten punt waarop de onderlat loskomt.",
           "manual_duration": "Alleen bij 'Een tijd lang'.",
-          "sunrise_offset": "Alleen bij 'Niet vóór zonsopkomst'."
+          "sunrise_offset": "Alleen bij 'Niet vóór zonsopkomst'.",
+          "winter_closed_below": "Leeg: uit. Handbediening overrulet het."
         }
       },
       "holidays": {
@@ -150,6 +154,13 @@
           "holidays_disabled": "Aangevinkte feestdagen tellen elk jaar als gewone dag. De lijst toont de feestdagen van de gekozen agenda (nadat die één keer is opgeslagen).",
           "holidays_extra": "Eén datum per regel: 2026-12-24 (eenmalig) of 12-31 (elk jaar), eventueel gevolgd door een naam.",
           "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie."
+        }
+      },
+      "winter": {
+        "title": "Winter",
+        "description": "De winterstand is aan zolang de gemiddelde buitentemperatuur van de afgelopen 24 uur onder de grens ligt (met de keuzelijst Winterstand op auto).",
+        "data": {
+          "winter_limit": "Winter onder (gemiddelde 24 uur)"
         }
       }
     },
@@ -296,7 +307,9 @@
             "sleep_in_until": "Uitslapen tot",
             "manual_mode": "Na handbediening",
             "manual_duration": "Pauze na handbediening",
-            "storm_position": "Stand bij storm"
+            "storm_position": "Stand bij storm",
+            "winter": "Winterstand",
+            "winter_closed_below": "Winter: de hele dag dicht bij of onder"
           },
           "data_description": {
             "weekday_slit": "Standaardschema: {base_weekday_slit}",
@@ -317,7 +330,9 @@
             "sleep_in_until": "Standaardschema: {base_sleep_in_until}",
             "manual_mode": "Standaardschema: {base_manual_mode}",
             "manual_duration": "Standaardschema: {base_manual_duration}",
-            "storm_position": "Standaardschema: {base_storm_position}"
+            "storm_position": "Standaardschema: {base_storm_position}",
+            "winter": "Standaardschema: {base_winter}",
+            "winter_closed_below": "Standaardschema: {base_winter_closed_below}"
           }
         }
       },
@@ -382,7 +397,8 @@
           "storm": "Storm",
           "frost": "Vorst",
           "heat_limit": "Hittegrens",
-          "cold_limit": "Koudegrens"
+          "cold_limit": "Koudegrens",
+          "winter": "Winter"
         }
       },
       "next_action": {
@@ -435,11 +451,24 @@
       },
       "frost": {
         "name": "Vorst"
+      },
+      "winter": {
+        "name": "Winter"
       }
     },
     "button": {
       "resume": {
         "name": "Automaat hervatten"
+      }
+    },
+    "select": {
+      "winter_mode": {
+        "name": "Winterstand",
+        "state": {
+          "auto": "Automatisch",
+          "on": "Aan",
+          "off": "Uit"
+        }
       }
     }
   },
@@ -461,7 +490,8 @@
       "options": {
         "until_next_phase": "Pauze tot de volgende fase",
         "for_duration": "Een tijd lang pauze",
-        "ignore": "Negeren"
+        "ignore": "Negeren",
+        "inherit": "Overnemen"
       }
     },
     "weekday": {

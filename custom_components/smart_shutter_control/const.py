@@ -9,6 +9,7 @@ PLATFORMS = [
     Platform.BUTTON,
     Platform.COVER,
     Platform.NUMBER,
+    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
 ]
@@ -33,6 +34,7 @@ OPT_FROST_LIMIT = "frost_limit"  # °C
 OPT_FROST_RELEASE = "frost_release"  # min
 OPT_CLOSE_ABOVE = "close_above"  # °C, optional
 OPT_CLOSE_BELOW = "close_below"  # °C, optional
+OPT_WINTER_LIMIT = "winter_limit"  # °C, 24-hour mean below which it is winter (#7)
 OPT_SUNNY_THRESHOLD = "sunny_threshold"  # % of the clear-sky PV power
 OPT_MAX_INCIDENCE = "max_incidence"  # degrees
 OPT_HEAT_OUTDOOR = "heat_outdoor"  # °C
@@ -51,6 +53,7 @@ DEFAULT_OPTIONS = {
     OPT_STORM_RELEASE: 15,
     OPT_FROST_LIMIT: 0,
     OPT_FROST_RELEASE: 60,
+    OPT_WINTER_LIMIT: 12,
     OPT_SUNNY_THRESHOLD: 60,
     OPT_MAX_INCIDENCE: 85,
     OPT_HEAT_OUTDOOR: 22,

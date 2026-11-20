@@ -48,6 +48,8 @@ DEFAULT_SCHEDULE: dict[str, Any] = {
     "manual_mode": "until_next_phase",  # until_next_phase, for_duration, ignore
     "manual_duration": 120,  # min
     "storm_position": "nearest",  # nearest, open, closed (#6)
+    "winter": True,  # winter mode applies to this shutter (#7)
+    "winter_closed_below": -5,  # °C: in winter closed all day at or below this; None = off
 }
 
 

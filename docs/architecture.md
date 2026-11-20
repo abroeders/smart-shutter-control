@@ -633,3 +633,37 @@ sequenceDiagram
     S-->>SC: final 0 or 100
     Note over SC: a manual move during the storm → tick in 3 s → back to an end
 ```
+
+## 9. Winter mode (#7)
+
+Design: [`design/2026-11-20-winter.md`](design/2026-11-20-winter.md).
+
+```mermaid
+classDiagram
+    class OutdoorMean {
+        +samples list
+        +add(value, now)
+        +mean(now) float|None
+    }
+    class WinterDetector {
+        +limit float
+        +mode auto|on|off
+        +active bool
+        +update(mean) bool
+    }
+    class WinterRule {
+        +priority 50
+        +propose(ctx) Decision|None
+    }
+    class WinterModeSelect {
+        <<SelectEntity>>
+    }
+    BaseCoordinator o-- OutdoorMean : stored in RuntimeStore.globals
+    BaseCoordinator o-- WinterDetector
+    WinterModeSelect ..> WinterDetector : mode
+    ShutterController o-- WinterRule
+```
+
+`WinterRule` gives a target *closed* on a very cold day (below the manual pause, so a manual action
+overrides it) and, in the dusk phase, a cap at the current position so the dusk position never raises a
+closed shutter.
