@@ -45,6 +45,7 @@ class ReasonSensor(ShutterEntity, SensorEntity):
         return {
             "target_position": self.controller.decision.position,
             "max_position": self.controller.max_position,
+            "language": self.coordinator.language,
         }
 
 
@@ -63,9 +64,20 @@ class NextActionSensor(ShutterEntity, SensorEntity):
         change = self.controller.next_change()
         if change is None:
             return {}
-        phase = change.phase
-        position = "slit" if phase.value == "slit" else self.controller.schedule.target(phase)
-        return {"phase": phase.value, "position": position, "overrides": self.controller.overrides()}
+        following = self.controller.next_changes(3)[1:]
+        return {
+            "phase": change.phase.value,
+            "position": self.controller.target_of(change.phase),
+            "following": [
+                {
+                    "at": t.at.isoformat(),
+                    "phase": t.phase.value,
+                    "position": self.controller.target_of(t.phase),
+                }
+                for t in following
+            ],
+            "overrides": self.controller.overrides(),
+        }
 
 
 class CalibrationSensor(ShutterEntity, SensorEntity):

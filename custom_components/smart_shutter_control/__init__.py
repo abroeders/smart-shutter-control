@@ -2,14 +2,41 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
-from .const import DOMAIN, PLATFORMS
+from .const import CARD_FILE, CARD_URL, DOMAIN, PLATFORMS
 from .coordinator import BaseCoordinator
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 type ShutterConfigEntry = ConfigEntry[BaseCoordinator]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Serve the Lovelace card and load it on every dashboard (no manual resource needed)."""
+    await async_register_card(hass)
+    return True
+
+
+async def async_register_card(hass: HomeAssistant) -> bool:
+    """Register the card's static path and extra module URL; skipped without http or frontend (tests)."""
+    if getattr(hass, "http", None) is None or "frontend" not in hass.config.components:
+        return False
+    from homeassistant.components.frontend import add_extra_js_url
+    from homeassistant.components.http import StaticPathConfig
+
+    path = Path(__file__).parent / "frontend" / CARD_FILE
+    await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(path), True)])
+    version = (await async_get_integration(hass, DOMAIN)).version
+    add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ShutterConfigEntry) -> bool:

@@ -47,6 +47,7 @@ from .const import (
     DEFAULT_OPTIONS,
     DEFAULT_SHUTTER,
     DOMAIN,
+    LANGUAGES,
     OPT_CLOSE_ABOVE,
     OPT_CLOSE_BELOW,
     OPT_CLOSE_DELAY,
@@ -58,6 +59,7 @@ from .const import (
     OPT_HOLIDAYS_DISABLED,
     OPT_HOLIDAYS_EXCLUDED,
     OPT_HOLIDAYS_EXTRA,
+    OPT_LANGUAGE,
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
     OPT_SCHEDULE,
@@ -290,8 +292,19 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
-            step_id="init", menu_options=["schedule", "holidays", "sun", "storm", "winter"]
+            step_id="init", menu_options=["schedule", "holidays", "sun", "storm", "winter", "language"]
         )
+
+    async def async_step_language(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        if user_input is not None:
+            return self.async_create_entry(data={**current, **user_input})
+        schema = {
+            vol.Required(OPT_LANGUAGE): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=LANGUAGES, translation_key="language")
+            )
+        }
+        return self.async_show_form(step_id="language", data_schema=_with_defaults(schema, current))
 
     async def async_step_winter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}

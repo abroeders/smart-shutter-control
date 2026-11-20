@@ -35,6 +35,8 @@ OPT_FROST_RELEASE = "frost_release"  # min
 OPT_CLOSE_ABOVE = "close_above"  # °C, optional
 OPT_CLOSE_BELOW = "close_below"  # °C, optional
 OPT_WINTER_LIMIT = "winter_limit"  # °C, 24-hour mean below which it is winter (#7)
+OPT_LANGUAGE = "language"  # system, en, nl: card texts and entity names (#9)
+LANGUAGES = ["system", "en", "nl"]
 OPT_SUNNY_THRESHOLD = "sunny_threshold"  # % of the clear-sky PV power
 OPT_MAX_INCIDENCE = "max_incidence"  # degrees
 OPT_HEAT_OUTDOOR = "heat_outdoor"  # °C
@@ -54,6 +56,7 @@ DEFAULT_OPTIONS = {
     OPT_FROST_LIMIT: 0,
     OPT_FROST_RELEASE: 60,
     OPT_WINTER_LIMIT: 12,
+    OPT_LANGUAGE: "system",
     OPT_SUNNY_THRESHOLD: 60,
     OPT_MAX_INCIDENCE: 85,
     OPT_HEAT_OUTDOOR: 22,
@@ -90,3 +93,6 @@ DEFAULT_SHUTTER = {
 TICK_SECONDS = 60
 INPUT_DEBOUNCE = 5.0  # s: a burst of input changes gives one evaluation
 STORE_VERSION = 1
+
+CARD_FILE = "smart-shutter-card.js"
+CARD_URL = f"/{DOMAIN}/{CARD_FILE}"
