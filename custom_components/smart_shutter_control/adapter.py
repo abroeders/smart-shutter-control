@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -39,6 +40,8 @@ class CoverAdapter:
         self.entity_id = entity_id
         self.last_command: Command | None = None
         self.power_entity = power_entity or self._find_power_sensor()
+        # called before each command: (module position, position before, automatic) — for #5
+        self.on_send: Callable[[int, int | None, bool], None] | None = None
 
     def _find_power_sensor(self) -> str | None:
         """A power sensor on the same device as the cover (shutter modules usually measure the motor)."""
@@ -102,6 +105,8 @@ class CoverAdapter:
         return int(state.attributes.get("supported_features", 0)) if state else 0
 
     async def async_move(self, position: int, automatic: bool = True) -> bool:
+        if self.on_send is not None:
+            self.on_send(position, self.module_position(), automatic)
         try:
             await self.hass.services.async_call(
                 COVER_DOMAIN,

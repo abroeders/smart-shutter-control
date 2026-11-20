@@ -9,12 +9,15 @@ from datetime import datetime, timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_state_change_event,
+    async_track_time_change,
     async_track_time_interval,
 )
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_OUTDOOR,
@@ -29,15 +32,21 @@ from .const import (
     OPT_CLOSE_DELAY,
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
+    OPT_HOLIDAY_CALENDAR,
+    OPT_HOLIDAYS_EXCLUDED,
+    OPT_HOLIDAYS_EXTRA,
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
+    OPT_SCHEDULE,
     OPT_SUNNY_THRESHOLD,
+    OPT_WEEKEND_DAYS,
     SUBENTRY_SHUTTER,
     TICK_SECONDS,
 )
 from .controller import ShutterController
 from .core.heat import SunSettings
 from .core.model import Inputs
+from .core.schedule import HolidayCalendar, parse_holidays, weekend_set
 from .core.sun import SunPosition
 from .core.sunny import ClearSkyReference, SunnyDetector
 from .storage import RuntimeStore
@@ -57,6 +66,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.shutters: dict[str, ShutterController] = {}
         self.inputs = Inputs(now=time.time())
         self.sunny = SunnyDetector()
+        self.calendar = self._holiday_calendar()
         self._unsubs: list = []
         self._pending = None
 
@@ -78,18 +88,27 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             pv_peak_kw=self.sources.get(CONF_PV_PEAK),
         )
         sun = self.sun_settings()
+        base_schedule = dict(self.options.get(OPT_SCHEDULE) or {})
         for subentry in self.entry.subentries.values():
             if subentry.subentry_type == SUBENTRY_SHUTTER:
                 self.shutters[subentry.subentry_id] = ShutterController(
-                    self.hass, subentry, self.store, sun=sun
+                    self.hass,
+                    subentry,
+                    self.store,
+                    sun=sun,
+                    base_schedule=base_schedule,
+                    calendar=self.calendar,
                 )
         self.store.forget(set(self.shutters))
-        covers = [s.config.cover for s in self.shutters.values()]
+        watched = [s.config.cover for s in self.shutters.values()]
+        watched += [s.adapter.power_entity for s in self.shutters.values() if s.adapter.power_entity]
         inputs = [e for e in self._input_entities() if e]
+        await self.async_refresh_holidays()
         self._unsubs += [
             async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=TICK_SECONDS)),
-            async_track_state_change_event(self.hass, covers, self._on_cover),
+            async_track_state_change_event(self.hass, watched, self._on_cover),
             async_track_state_change_event(self.hass, inputs, self._on_input),
+            async_track_time_change(self.hass, self._on_midnight, hour=0, minute=5, second=0),
         ]
         self.data = None
 
@@ -149,10 +168,56 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     async def _on_tick(self, _now: datetime) -> None:
         await self.async_tick()
 
+    def _holiday_calendar(self) -> HolidayCalendar:
+        extra, _ = parse_holidays(self.options.get(OPT_HOLIDAYS_EXTRA))
+        excluded, _ = parse_holidays(self.options.get(OPT_HOLIDAYS_EXCLUDED))
+        return HolidayCalendar(weekend_set(self.options.get(OPT_WEEKEND_DAYS)), extra, excluded)
+
+    async def async_refresh_holidays(self) -> None:
+        """Read the public holidays of the coming 400 days from the calendar entity, if one is set."""
+        entity_id = self.options.get(OPT_HOLIDAY_CALENDAR)
+        if not entity_id:
+            self.calendar.from_calendar = {}
+            return
+        start = dt_util.now()
+        try:
+            response = await self.hass.services.async_call(
+                "calendar",
+                "get_events",
+                {
+                    "entity_id": entity_id,
+                    "start_date_time": start.isoformat(),
+                    "end_date_time": (start + timedelta(days=400)).isoformat(),
+                },
+                blocking=True,
+                return_response=True,
+            )
+        except (HomeAssistantError, ValueError) as err:
+            _LOGGER.warning("Could not read holidays from %s: %s", entity_id, err)
+            return
+        days = {}
+        for event in (response or {}).get(entity_id, {}).get("events", []):
+            day = dt_util.parse_date(str(event.get("start", ""))[:10])
+            if day is not None:
+                days[day] = str(event.get("summary") or "")
+        self.calendar.from_calendar = days
+
+    async def _on_midnight(self, _now: datetime) -> None:
+        await self.async_refresh_holidays()
+
+    def set_sleep_in_all(self, on: bool) -> None:
+        for controller in self.shutters.values():
+            controller.set_sleep_in(on)
+
+    @property
+    def sleep_in_all(self) -> bool:
+        return bool(self.shutters) and all(c.sleep_in.armed for c in self.shutters.values())
+
     @callback
     def _on_cover(self, event: Event[EventStateChangedData]) -> None:
+        entity_id = event.data["entity_id"]
         for controller in self.shutters.values():
-            if controller.config.cover == event.data["entity_id"]:
+            if entity_id in (controller.config.cover, controller.adapter.power_entity):
                 controller.observe()
         self.async_update_listeners()  # positions shown by our entities
 

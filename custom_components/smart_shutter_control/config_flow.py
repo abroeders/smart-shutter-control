@@ -36,6 +36,7 @@ from .const import (
     CONF_PV_PEAK,
     CONF_PV_POWER,
     CONF_ROOM_TEMPERATURE,
+    CONF_SCHEDULE,
     CONF_SHADING_POSITION,
     CONF_TILT,
     CONF_WEATHER,
@@ -48,13 +49,19 @@ from .const import (
     OPT_CLOSE_DELAY,
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
+    OPT_HOLIDAY_CALENDAR,
+    OPT_HOLIDAYS_EXCLUDED,
+    OPT_HOLIDAYS_EXTRA,
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
+    OPT_SCHEDULE,
     OPT_STORM_LIMIT,
     OPT_SUNNY_THRESHOLD,
+    OPT_WEEKEND_DAYS,
     SUBENTRY_SHUTTER,
 )
 from .core.model import Direction
+from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
 
 
 def _sensor(device_class: str | None = None, multiple: bool = False) -> selector.EntitySelector:
@@ -84,6 +91,48 @@ def _with_defaults(schema: dict, values: dict[str, Any]) -> vol.Schema:
                 key = vol.Optional(name, description={"suggested_value": values[name]})
         out[key] = validator
     return vol.Schema(out)
+
+
+def _time() -> selector.TimeSelector:
+    return selector.TimeSelector()
+
+
+def _phase_switch(base: bool) -> selector.Selector:
+    """On/off in the base schedule; inherit/on/off for a shutter."""
+    if base:
+        return selector.BooleanSelector()
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(options=["inherit", "on", "off"], translation_key="phase_switch")
+    )
+
+
+def schedule_fields(base: bool) -> dict:
+    """The schedule settings; for a shutter every field is optional (empty = the base value)."""
+    key = vol.Required if base else vol.Optional
+    return {
+        key("weekday_slit"): _time(),
+        key("weekday_open"): _time(),
+        key("weekend_slit"): _time(),
+        key("weekend_open"): _time(),
+        key("slit_phase"): _phase_switch(base),
+        key("not_before_sunrise"): _phase_switch(base),
+        key("sunrise_offset"): _number(-120, 120, 5, "min"),
+        key("dusk_phase"): _phase_switch(base),
+        key("dusk_offset"): _number(-120, 120, 5, "min"),
+        key("dusk_position"): _number(0, 100, 5, "%"),
+        key("close_offset"): _number(-120, 180, 5, "min"),
+        vol.Optional("close_earliest"): _time(),
+        vol.Optional("close_latest"): _time(),
+        key("open_position"): _number(0, 100, 5, "%"),
+        key("slit_module"): _number(0, 60, 1, "%"),
+        key("sleep_in_until"): _time(),
+        key("manual_mode"): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=["until_next_phase", "for_duration", "ignore"], translation_key="manual_mode"
+            )
+        ),
+        key("manual_duration"): _number(5, 1440, 5, "min"),
+    }
 
 
 SOURCES = {
@@ -141,7 +190,74 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
     """One page per subject; later issues add their pages to the menu."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="init", menu_options=["sun", "storm"])
+        return self.async_show_menu(step_id="init", menu_options=["schedule", "holidays", "sun", "storm"])
+
+    async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        base = merged(current.get(OPT_SCHEDULE), None)
+        if user_input is not None:
+            schedule = {k: user_input.get(k) for k in DEFAULT_SCHEDULE}
+            return self.async_create_entry(data={**current, OPT_SCHEDULE: schedule})
+        return self.async_show_form(
+            step_id="schedule", data_schema=_with_defaults(schedule_fields(base=True), base)
+        )
+
+    async def async_step_holidays(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        errors: dict[str, str] = {}
+        bad: list[int] = []
+        if user_input is not None:
+            for key in (OPT_HOLIDAYS_EXTRA, OPT_HOLIDAYS_EXCLUDED):
+                _, wrong = parse_holidays(user_input.get(key))
+                if wrong:
+                    errors[key] = "bad_dates"
+                    bad += wrong
+            if not errors:
+                data = {**current, **user_input}
+                for key in (OPT_HOLIDAY_CALENDAR, OPT_HOLIDAYS_EXTRA, OPT_HOLIDAYS_EXCLUDED):
+                    data[key] = user_input.get(key)  # cleared fields stay cleared
+                return self.async_create_entry(data=data)
+        values = {OPT_WEEKEND_DAYS: ["sat", "sun"], **current, **(user_input or {})}
+        schema = {
+            vol.Optional(OPT_HOLIDAY_CALENDAR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="calendar")
+            ),
+            vol.Required(OPT_WEEKEND_DAYS): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+                    multiple=True,
+                    translation_key="weekday",
+                )
+            ),
+            vol.Optional(OPT_HOLIDAYS_EXTRA): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+            vol.Optional(OPT_HOLIDAYS_EXCLUDED): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+        }
+        return self.async_show_form(
+            step_id="holidays",
+            data_schema=_with_defaults(schema, values),
+            errors=errors,
+            description_placeholders={"lines": ", ".join(map(str, bad)) or "–", "list": self._holiday_list()},
+        )
+
+    def _holiday_list(self) -> str:
+        """This year's holidays as the schedules see them now."""
+        coordinator = getattr(self.config_entry, "runtime_data", None)
+        calendar: HolidayCalendar | None = getattr(coordinator, "calendar", None)
+        if calendar is None:
+            opts = self.config_entry.options
+            calendar = HolidayCalendar(
+                weekend_set(opts.get(OPT_WEEKEND_DAYS)),
+                parse_holidays(opts.get(OPT_HOLIDAYS_EXTRA))[0],
+                parse_holidays(opts.get(OPT_HOLIDAYS_EXCLUDED))[0],
+            )
+        from homeassistant.util import dt as dt_util
+
+        days = calendar.listing(dt_util.now().year)
+        return "\n".join(f"{d.isoformat()} {name}".strip() for d, name in days) or "–"
 
     async def async_step_sun(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
@@ -225,7 +341,8 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         return self.async_show_menu(
-            step_id="reconfigure", menu_options=["settings", "calibrate", "add_point"]
+            step_id="reconfigure",
+            menu_options=["settings", "schedule", "schedule_reset", "calibrate", "add_point"],
         )
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
@@ -244,6 +361,31 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         values = {**DEFAULT_SHUTTER, **dict(subentry.data), **(user_input or {})}
         return self.async_show_form(
             step_id="settings", data_schema=_with_defaults(SHUTTER, values), errors=errors
+        )
+
+    # --- schedule overrides -----------------------------------------------------------------------
+    def _base_schedule(self) -> dict[str, Any]:
+        return merged(self._get_entry().options.get(OPT_SCHEDULE), None)
+
+    async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            overrides = {k: v for k, v in user_input.items() if v not in (None, "", "inherit")}
+            return self.async_update_and_abort(
+                self._get_entry(), subentry, data_updates={CONF_SCHEDULE: overrides}
+            )
+        overrides = dict(subentry.data.get(CONF_SCHEDULE) or {})
+        base = self._base_schedule()
+        summary = ", ".join(f"{k} {v}" for k, v in base.items() if v is not None)
+        return self.async_show_form(
+            step_id="schedule",
+            data_schema=_with_defaults(schedule_fields(base=False), overrides),
+            description_placeholders={"base": summary},
+        )
+
+    async def async_step_schedule_reset(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        return self.async_update_and_abort(
+            self._get_entry(), self._get_reconfigure_subentry(), data_updates={CONF_SCHEDULE: {}}
         )
 
     # --- calibration assistant ------------------------------------------------------------------

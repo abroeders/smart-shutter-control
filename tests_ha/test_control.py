@@ -28,13 +28,16 @@ def entity(hass: HomeAssistant, entry, domain: str, key: str) -> str:
     )
 
 
-async def test_no_rules_means_idle_and_no_move(hass: HomeAssistant, covers) -> None:
+async def test_schedule_leaves_an_open_shutter_by_day(hass: HomeAssistant, covers, freezer) -> None:
+    freezer.move_to("2026-11-18 12:00:00+01:00")  # a Wednesday at noon: the day phase wants it open
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
     entry = await setup_base(hass)
     calls = async_mock_service(hass, "cover", "set_cover_position")
     await add_shutter(hass, entry, LIVING)
     await entry.runtime_data.async_tick()
-    assert not calls
-    assert hass.states.get(entity(hass, entry, "sensor", "reason")).state == "idle"
+    assert not calls  # already open
+    assert hass.states.get(entity(hass, entry, "sensor", "reason")).state == "schedule"
+    assert hass.states.get(entity(hass, entry, "sensor", "phase")).state == "day"
 
 
 async def test_moves_limited_and_only_when_automatic(hass: HomeAssistant, covers) -> None:

@@ -9,16 +9,21 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .entity import ShutterEntity, add_per_shutter
+from .entity import BaseEntity, ShutterEntity, add_per_shutter
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
+    async_add_entities([SleepInAllSwitch(entry.runtime_data, "sleep_in_all")])
     add_per_shutter(
         entry.runtime_data,
         async_add_entities,
-        lambda c, s: [AutomaticSwitch(c, s, "automatic"), HeatProtectionSwitch(c, s, "heat_protection")],
+        lambda c, s: [
+            AutomaticSwitch(c, s, "automatic"),
+            HeatProtectionSwitch(c, s, "heat_protection"),
+            SleepInSwitch(c, s, "sleep_in"),
+        ],
     )
 
 
@@ -51,4 +56,36 @@ class HeatProtectionSwitch(ShutterEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self.controller.set_heat_protection(False)
+        await self.coordinator.async_tick()
+
+
+class SleepInSwitch(ShutterEntity, SwitchEntity):
+    """Keep the shutter closed next morning until it is operated by hand or the sleep-in end time."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.sleep_in.armed
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        self.controller.set_sleep_in(True)
+        await self.coordinator.async_tick()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        self.controller.set_sleep_in(False)
+        await self.coordinator.async_tick()
+
+
+class SleepInAllSwitch(BaseEntity, SwitchEntity):
+    """Sleep-in for every shutter."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.sleep_in_all
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        self.coordinator.set_sleep_in_all(True)
+        await self.coordinator.async_tick()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        self.coordinator.set_sleep_in_all(False)
         await self.coordinator.async_tick()

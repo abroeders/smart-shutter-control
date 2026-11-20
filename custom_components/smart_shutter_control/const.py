@@ -4,7 +4,14 @@ from homeassistant.const import Platform
 
 DOMAIN = "smart_shutter_control"
 DEFAULT_NAME = "Smart Shutter Control"
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.COVER, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.COVER,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.SWITCH,
+]
 
 SUBENTRY_SHUTTER = "shutter"
 
@@ -25,6 +32,11 @@ OPT_HEAT_OUTDOOR = "heat_outdoor"  # °C
 OPT_HEAT_ROOM = "heat_room"  # °C
 OPT_CLOSE_DELAY = "close_delay"  # min
 OPT_OPEN_DELAY = "open_delay"  # min
+OPT_SCHEDULE = "schedule"  # the base schedule (#4), a dict
+OPT_HOLIDAY_CALENDAR = "holiday_calendar"
+OPT_HOLIDAYS_EXTRA = "holidays_extra"
+OPT_HOLIDAYS_EXCLUDED = "holidays_excluded"
+OPT_WEEKEND_DAYS = "weekend_days"
 DEFAULT_OPTIONS = {
     OPT_STORM_LIMIT: 60,
     OPT_SUNNY_THRESHOLD: 60,
@@ -45,6 +57,7 @@ CONF_ROOM_TEMPERATURE = "room_temperature"
 CONF_MOTOR_POWER = "motor_power"  # optional; found on the cover's device when left empty
 CONF_MAX_POSITION = "max_position"
 CONF_CALIBRATION = "calibration"
+CONF_SCHEDULE = "schedule"  # per-shutter overrides of the base schedule (#4)
 CONF_HEAT_PROTECTION = "heat_protection"
 CONF_SHADING_POSITION = "shading_position"
 CONF_HEAT_OUTDOOR = "heat_outdoor"  # optional override of the base controller's value
