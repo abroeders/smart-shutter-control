@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-20
+
 ### Added
 
 - Number *Opening* per shutter: shows the real (calibrated) opening of the window and moves the shutter to
@@ -64,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/abroeders/smart-shutter-control/releases/tag/v0.1.0
