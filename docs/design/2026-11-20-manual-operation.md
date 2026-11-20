@@ -73,8 +73,11 @@ Behaviour per shutter, with a base value in the base controller (inherited, over
   - A manual action that ends exactly at that position starts no pause at all.
   - When no rule wants a position (idle), there is nothing to match and the pause runs its normal course.
 - **Sleep-in ends** on a manual action (#4).
-- **Resume:** a button *Resume automatic control* per shutter ends the pause at once; turning automatic
-  control off and on also ends it.
+- **Resume:** a button *Resume automatic control* per shutter ends the pause and **moves the shutter at
+  once** to the position automatic control wants (evaluated right away, not at the next phase change).
+  Turning the switch *Automatic control* on does the same. When the pause ends by itself (time or next
+  phase), the shutter also moves to the wanted position straight away. When no rule wants a position
+  (idle), it stays where it is.
 - **After a restart:** the pause and its end are stored with the runtime state and still apply.
 
 ## 4. Entities
@@ -132,6 +135,8 @@ classDiagram
   command, a command through the integration's own entities.
 - Without a power sensor: arrival by the report, the travel time limit.
 - Pause modes: until the next phase, for a duration, ignore; resume button; automatic off/on; restart.
+- Resume button and switching automatic control on move the shutter at once to the wanted position (also
+  in the middle of a phase); nothing moves when idle.
 - Resume by hand: a manual move to the wanted position (also within 2 %) ends the pause; one to another
   position does not; a manual move that ends at the wanted position starts no pause; no match while idle.
 - Priorities: safety still acts during a pause; heat protection and the schedule do not.
