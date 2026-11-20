@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-20
+
 ### Added
 
 - Repository scaffold: HACS integration with a minimal config flow, brand icons, CI (#1).
@@ -14,3 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per shutter: a shutter entity with its (later calibrated) position, a switch for automatic control, the
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
+
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/abroeders/smart-shutter-control/releases/tag/v0.1.0
