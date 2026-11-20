@@ -10,14 +10,19 @@ from .const import (
     CONF_AZIMUTH,
     CONF_CALIBRATION,
     CONF_COVER,
+    CONF_HEAT_OUTDOOR,
+    CONF_HEAT_PROTECTION,
+    CONF_HEAT_ROOM,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
     CONF_MIN_ELEVATION,
     CONF_ROOM_TEMPERATURE,
+    CONF_SHADING_POSITION,
     CONF_TILT,
     DEFAULT_SHUTTER,
 )
 from .core.calibration import Calibration, DirectionTracker, RollerCalibration
+from .core.heat import HeatProtectionRule, SunSettings
 from .core.limits import PositionLimiter
 from .core.model import Decision, Direction, Inputs, Reason, ShutterConfig, ShutterContext
 from .core.rules import RuleChain
@@ -25,6 +30,8 @@ from .storage import RuntimeStore
 
 KEY_AUTOMATIC = "automatic"
 KEY_MAX_POSITION = "max_position"
+KEY_HEAT_PROTECTION = "heat_protection"
+KEY_SHADING_POSITION = "shading_position"
 
 
 def shutter_config(data: dict) -> ShutterConfig:
@@ -47,14 +54,29 @@ class ShutterController:
         store: RuntimeStore,
         chain: RuleChain | None = None,
         calibration: Calibration | None = None,
+        sun: SunSettings | None = None,
     ) -> None:
+        self.hass = hass
         self.id = subentry.subentry_id
         self.title = subentry.title
         self.subentry_data = dict(subentry.data)
         self.config = shutter_config(dict(subentry.data))
         self.default_max = int(subentry.data.get(CONF_MAX_POSITION, DEFAULT_SHUTTER[CONF_MAX_POSITION]))
         self.store = store
-        self.chain = chain or RuleChain()
+        sun = sun or SunSettings()
+        overrides = {
+            "heat_outdoor": subentry.data.get(CONF_HEAT_OUTDOOR),
+            "heat_room": subentry.data.get(CONF_HEAT_ROOM),
+        }
+        sun = SunSettings(**{**sun.__dict__, **{k: float(v) for k, v in overrides.items() if v is not None}})
+        self.heat_rule = HeatProtectionRule(sun)
+        self.chain = chain or RuleChain([self.heat_rule])
+        self.default_heat = bool(
+            subentry.data.get(CONF_HEAT_PROTECTION, DEFAULT_SHUTTER[CONF_HEAT_PROTECTION])
+        )
+        self.default_shading = int(
+            subentry.data.get(CONF_SHADING_POSITION, DEFAULT_SHUTTER[CONF_SHADING_POSITION])
+        )
         self.limiter = PositionLimiter()
         self.calibration: Calibration = calibration or RollerCalibration.from_data(
             subentry.data.get(CONF_CALIBRATION)
@@ -79,6 +101,28 @@ class ShutterController:
 
     def set_max_position(self, value: int) -> None:
         self.store.set(self.id, KEY_MAX_POSITION, int(value))
+
+    @property
+    def heat_protection(self) -> bool:
+        return bool(self.store.get(self.id, KEY_HEAT_PROTECTION, self.default_heat))
+
+    def set_heat_protection(self, on: bool) -> None:
+        self.store.set(self.id, KEY_HEAT_PROTECTION, on)
+
+    @property
+    def shading_position(self) -> int:
+        return int(self.store.get(self.id, KEY_SHADING_POSITION, self.default_shading))
+
+    def set_shading_position(self, value: int) -> None:
+        self.store.set(self.id, KEY_SHADING_POSITION, int(value))
+
+    def room_temperature(self) -> float | None:
+        entity_id = self.config.room_temperature
+        state = self.hass.states.get(entity_id) if entity_id else None
+        try:
+            return float(state.state) if state else None
+        except ValueError:
+            return None
 
     # --- position ---------------------------------------------------------------------------------
     def observe(self) -> None:
@@ -111,7 +155,15 @@ class ShutterController:
         if not self.automatic or self.paused:
             self.decision = Decision(None, Reason.OFF if not self.automatic else Reason.CALIBRATING)
             return self.decision
-        ctx = ShutterContext(self.config, inputs, self.position(), self.max_position)
+        ctx = ShutterContext(
+            self.config,
+            inputs,
+            self.position(),
+            self.max_position,
+            room=self.room_temperature(),
+            heat_protection=self.heat_protection,
+            shading_position=self.shading_position,
+        )
         decision = self.chain.decide(ctx)
         if decision.position is not None:
             target = self.limiter.limit(decision.position, self.max_position, storm)

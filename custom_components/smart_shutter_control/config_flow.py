@@ -24,6 +24,9 @@ from .const import (
     CONF_AZIMUTH,
     CONF_CALIBRATION,
     CONF_COVER,
+    CONF_HEAT_OUTDOOR,
+    CONF_HEAT_PROTECTION,
+    CONF_HEAT_ROOM,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
     CONF_MIN_ELEVATION,
@@ -32,6 +35,7 @@ from .const import (
     CONF_PV_PEAK,
     CONF_PV_POWER,
     CONF_ROOM_TEMPERATURE,
+    CONF_SHADING_POSITION,
     CONF_TILT,
     CONF_WEATHER,
     CONF_WIND_GUST,
@@ -40,7 +44,13 @@ from .const import (
     DEFAULT_OPTIONS,
     DEFAULT_SHUTTER,
     DOMAIN,
+    OPT_CLOSE_DELAY,
+    OPT_HEAT_OUTDOOR,
+    OPT_HEAT_ROOM,
+    OPT_MAX_INCIDENCE,
+    OPT_OPEN_DELAY,
     OPT_STORM_LIMIT,
+    OPT_SUNNY_THRESHOLD,
     SUBENTRY_SHUTTER,
 )
 from .core.model import Direction
@@ -130,7 +140,21 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
     """One page per subject; later issues add their pages to the menu."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="init", menu_options=["storm"])
+        return self.async_show_menu(step_id="init", menu_options=["sun", "storm"])
+
+    async def async_step_sun(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        if user_input is not None:
+            return self.async_create_entry(data={**current, **user_input})
+        schema = {
+            vol.Required(OPT_SUNNY_THRESHOLD): _number(10, 100, 5, "%"),
+            vol.Required(OPT_MAX_INCIDENCE): _number(30, 90, 1, "°"),
+            vol.Required(OPT_HEAT_OUTDOOR): _number(-10, 40, 0.5, "°C"),
+            vol.Required(OPT_HEAT_ROOM): _number(10, 35, 0.5, "°C"),
+            vol.Required(OPT_CLOSE_DELAY): _number(0, 60, 1, "min"),
+            vol.Required(OPT_OPEN_DELAY): _number(0, 120, 1, "min"),
+        }
+        return self.async_show_form(step_id="sun", data_schema=_with_defaults(schema, current))
 
     async def async_step_storm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
@@ -149,6 +173,10 @@ SHUTTER = {
     vol.Required(CONF_MAX_ELEVATION): _number(0, 90, 1, "°"),
     vol.Optional(CONF_ROOM_TEMPERATURE): _sensor("temperature"),
     vol.Required(CONF_MAX_POSITION): _number(0, 100, 5, "%"),
+    vol.Required(CONF_HEAT_PROTECTION): selector.BooleanSelector(),
+    vol.Required(CONF_SHADING_POSITION): _number(0, 100, 5, "%"),
+    vol.Optional(CONF_HEAT_OUTDOOR): _number(-10, 40, 0.5, "°C"),
+    vol.Optional(CONF_HEAT_ROOM): _number(10, 35, 0.5, "°C"),
 }
 
 

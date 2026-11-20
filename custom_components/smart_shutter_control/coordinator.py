@@ -18,17 +18,28 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_OUTDOOR,
+    CONF_PV_PEAK,
     CONF_PV_POWER,
+    CONF_WEATHER,
     CONF_WIND_GUST,
     CONF_WIND_SPEED,
     DEFAULT_OPTIONS,
     DOMAIN,
     INPUT_DEBOUNCE,
+    OPT_CLOSE_DELAY,
+    OPT_HEAT_OUTDOOR,
+    OPT_HEAT_ROOM,
+    OPT_MAX_INCIDENCE,
+    OPT_OPEN_DELAY,
+    OPT_SUNNY_THRESHOLD,
     SUBENTRY_SHUTTER,
     TICK_SECONDS,
 )
 from .controller import ShutterController
+from .core.heat import SunSettings
 from .core.model import Inputs
+from .core.sun import SunPosition
+from .core.sunny import ClearSkyReference, SunnyDetector
 from .storage import RuntimeStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,14 +56,33 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.store = RuntimeStore(hass, entry.entry_id)
         self.shutters: dict[str, ShutterController] = {}
         self.inputs = Inputs(now=time.time())
+        self.sunny = SunnyDetector()
         self._unsubs: list = []
         self._pending = None
 
+    def sun_settings(self) -> SunSettings:
+        o = self.options
+        return SunSettings(
+            max_incidence=float(o[OPT_MAX_INCIDENCE]),
+            heat_outdoor=float(o[OPT_HEAT_OUTDOOR]),
+            heat_room=float(o[OPT_HEAT_ROOM]),
+            close_delay=float(o[OPT_CLOSE_DELAY]) * 60,
+            open_delay=float(o[OPT_OPEN_DELAY]) * 60,
+        )
+
     async def async_start(self) -> None:
         await self.store.async_load()
+        self.sunny = SunnyDetector(
+            reference=ClearSkyReference.from_dict(self.store.globals.get("clear_sky")),
+            threshold=float(self.options[OPT_SUNNY_THRESHOLD]) / 100,
+            pv_peak_kw=self.sources.get(CONF_PV_PEAK),
+        )
+        sun = self.sun_settings()
         for subentry in self.entry.subentries.values():
             if subentry.subentry_type == SUBENTRY_SHUTTER:
-                self.shutters[subentry.subentry_id] = ShutterController(self.hass, subentry, self.store)
+                self.shutters[subentry.subentry_id] = ShutterController(
+                    self.hass, subentry, self.store, sun=sun
+                )
         self.store.forget(set(self.shutters))
         covers = [s.config.cover for s in self.shutters.values()]
         inputs = [e for e in self._input_entities() if e]
@@ -92,8 +122,18 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     def read_inputs(self) -> Inputs:
         pv_values = [self._number(e) for e in self.sources.get(CONF_PV_POWER) or []]
         known = [v for v in pv_values if v is not None]
+        now = time.time()
+        sun = SunPosition.at(self.hass.config.latitude, self.hass.config.longitude, now)
+        weather = self.hass.states.get(self.sources[CONF_WEATHER]) if self.sources.get(CONF_WEATHER) else None
+        pv = sum(known) if known else None
+        sunny = self.sunny.update(sun, pv, weather.state if weather else None, now)
+        if pv is not None:
+            self.store.set_global("clear_sky", self.sunny.reference.to_dict())
         return Inputs(
-            now=time.time(),
+            now=now,
+            sun=sun,
+            sunny=sunny,
+            sun_factor=self.sunny.factor,
             outdoor=self._number(self.sources.get(CONF_OUTDOOR)),
             pv_power=sum(known) if known else None,
             wind=self._number(self.sources.get(CONF_WIND_SPEED)),

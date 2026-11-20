@@ -24,7 +24,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShutterConfigEntry) -> b
     coordinator = BaseCoordinator(hass, entry)
     await coordinator.async_start()
     entry.runtime_data = coordinator
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except Exception:
+        await coordinator.async_stop()  # no timers left behind when the setup fails
+        raise
     entry.async_on_unload(entry.add_update_listener(_async_reload))
     await coordinator.async_tick()
     return True

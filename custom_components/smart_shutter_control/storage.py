@@ -10,6 +10,7 @@ from homeassistant.helpers.storage import Store
 from .const import DOMAIN, STORE_VERSION
 
 SAVE_DELAY = 5.0  # s
+GLOBAL_SAVE_DELAY = 300.0  # s: learned data changes every tick; writing it every few minutes is enough
 
 
 class RuntimeStore:
@@ -18,16 +19,27 @@ class RuntimeStore:
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
         self._store: Store[dict[str, Any]] = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry_id}")
         self.data: dict[str, dict[str, Any]] = {}
+        self.globals: dict[str, Any] = {}
 
     async def async_load(self) -> None:
-        self.data = (await self._store.async_load() or {}).get("shutters", {})
+        stored = await self._store.async_load() or {}
+        self.data = stored.get("shutters", {})
+        self.globals = stored.get("globals", {})
+
+    def _payload(self) -> dict[str, Any]:
+        return {"shutters": self.data, "globals": self.globals}
+
+    def set_global(self, key: str, value: Any) -> None:
+        """Base controller data such as the learned clear-sky reference."""
+        self.globals[key] = value
+        self._store.async_delay_save(self._payload, GLOBAL_SAVE_DELAY)
 
     def get(self, shutter_id: str, key: str, default: Any = None) -> Any:
         return self.data.get(shutter_id, {}).get(key, default)
 
     def set(self, shutter_id: str, key: str, value: Any) -> None:
         self.data.setdefault(shutter_id, {})[key] = value
-        self._store.async_delay_save(lambda: {"shutters": self.data}, SAVE_DELAY)
+        self._store.async_delay_save(self._payload, SAVE_DELAY)
 
     def forget(self, keep: set[str]) -> None:
         """Drop the state of shutters that no longer exist."""
