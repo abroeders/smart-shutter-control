@@ -6,15 +6,20 @@ import asyncio
 import time
 from dataclasses import dataclass, field
 
+from homeassistant.util import dt as dt_util
+
 from .controller import ShutterController
 from .core.calibration import RollerCalibration
 from .core.model import Direction
 
-POLL = 0.5  # s between position checks
-STABLE = 3.0  # s without a position change: the shutter has stopped
-MIN_RUN = 2.0  # s after a command before a stop counts (the module may report late)
+POLL = 0.5  # s between checks
+RUNNING_W = 5.0  # motor power above this: the motor runs
+START_WAIT = 6.0  # s for the motor to start after a command
+IDLE = 2.0  # s of motor power below RUNNING_W: the motor has stopped
+REPORT_WAIT = 30.0  # s after the motor stopped for a fresh position report (modules report up to ~20 s late)
+STABLE = 12.0  # without a power sensor: s without a position change (modules report rarely while moving)
 END_SETTLE = 5.0  # s extra after an end position: the module runs on to its limit switch
-RETRIES = 2  # times a command is sent again when the shutter stopped short of its target
+RETRIES = 2  # times a command is sent again when the shutter stopped short of an intermediate target
 MAX_WAIT = 180.0  # s per attempt before the assistant goes on anyway
 LIFT_STEP = 2  # % module position per step while looking for the lift point
 LIFT_MAX = 40  # % module position: stop looking beyond this
@@ -123,27 +128,87 @@ class CalibrationSession:
 
     # --- moving ---------------------------------------------------------------------------------
     async def move(self, module: int) -> None:
-        """Move with the module's own positions (no calibration, no limits) and wait until it stops.
+        """Move with the module's own positions (no calibration, no limits) and wait until it is there.
 
-        A module that gets a command while it is still running on to a limit switch may stop short of the
-        target; then the command is sent again.
+        End positions (0, 100) get one uninterrupted command and are confirmed by the module reporting the
+        end with the motor stopped: the module runs to its limit switch. Intermediate positions are sent
+        again when the motor stopped short of them (a command during the run-on of a limit switch can stop
+        early).
         """
         adapter = self.controller.adapter
         self.reached = False
-        for _attempt in range(1 + RETRIES):
+        end = module in (0, 100)
+        for _attempt in range(1 if end else 1 + RETRIES):
             current = adapter.module_position()
-            if current is not None and abs(current - module) <= 1:
+            there = current == module or (not end and current is not None and abs(current - module) <= 1)
+            if there and not self._motor_running():
                 self.reached = True
                 break
             self.controller.tracker.expect(Direction.UP if module > (current or 0) else Direction.DOWN)
             await adapter.async_move(module)
-            await self._wait_until_stopped()
-        if self.reached and module in (0, 100):
+            if end:
+                self.reached = await self._wait_for_end(module)
+            else:
+                await self._wait_until_stopped()
+                position = adapter.module_position()
+                self.reached = position is not None and abs(position - module) <= 1
+            if self.reached:
+                break
+        if self.reached and end:
             await asyncio.sleep(END_SETTLE)
 
-    async def _wait_until_stopped(self) -> None:
+    def _motor_running(self) -> bool:
+        power = self.controller.adapter.motor_power()
+        return power is not None and power > RUNNING_W
+
+    async def _fresh_report(self) -> None:
+        """Ask the module for its position and wait for a report that came after the motor stopped."""
         adapter = self.controller.adapter
-        start = last_change = time.monotonic()
+        stopped = dt_util.utcnow()
+        await adapter.async_refresh()
+        start = time.monotonic()
+        while time.monotonic() - start < REPORT_WAIT:
+            if adapter.reported_since(stopped):
+                return
+            await asyncio.sleep(POLL)
+
+    async def _wait_for_end(self, module: int) -> bool:
+        """Until the module reports the end position and the motor has been idle for a while."""
+        adapter = self.controller.adapter
+        start = time.monotonic()
+        idle_since: float | None = None
+        while time.monotonic() - start < MAX_WAIT:
+            await asyncio.sleep(POLL)
+            now = time.monotonic()
+            if adapter.module_position() == module and not self._motor_running():
+                idle_since = idle_since or now
+                if now - idle_since >= IDLE:
+                    return True
+            else:
+                idle_since = None
+        return False
+
+    async def _wait_until_stopped(self) -> None:
+        """Until the motor stops (with a power sensor), or the position stops changing (without one)."""
+        adapter = self.controller.adapter
+        start = time.monotonic()
+        if adapter.motor_power() is not None:
+            started = False
+            idle_since: float | None = None
+            while time.monotonic() - start < MAX_WAIT:
+                await asyncio.sleep(POLL)
+                now = time.monotonic()
+                if self._motor_running():
+                    started, idle_since = True, None
+                    continue
+                if not started and now - start < START_WAIT:
+                    continue  # not started yet
+                idle_since = idle_since or now
+                if now - idle_since >= IDLE:
+                    await self._fresh_report()
+                    return
+            return
+        last_change = start
         last = adapter.module_position()
         while time.monotonic() - start < MAX_WAIT:
             await asyncio.sleep(POLL)
@@ -151,5 +216,5 @@ class CalibrationSession:
             position = adapter.module_position()
             if position != last:
                 last, last_change = position, now
-            elif now - start >= MIN_RUN and now - last_change >= STABLE:
+            elif now - last_change >= STABLE:
                 return
