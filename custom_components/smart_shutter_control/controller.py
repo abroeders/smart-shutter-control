@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -15,6 +16,7 @@ from .const import (
     CONF_AZIMUTH,
     CONF_CALIBRATION,
     CONF_COVER,
+    CONF_FACADE_LIGHT,
     CONF_HEAT_OUTDOOR,
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
@@ -37,11 +39,13 @@ from .core.manual import ManualDetector, ManualPause, ManualPauseRule, matches
 from .core.model import Decision, Direction, Inputs, Reason, ShutterConfig, ShutterContext
 from .core.rules import RuleChain
 from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, merged, overridden
+from .core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
 from .core.weather import FrostRule, StormRule, TemperatureLimitRule
 from .core.winter import WinterRule
 from .storage import RuntimeStore
 
 KEY_AUTOMATIC = "automatic"
+KEY_CLEAR_SKY_LUX = "clear_sky_lux"
 KEY_MAX_POSITION = "max_position"
 KEY_HEAT_PROTECTION = "heat_protection"
 KEY_SHADING_POSITION = "shading_position"
@@ -192,6 +196,33 @@ class ShutterController:
     def _save_pause(self) -> None:
         self.store.set(self.id, KEY_PAUSE, self.pause.to_dict())
 
+    # --- facade light sensor (sun source: light sensors) ---------------------------------------------
+    facade_light: str | None = None
+    facade: SunnyDetector | None = None
+
+    def use_facade(self, threshold: float, baseline: LuxBaseline) -> None:
+        """Let this shutter's own light sensor decide whether it is sunny (only with the light source)."""
+        self.facade_light = self.subentry_data.get(CONF_FACADE_LIGHT) or None
+        if self.facade_light:
+            stored = self.store.get(self.id, KEY_CLEAR_SKY_LUX)
+            self.facade = SunnyDetector(ClearSkyReference.from_dict(stored), threshold, baseline=baseline)
+
+    def facade_lux(self) -> float | None:
+        state = self.hass.states.get(self.facade_light) if self.facade_light else None
+        try:
+            return float(state.state) if state else None
+        except ValueError:
+            return None
+
+    def _with_facade(self, inputs: Inputs, weather: str | None = None) -> Inputs:
+        if self.facade is None or inputs.sun is None:
+            return inputs
+        lux = self.facade_lux()
+        sunny = self.facade.update(inputs.sun, lux, weather, inputs.now)
+        if lux is not None:
+            self.store.set(self.id, KEY_CLEAR_SKY_LUX, self.facade.reference.to_dict())
+        return replace(inputs, sunny=sunny, sun_factor=self.facade.factor)
+
     def room_temperature(self) -> float | None:
         entity_id = self.config.room_temperature
         state = self.hass.states.get(entity_id) if entity_id else None
@@ -330,12 +361,15 @@ class ShutterController:
             return module is not None and abs(module - value) <= 1
         return matches(self.position(), value)
 
-    async def async_evaluate(self, inputs: Inputs, storm: bool = False) -> Decision:
+    async def async_evaluate(
+        self, inputs: Inputs, storm: bool = False, weather: str | None = None
+    ) -> Decision:
         self.observe()  # a report not handled yet must not count as manual after this decision
         self.storm = inputs.storm
         if not self.automatic or self.paused:
             self.decision = Decision(None, Reason.OFF if not self.automatic else Reason.CALIBRATING)
             return self.decision
+        inputs = self._with_facade(inputs, weather)
         ctx = self._context(inputs)
         if self.pause.on and self.detector.at_rest(inputs.now):
             # moved by hand to where automatic control wants it: resume (#5)

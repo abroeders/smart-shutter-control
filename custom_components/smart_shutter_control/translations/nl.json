@@ -13,15 +13,13 @@
         "data": {
           "outdoor_temperature": "Buitentemperatuur",
           "weather": "Weer",
-          "pv_power": "Pv-vermogensensoren",
-          "pv_peak": "Piekvermogen pv",
           "wind_speed": "Windsnelheidsensor",
-          "wind_gust": "Windstootsensor"
+          "wind_gust": "Windstootsensor",
+          "sun_source": "Zonbron"
         },
         "data_description": {
-          "pv_power": "Eén of meer sensoren; ze worden opgeteld. Dient als maat voor bewolking.",
-          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht.",
-          "wind_gust": "Optioneel; de stormgrens geldt voor de windsnelheid en de windstoten."
+          "wind_gust": "Optioneel; de stormgrens geldt voor de windsnelheid en de windstoten.",
+          "sun_source": "Is het zonnig? Op PV-vermogen of op lichtsensoren, nooit allebei. Geen: de weerentiteit, anders alleen de stand van de zon."
         }
       },
       "reconfigure": {
@@ -29,20 +27,45 @@
         "data": {
           "outdoor_temperature": "Buitentemperatuur",
           "weather": "Weer",
-          "pv_power": "Pv-vermogensensoren",
-          "pv_peak": "Piekvermogen pv",
           "wind_speed": "Windsnelheidsensor",
-          "wind_gust": "Windstootsensor"
+          "wind_gust": "Windstootsensor",
+          "sun_source": "Zonbron"
+        },
+        "data_description": {
+          "wind_gust": "Optioneel; de stormgrens geldt voor de windsnelheid en de windstoten.",
+          "sun_source": "Is het zonnig? Op PV-vermogen of op lichtsensoren, nooit allebei. Geen: de weerentiteit, anders alleen de stand van de zon."
+        }
+      },
+      "pv": {
+        "title": "PV-vermogen",
+        "description": "Het PV-vermogen zegt hoeveel de zon schijnt: de integratie leert per zonnestand het vermogen bij heldere hemel.",
+        "data": {
+          "pv_power": "Pv-vermogensensoren",
+          "pv_peak": "Piekvermogen pv"
         },
         "data_description": {
           "pv_power": "Eén of meer sensoren; ze worden opgeteld. Dient als maat voor bewolking.",
-          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht.",
-          "wind_gust": "Optioneel; de stormgrens geldt voor de windsnelheid en de windstoten."
+          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht."
+        }
+      },
+      "light": {
+        "title": "Lichtsensoren",
+        "description": "De hoogste lichtsensor telt. De integratie leert per zonnestand de waarde bij heldere hemel; tot die tijd is het zonnig vanaf de grens hieronder.\n\nHoogste waarde in de afgelopen 30 dagen:\n{maxima}\n\nDirecte zon geeft 50.000–100.000 lx. Een sensor die nooit boven ongeveer 10.000 lx komt, loopt waarschijnlijk vol en kan zon niet van heldere bewolking onderscheiden.",
+        "data": {
+          "light_sensors": "Lichtsensoren",
+          "lux_limit": "Zonnig vanaf (tot geleerd)"
+        },
+        "data_description": {
+          "light_sensors": "Sensoren met apparaatklasse verlichtingssterkte; de hoogste waarde telt.",
+          "lux_limit": "Geldt de eerste dagen, tot de integratie de waarde bij heldere hemel heeft geleerd."
         }
       }
     },
     "abort": {
       "reconfigure_successful": "De instellingen zijn opgeslagen."
+    },
+    "error": {
+      "saturates": "Een sensor bleef de afgelopen 30 dagen onder 10.000 lx en loopt waarschijnlijk vol. Kies een andere sensor, of sla nogmaals op om hem toch te gebruiken."
     }
   },
   "options": {
@@ -198,7 +221,8 @@
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
             "motor_power": "Motorvermogensensor",
-            "travel_time": "Looptijd"
+            "travel_time": "Looptijd",
+            "light_sensor": "Gevel-lichtsensor"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -212,7 +236,8 @@
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt.",
-            "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen."
+            "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen.",
+            "light_sensor": "Optioneel. Een lichtsensor bij dit raam: die bepaalt dan voor dit rolluik of het zonnig is."
           }
         },
         "settings": {
@@ -231,7 +256,8 @@
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
             "motor_power": "Motorvermogensensor",
-            "travel_time": "Looptijd"
+            "travel_time": "Looptijd",
+            "light_sensor": "Gevel-lichtsensor"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -245,7 +271,8 @@
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt.",
-            "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen."
+            "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen.",
+            "light_sensor": "Optioneel. Een lichtsensor bij dit raam: die bepaalt dan voor dit rolluik of het zonnig is."
           }
         },
         "reconfigure": {
@@ -524,6 +551,13 @@
         "system": "Systeemtaal",
         "en": "English",
         "nl": "Nederlands"
+      }
+    },
+    "sun_source": {
+      "options": {
+        "pv": "PV-vermogen",
+        "light": "Lichtsensoren (lux)",
+        "none": "Geen"
       }
     }
   }

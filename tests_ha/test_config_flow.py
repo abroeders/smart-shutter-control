@@ -26,9 +26,13 @@ async def test_base_flow_creates_entry_and_device(hass: HomeAssistant, covers) -
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"name": "House"})
     assert result["step_id"] == "sources"
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"outdoor_temperature": OUTDOOR}
+        result["flow_id"], {"outdoor_temperature": OUTDOOR, "sun_source": "pv"}
     )
+    assert result["step_id"] == "pv"  # only the PV fields
+    assert {str(k) for k in result["data_schema"].schema} == {"pv_power", "pv_peak"}
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"pv_power": ["sensor.pv"]})
     assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["sun_source"] == "pv" and result["data"]["pv_power"] == ["sensor.pv"]
     await hass.async_block_till_done()
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     assert entry.state is ConfigEntryState.LOADED
