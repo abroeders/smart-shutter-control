@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-20
+
 ### Fixed
 
 - Calibration: moving to closed (and open) is one uninterrupted command, confirmed when the module reports
@@ -80,7 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/abroeders/smart-shutter-control/releases/tag/v0.1.0
