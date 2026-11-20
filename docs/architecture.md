@@ -31,7 +31,8 @@ flowchart LR
 | Single responsibility | one module per concern; one class per rule |
 | Dependency inversion | `core/` depends on its own protocols, not on Home Assistant |
 | **Chain of responsibility** | `RuleChain` asks every `Rule` by priority: the first target wins, caps may lower it, a final target (safety) is not lowered (#2, #3) |
-| **State** | `HeatProtectionRule` phases open → pending → shading → leaving (#3) |
+| **State** | `HeatProtectionRule` phases open → pending → shading → leaving (#3); `DaySchedule` phases night → slit → day → dusk (#4); `ManualDetector` idle → commanded → manual (#5) |
+| **Template / inheritance of settings** | `merged(base, overrides)`: every shutter takes the base schedule unless it overrides a setting (#4) |
 | **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
@@ -257,7 +258,10 @@ classDiagram
         +slit dict
         +queue list~Action~
         +measuring list~int~
-        +full(controller, height)$
+        +travel_time float|None
+        +full(controller, height, travel_time)$
+        +measure_travel()
+        +updates() dict
         +plan_measuring(lift)
         +one_point(controller, stored, module, direction)$
         +add_point(action, value)
@@ -332,6 +336,10 @@ sequenceDiagram
     participant A as CoverAdapter
     participant M as shutter module
     participant P as motor power sensor
+    opt no power sensor and no travel time (#18)
+        S->>A: async_move(100), then async_move(0)
+        S->>S: travel time = until M reports 0
+    end
     alt end position 0 or 100
         S->>A: async_move(0 or 100), once
         A->>M: set position
@@ -341,7 +349,7 @@ sequenceDiagram
         loop at most 3 attempts
             S->>A: async_move(target)
             A->>M: set position
-            S->>P: wait for the motor to start, then to stop
+            S->>P: wait for the motor to start, then to stop (no sensor: distance × travel time + 5 s)
             S->>M: update_entity (poll)
             S->>S: wait for a report after the stop (max 30 s)
             alt within 1 % of the target
@@ -447,3 +455,124 @@ stateDiagram-v2
 
 The learned clear-sky reference is kept with the runtime state (`RuntimeStore.globals`, saved every few
 minutes).
+
+## 7. Profiles and manual operation (#4, #5)
+
+Designs: [`design/2026-11-20-profiles.md`](design/2026-11-20-profiles.md),
+[`design/2026-11-20-manual-operation.md`](design/2026-11-20-manual-operation.md).
+
+### 7.1 Classes
+
+```mermaid
+classDiagram
+    direction TB
+    class DaySchedule {
+        +values dict
+        +transitions(day) list~Transition~
+        +phase_at(now) Phase
+        +next_change(now) Transition
+        +target(phase) int
+        +sleep_in_until(now) datetime
+    }
+    class SunTimes {
+        +latitude float
+        +longitude float
+        +sunrise_sunset(day, tz)
+    }
+    class HolidayCalendar {
+        +weekend_days
+        +extra list~HolidayEntry~
+        +excluded list~HolidayEntry~
+        +from_calendar dict
+        +holiday(day) str|None
+        +is_free(day) bool
+        +listing(year)
+    }
+    class ScheduleRule {
+        +priority 60
+        +phase(now) Phase
+        +propose(ctx) Decision
+    }
+    class SleepIn {
+        +armed bool
+        +armed_at float
+        +arm(on, now)
+    }
+    class SleepInRule {
+        +priority 30
+        +propose(ctx) Decision|None
+    }
+    class ManualDetector {
+        +command ActiveCommand|None
+        +sent(target, start, now)
+        +observe(position, motor_running, now) bool
+        +at_rest(now) bool
+    }
+    class ManualPause {
+        +since
+        +until
+        +until_next_phase bool
+        +start(now, mode, duration, phase, source) bool
+        +still(now, phase) bool
+        +end()
+    }
+    class ManualPauseRule {
+        +priority 20
+        +propose(ctx) Decision|None
+    }
+    DaySchedule ..> SunTimes
+    DaySchedule ..> HolidayCalendar
+    ScheduleRule o-- DaySchedule
+    SleepInRule o-- SleepIn
+    SleepInRule ..> DaySchedule
+    ManualPauseRule o-- ManualPause
+    ShutterController o-- ManualDetector
+    ShutterController o-- ManualPause
+    ShutterController o-- ScheduleRule
+    ShutterController o-- SleepIn
+    BaseCoordinator o-- HolidayCalendar : shared, filled daily from a calendar entity
+```
+
+The rule chain per shutter, by priority: `ManualPauseRule` (20, final while paused) → `SleepInRule` (30) →
+`HeatProtectionRule` (40, cap) → `ScheduleRule` (60). A slit decision carries a module position
+(`Decision.module`); caps do not lower it.
+
+### 7.2 Evaluation with the last sent target
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant MD as ManualDetector
+    participant R as RuleChain
+    participant A as CoverAdapter
+    C->>SC: async_evaluate(inputs)
+    SC->>MD: observe(current report) (pending reports first)
+    opt paused and at rest
+        SC->>R: decide(ctx, skip pause rule)
+        R-->>SC: wanted
+        SC->>SC: at the wanted position (±2 %)? resume
+    end
+    SC->>R: decide(ctx)
+    R-->>SC: target (real or module)
+    alt target differs from the last sent target and the shutter is not there
+        SC->>A: async_move
+        A->>MD: sent(target, start) (on_send)
+    end
+```
+
+The controller moves only when the target changes (a phase change, a setting, the end of a pause or of
+sleep-in, heat protection starting or ending). A shutter moved by hand is recognised by `ManualDetector`:
+any change that is not on the way of an own command, or the motor running without one.
+
+### 7.3 Manual operation
+
+```mermaid
+stateDiagram-v2
+    [*] --> Automatic
+    Automatic --> Paused: manual action (switch, app, own entities)
+    Paused --> Automatic: next phase / duration over
+    Paused --> Automatic: resume button, automatic control switched on (moves at once)
+    Paused --> Automatic: moved by hand to the wanted position
+    Automatic --> Automatic: manual action with mode ignore (moves back)
+```

@@ -53,7 +53,9 @@
         "title": "Settings",
         "menu_options": {
           "storm": "Storm",
-          "sun": "Sun"
+          "sun": "Sun",
+          "schedule": "Schedule",
+          "holidays": "Holidays"
         }
       },
       "storm": {
@@ -82,7 +84,54 @@
           "close_delay": "Minutes of sun on the window before the shutter goes down.",
           "open_delay": "Minutes without sun before it goes up again."
         }
+      },
+      "schedule": {
+        "title": "Base schedule",
+        "description": "The schedule every shutter follows, unless it overrides a setting on its own schedule page.",
+        "data": {
+          "weekday_slit": "Slit on weekdays",
+          "weekday_open": "Open on weekdays",
+          "weekend_slit": "Slit on weekends and holidays",
+          "weekend_open": "Open on weekends and holidays",
+          "slit_phase": "Slit phase",
+          "not_before_sunrise": "Not before sunrise",
+          "sunrise_offset": "Minutes after sunrise",
+          "dusk_phase": "Dusk phase",
+          "dusk_offset": "Dusk: minutes after sunset",
+          "dusk_position": "Dusk position",
+          "close_offset": "Close: minutes after sunset",
+          "close_earliest": "Close not before",
+          "close_latest": "Close not after",
+          "open_position": "Open position",
+          "slit_module": "Slit (module position, uncalibrated)",
+          "sleep_in_until": "Sleep in until",
+          "manual_mode": "After a manual action",
+          "manual_duration": "Pause after a manual action"
+        },
+        "data_description": {
+          "slit_module": "Only used when the shutter is not calibrated; with a calibration the slit is the measured lift point.",
+          "manual_duration": "Only for 'For a while'.",
+          "sunrise_offset": "Only with 'Not before sunrise'."
+        }
+      },
+      "holidays": {
+        "title": "Holidays",
+        "description": "On weekend days and holidays the schedules use their weekend times.\n\nHolidays this year:\n{list}",
+        "data": {
+          "holiday_calendar": "Public holidays calendar",
+          "weekend_days": "Weekend days",
+          "holidays_extra": "Extra holidays",
+          "holidays_excluded": "Not a holiday"
+        },
+        "data_description": {
+          "holiday_calendar": "A calendar of Home Assistant's Holiday integration (Settings → Devices & services → Add integration → Holiday).",
+          "holidays_extra": "One date per line: 2026-12-24 (once) or 12-31 (every year), optionally followed by a name.",
+          "holidays_excluded": "Dates from the calendar that count as normal days, same format."
+        }
       }
+    },
+    "error": {
+      "bad_dates": "Lines {lines} could not be read: use 2026-12-24 or 12-31."
     }
   },
   "config_subentries": {
@@ -108,7 +157,8 @@
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
-            "motor_power": "Motor power sensor"
+            "motor_power": "Motor power sensor",
+            "travel_time": "Travel time"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -121,7 +171,8 @@
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
-            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used."
+            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
+            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand."
           }
         },
         "settings": {
@@ -139,7 +190,8 @@
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
-            "motor_power": "Motor power sensor"
+            "motor_power": "Motor power sensor",
+            "travel_time": "Travel time"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -152,7 +204,8 @@
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
-            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used."
+            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
+            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand."
           }
         },
         "reconfigure": {
@@ -160,7 +213,9 @@
           "menu_options": {
             "settings": "Settings",
             "calibrate": "Calibrate",
-            "add_point": "Add a calibration point"
+            "add_point": "Add a calibration point",
+            "schedule": "Schedule",
+            "schedule_reset": "Reset to the base schedule"
           }
         },
         "calibrate": {
@@ -195,6 +250,35 @@
         "cal_review": {
           "title": "Result",
           "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %. Up to about 2 % the motor is equally fast up and down; more than 5 % usually means it is slower in one direction, and the calibration corrects that.\n\nSave the calibration?"
+        },
+        "schedule": {
+          "title": "Schedule",
+          "description": "Leave a field empty (or 'Inherit') to use the base schedule. Base schedule: {base}",
+          "data": {
+            "weekday_slit": "Slit on weekdays",
+            "weekday_open": "Open on weekdays",
+            "weekend_slit": "Slit on weekends and holidays",
+            "weekend_open": "Open on weekends and holidays",
+            "slit_phase": "Slit phase",
+            "not_before_sunrise": "Not before sunrise",
+            "sunrise_offset": "Minutes after sunrise",
+            "dusk_phase": "Dusk phase",
+            "dusk_offset": "Dusk: minutes after sunset",
+            "dusk_position": "Dusk position",
+            "close_offset": "Close: minutes after sunset",
+            "close_earliest": "Close not before",
+            "close_latest": "Close not after",
+            "open_position": "Open position",
+            "slit_module": "Slit (module position, uncalibrated)",
+            "sleep_in_until": "Sleep in until",
+            "manual_mode": "After a manual action",
+            "manual_duration": "Pause after a manual action"
+          },
+          "data_description": {
+            "slit_module": "Only used when the shutter is not calibrated; with a calibration the slit is the measured lift point.",
+            "manual_duration": "Only for 'For a while'.",
+            "sunrise_offset": "Only with 'Not before sunrise'."
+          }
         }
       },
       "error": {
@@ -207,7 +291,8 @@
         "not_loaded": "The integration is not loaded; try again after it has started."
       },
       "progress": {
-        "moving": "The shutter moves to module position {position} %…"
+        "moving": "The shutter moves to module position {position} %…",
+        "timing": "Measuring the travel time: the shutter opens fully and then closes fully…"
       }
     }
   },
@@ -223,6 +308,12 @@
       },
       "heat_protection": {
         "name": "Heat protection"
+      },
+      "sleep_in": {
+        "name": "Sleep in"
+      },
+      "sleep_in_all": {
+        "name": "Sleep in (all shutters)"
       }
     },
     "number": {
@@ -244,7 +335,9 @@
           "off": "Automatic control off",
           "manual": "Manual",
           "calibrating": "Calibrating",
-          "sun": "Sun"
+          "sun": "Sun",
+          "schedule": "Schedule",
+          "sleep_in": "Sleep in"
         }
       },
       "next_action": {
@@ -268,6 +361,15 @@
           "partly_open": "Partly open",
           "open": "Open"
         }
+      },
+      "phase": {
+        "name": "Phase",
+        "state": {
+          "night": "Night",
+          "slit": "Slit",
+          "day": "Day",
+          "dusk": "Dusk"
+        }
       }
     },
     "binary_sensor": {
@@ -276,6 +378,17 @@
       },
       "sun_on_window": {
         "name": "Sun on the window"
+      },
+      "holiday": {
+        "name": "Weekend or holiday"
+      },
+      "manual_pause": {
+        "name": "Manual pause"
+      }
+    },
+    "button": {
+      "resume": {
+        "name": "Resume automatic control"
       }
     }
   },
@@ -284,6 +397,31 @@
       "options": {
         "up": "↑ from closed",
         "down": "↓ from open"
+      }
+    },
+    "phase_switch": {
+      "options": {
+        "inherit": "Inherit",
+        "on": "On",
+        "off": "Off"
+      }
+    },
+    "manual_mode": {
+      "options": {
+        "until_next_phase": "Pause until the next phase",
+        "for_duration": "Pause for a while",
+        "ignore": "Ignore"
+      }
+    },
+    "weekday": {
+      "options": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
       }
     }
   }

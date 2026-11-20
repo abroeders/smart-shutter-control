@@ -16,6 +16,8 @@ class Reason(StrEnum):
     MANUAL = "manual"
     CALIBRATING = "calibrating"  # the calibration assistant is moving the shutter
     SUN = "sun"  # heat protection (#3)
+    SCHEDULE = "schedule"  # the phase of the day (#4)
+    SLEEP_IN = "sleep_in"  # sleeping in (#4)
 
 
 class Kind(StrEnum):
@@ -80,3 +82,4 @@ class Decision:
     reason: str
     kind: Kind = Kind.TARGET
     final: bool = False
+    module: int | None = None  # a module position to send as is (the slit: gaps open, bar on the sill)

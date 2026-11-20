@@ -30,6 +30,9 @@ def fast(monkeypatch):
     monkeypatch.setattr(assistant, "IDLE", 0.03)
     monkeypatch.setattr(assistant, "REPORT_WAIT", 1.0)
     monkeypatch.setattr(assistant, "END_SETTLE", 0.0)
+    monkeypatch.setattr(assistant, "END_STABLE_NO_POWER", 0.05)
+    monkeypatch.setattr(assistant, "END_SETTLE_NO_POWER", 0.0)
+    monkeypatch.setattr(assistant, "TRAVEL_MARGIN", 0.05)
     monkeypatch.setattr(assistant, "MAX_WAIT", 2.0)
 
 
@@ -294,3 +297,58 @@ async def test_a_report_on_the_way_up_is_not_taken_for_the_next_point(
     assert result["step_id"] == "cal_measure"
     assert moves == [100, 92]  # first really at 100, then down to 92 before asking for the opening
     assert hass.states.get(LIVING).attributes["current_position"] == 92
+
+
+def silent(hass: HomeAssistant, travel: float = 0.4) -> list[int]:
+    """A shutter without a power sensor that reports only when it arrives, after a travel time."""
+    moves: list[int] = []
+
+    async def set_position(call: ServiceCall) -> None:
+        target = int(call.data["position"])
+        moves.append(target)
+        start = hass.states.get(LIVING).attributes["current_position"]
+
+        async def run() -> None:
+            await asyncio.sleep(abs(target - start) / 100 * travel)
+            hass.states.async_set(
+                LIVING,
+                "closed" if target == 0 else "open",
+                {"current_position": target, "supported_features": 15},
+            )
+
+        hass.async_create_task(run())
+
+    hass.services.async_register("cover", "set_cover_position", set_position)
+    return moves
+
+
+async def test_without_power_sensor_the_travel_time_is_measured(hass: HomeAssistant, covers, fast) -> None:
+    hass.states.async_set(LIVING, "open", {"current_position": 50, "supported_features": 15})
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    moves = silent(hass)
+    subentry_id = next(iter(entry.subentries))
+    controller = entry.runtime_data.shutters[subentry_id]
+    assert controller.adapter.power_entity is None
+    result = await open_menu(hass, entry, subentry_id, "calibrate")
+    flow_id = result["flow_id"]
+    result = await run(hass, flow_id, await hass.config_entries.subentries.async_configure(flow_id, {}))
+    assert result["step_id"] == "cal_lift"
+    assert moves[:3] == [100, 0, 2]  # open, time the travel to closed, then the first lift step
+    session = controller_flow_session(hass, flow_id)
+    assert 0.3 <= session.travel_time <= 1.5  # the simulated full travel takes 0.4 s (plus polling)
+    while result["step_id"] == "cal_lift":
+        lifted = int(result["description_placeholders"]["position"]) >= 4
+        result = await run(
+            hass, flow_id, await hass.config_entries.subentries.async_configure(flow_id, {"lifted": lifted})
+        )
+    first = int(result["description_placeholders"]["position"])
+    assert (
+        result["step_id"] == "cal_measure" and moves.count(first) == 1
+    )  # one command, waited for the arrival
+    assert hass.states.get(LIVING).attributes["current_position"] == first
+
+
+def controller_flow_session(hass: HomeAssistant, flow_id: str):
+    flow = hass.config_entries.subentries._progress[flow_id]  # noqa: SLF001
+    return flow._session  # noqa: SLF001
