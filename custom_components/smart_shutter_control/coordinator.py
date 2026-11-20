@@ -110,7 +110,10 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         await self.async_tick()
 
     @callback
-    def _on_cover(self, _event: Event[EventStateChangedData]) -> None:
+    def _on_cover(self, event: Event[EventStateChangedData]) -> None:
+        for controller in self.shutters.values():
+            if controller.config.cover == event.data["entity_id"]:
+                controller.observe()
         self.async_update_listeners()  # positions shown by our entities
 
     @callback

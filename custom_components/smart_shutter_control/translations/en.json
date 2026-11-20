@@ -96,7 +96,7 @@
             "max_position": "Automatic control never opens the shutter further; by hand it can."
           }
         },
-        "reconfigure": {
+        "settings": {
           "title": "Shutter",
           "data": {
             "cover": "Shutter",
@@ -117,6 +117,47 @@
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
             "max_position": "Automatic control never opens the shutter further; by hand it can."
           }
+        },
+        "reconfigure": {
+          "title": "Shutter",
+          "menu_options": {
+            "settings": "Settings",
+            "calibrate": "Calibrate",
+            "add_point": "Add a calibration point"
+          }
+        },
+        "calibrate": {
+          "title": "Calibrate",
+          "description": "The assistant moves the shutter from closed to 25, 50 and 75 %, then from open to 75, 50 and 25 %, and each time asks how far the window is open below the bottom bar. Finally it looks for the point where the bottom bar leaves the sill. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm, or leave it empty to estimate in % of the window.",
+          "data": {
+            "window_height_cm": "Window height"
+          }
+        },
+        "add_point": {
+          "title": "Add a calibration point",
+          "description": "The shutter first moves to closed (↑) or open (↓), then to the module position, and asks for the opening.",
+          "data": {
+            "module": "Module position",
+            "direction": "Direction"
+          }
+        },
+        "cal_measure": {
+          "title": "Measure",
+          "description": "The shutter is at module position {position} % ({direction}) {reached}. How far is the window open below the bottom bar ({unit})? 0 if the bar is still on the sill.",
+          "data": {
+            "opening": "Opening"
+          }
+        },
+        "cal_lift": {
+          "title": "Bottom bar",
+          "description": "Module position {position} % from closed. Has the bottom bar left the sill?",
+          "data": {
+            "lifted": "The bottom bar has lifted"
+          }
+        },
+        "cal_review": {
+          "title": "Result",
+          "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %. More than 5 % usually means the motor is slower in one direction; the calibration corrects that.\n\nSave the calibration?"
         }
       },
       "error": {
@@ -125,7 +166,11 @@
         "elevation_order": "The highest sun elevation must be above the lowest."
       },
       "abort": {
-        "reconfigure_successful": "The shutter was saved."
+        "reconfigure_successful": "The shutter was saved.",
+        "not_loaded": "The integration is not loaded; try again after it has started."
+      },
+      "progress": {
+        "moving": "The shutter moves to module position {position} %…"
       }
     }
   },
@@ -151,11 +196,27 @@
         "state": {
           "idle": "Idle",
           "off": "Automatic control off",
-          "manual": "Manual"
+          "manual": "Manual",
+          "calibrating": "Calibrating"
         }
       },
       "next_action": {
         "name": "Next action"
+      },
+      "calibration": {
+        "name": "Calibration",
+        "state": {
+          "calibrated": "Calibrated",
+          "not_calibrated": "Not calibrated"
+        }
+      }
+    }
+  },
+  "selector": {
+    "direction": {
+      "options": {
+        "up": "↑ from closed",
+        "down": "↓ from open"
       }
     }
   }

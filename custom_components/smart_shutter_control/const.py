@@ -29,6 +29,7 @@ CONF_MIN_ELEVATION = "min_elevation"
 CONF_MAX_ELEVATION = "max_elevation"
 CONF_ROOM_TEMPERATURE = "room_temperature"
 CONF_MAX_POSITION = "max_position"
+CONF_CALIBRATION = "calibration"
 DEFAULT_SHUTTER = {
     CONF_TILT: 90,
     CONF_MIN_ELEVATION: 0,

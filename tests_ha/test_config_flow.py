@@ -59,7 +59,14 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
         assert device(hass, subentry_id).via_device_id == base.id
     entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
     keys = sorted(e.unique_id.rsplit("_", 1)[-1] for e in entities if shutters["Living room"] in e.unique_id)
-    assert keys == ["action", "automatic", "position", "reason", "shutter"]  # next_action, max_position
+    assert keys == [
+        "action",
+        "automatic",
+        "calibration",
+        "position",
+        "reason",
+        "shutter",
+    ]  # next_action, max_position
     assert {e.config_subentry_id for e in entities} == set(shutters.values())
 
 
@@ -82,7 +89,11 @@ async def test_reconfigure_and_remove_a_shutter(hass: HomeAssistant, covers) -> 
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, "shutter"), context={"source": "reconfigure", "subentry_id": living.subentry_id}
     )
-    assert result["step_id"] == "reconfigure"
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    assert result["step_id"] == "settings"
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"],
         {
