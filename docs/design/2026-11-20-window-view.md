@@ -1,7 +1,7 @@
 # The view through the window
 
-- Issue: to be created
-- Status: draft
+- Issue: #30
+- Status: **approved** (2026-11-20)
 - Date: 2026-11-20
 - Depends on: #9 (card), #28 (gaps between the slats), #3 (sun position), #6 (wind)
 
