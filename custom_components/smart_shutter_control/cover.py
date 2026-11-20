@@ -45,8 +45,9 @@ class ShutterCover(ShutterEntity, CoverEntity):
 
     @property
     def is_closed(self) -> bool | None:
-        position = self.controller.position()
-        return None if position is None else position == 0
+        """Closed only when fully down; with open slat gaps (slit) the opening is 0 % but it is not closed."""
+        module = self.controller.adapter.module_position()
+        return None if module is None else module == 0
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

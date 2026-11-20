@@ -281,9 +281,25 @@ class RollerCalibration:
         return next(iter(self.curves.values()))
 
     def to_module(self, position: int, direction: Direction) -> int:
-        return round(100 * self.curve(direction).module(position / 100))
+        """The whole module position whose real opening is closest to the requested one.
+
+        Fully closed and fully open are always the module's own end positions (0 and 100), so it runs to
+        its limit switches.
+        """
+        if position <= 0:
+            return 0
+        if position >= 100:
+            return 100
+        curve = self.curve(direction)
+        exact = 100 * curve.module(position / 100)
+        candidates = {max(0, min(100, int(exact))), max(0, min(100, int(exact) + 1))}
+        return min(candidates, key=lambda m: (abs(100 * curve.opening(m / 100) - position), abs(m - exact)))
 
     def from_module(self, position: int, direction: Direction) -> int:
+        if position <= 0:
+            return 0
+        if position >= 100:
+            return 100  # at the limit switch, also for a direction whose curve ends just below 1
         return round(100 * self.curve(direction).opening(position / 100))
 
     def slit(self, direction: Direction) -> int | None:
