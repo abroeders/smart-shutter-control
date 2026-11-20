@@ -1,0 +1,129 @@
+# How it works
+
+Every minute, and whenever an input changes, the integration decides for each shutter where it should be,
+and moves it only when that changes.
+
+## Rules and priorities
+
+Each rule may propose a position. The first proposal by priority wins; *caps* can lower it; a *final*
+proposal is not changed by lower rules.
+
+| Priority | Rule | Proposes |
+|---|---|---|
+| 10 | storm | fully open or fully closed (final) |
+| 11 | frost | do not move (final) |
+| 15 | temperature limits | closed above *Close above* or below *Close below* (final) |
+| 20 | manual pause | leave the shutter where it was put (final) |
+| 30 | sleep-in | closed during the slit and day phases |
+| 40 | heat protection | at most the shading position (cap) |
+| 50 | winter | closed all day in severe cold; at dusk, never raise a closed shutter (cap) |
+| 60 | schedule | the position of the current phase |
+
+Afterwards the **maximum position** limits every automatic target (except fully closing). The sensor
+*Reason* says which rule decided.
+
+**Moves only at changes.** The schedule's target is sent when a phase starts, when a setting changes, or when
+a higher rule ends. A shutter moved in the middle of a phase is left there until the next phase.
+
+```mermaid
+flowchart LR
+  I["inputs: time, sun, PV, temperatures, wind"] --> R["rules by priority"]
+  R --> L["maximum position"]
+  L --> C["calibration: real → module position"]
+  C --> M["cover.set_cover_position, only when the target changes"]
+```
+
+## The day of a shutter
+
+```mermaid
+stateDiagram-v2
+    [*] --> Night
+    Night --> Slit: slit time (weekday or weekend)
+    Slit --> Day: open time
+    Night --> Day: open time (no slit phase)
+    Day --> Dusk: sunset + dusk minutes
+    Dusk --> Night: sunset + close minutes, within not before / not after
+    Day --> Night: (no dusk phase)
+```
+
+Weekend days and holidays use the weekend times. With *Not before sunrise* the morning waits for the sun.
+Sunrise and sunset are computed from your Home Assistant location.
+
+## Sun on the window
+
+The integration computes the sun's position (NOAA algorithm, about 0.1°) and the angle of incidence `i`
+between the sun and the window's outward normal:
+
+```
+cos i = sin α · cos β + cos α · sin β · cos(γ − A)
+```
+
+with sun elevation `α`, sun azimuth `γ`, window direction `A` and window tilt `β`. The sun is **on the
+window** when it is above the horizon, between the lowest and highest sun elevation of the shutter, and
+`i` is below the largest angle of incidence (85°).
+
+## Is it sunny?
+
+PV power is a direct measure of sunshine, but its clear-sky value depends on the panels. The integration
+**learns** it: the sky is divided in cells of sun position (10° × 5°), and for each cell it keeps the high
+(95th percentile) PV power of the last 30 days. The **sun factor** is the current power as a share of that
+reference. Sunny from 60 %, no longer sunny below 45 %.
+
+Until a cell has enough history it uses the PV peak power (a rough clear-sky curve), then the weather
+entity's condition, and otherwise geometry only.
+
+## Heat protection
+
+When the sun is on the window, it is sunny, and it is warm (outdoor or room temperature at or above the
+limit), the shutter goes down to its shading position after 5 minutes. It goes up again 20 minutes after
+one of these stops, or at once when the sun has moved past the window. Passing clouds do not make it move up
+and down.
+
+## Manual operation
+
+A position change the integration did not send is **manual**: a wall switch, a remote, the module's app, or
+the integration's own cover and *Opening* entities. With a motor power sensor a manual move is seen within a
+second. Then:
+
+| After a manual action | Effect |
+|---|---|
+| pause until the next phase (default) | automatic control leaves the shutter alone until the next phase change |
+| pause for a while | … for *Pause after a manual action* (120 min) |
+| ignore | no pause |
+
+Automatic control **resumes**:
+- when the pause ends (the shutter then moves to the wanted position);
+- with the button *Resume automatic control*, or by turning *Automatic control* on: the shutter moves at once;
+- when you move the shutter by hand to the position automatic control wants anyway.
+
+A manual action also ends sleep-in. Storm still acts during a pause.
+
+## Storm
+
+Storm while the wind speed or the gusts are at or above their limit, until 15 minutes after the last value
+above it. During a storm a shutter with automatic control is **only fully open or fully closed**, never in
+between (half-open slats catch the wind):
+
+- *nearest* (default): the end nearest to what the other rules want now. A shutter locked open by day closes
+  when the evening starts.
+- *open* or *closed*: always that end.
+- A shutter whose maximum position is below 100 % closes.
+
+A manual move to a position in between is put back to an end within seconds; dragging in the card snaps to
+an end.
+
+## Frost
+
+At or below the frost limit the shutters do not move automatically: they may be frozen to the frame. Frost
+ends 60 minutes after the temperature rose above the limit. Storm still acts during frost.
+
+## Winter
+
+Winter mode is on while the time-weighted mean outdoor temperature of the last 24 hours is below 12 °C (or
+when the select *Winter mode* is *On*). In winter:
+
+- at or below −5 °C a shutter stays **closed all day** as insulation (a manual action overrides it);
+- in the evening an open shutter goes to the dusk position and then closes as usual, but a shutter that is
+  already closed **stays closed**;
+- with sun on the window during the day the schedule opens it for free solar heat (heat protection does not
+  act in the cold).

@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Documentation: installation, configuration (every setting with its default and effect), calibration,
+  entities, how it works, the card, FAQ and troubleshooting; README with screenshots for HACS (#8).
+
 ## [0.6.0] - 2026-11-20
 
 ### Added

@@ -1,24 +1,50 @@
 # Smart Shutter Control
 
-A Home Assistant integration (HACS) that controls roller shutters.
+A Home Assistant integration (HACS) that controls roller shutters: on a schedule per shutter, against the
+heat when the sun really shines on a window, safely in a storm, and without fighting you when you move a
+shutter by hand.
 
-- **Base controller:** settings for all shutters: sun and PV sources, weather, wind and the storm limit,
-  holidays.
-- **One device per shutter:** window direction in degrees, a profile (morning, evening, slit and night
-  positions, heat protection, winter use), a maximum position for automatic control, sleep-in, and an
-  on/off switch for automatic control.
-- **Heat protection:** closes a shutter when the sun actually shines on its window: the sun's position
-  against the window direction, with PV power as a measure of clouds.
-- **Calibrated positions:** 50 % means half way down the window, whichever direction the shutter comes from.
-- **Safety:** in a storm a shutter is only fully open or fully closed.
-- **Manual operation is respected.**
-- **Lovelace card:** a drawing of each shutter that you can drag to a position, with up, stop and down, and
-  its status; or all shutters at a glance. See [the card](docs/card.md).
+![One shutter in the card](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-light.png)
 
-![The card](docs/images/card-light.png)
+## Features
 
-Status: in development. See the [issues](https://github.com/abroeders/smart-shutter-control/issues) for the
-plan.
+- **Base controller with one device per shutter:** shared settings (sun and PV sources, wind, holidays,
+  the base schedule) and per shutter its window direction, maximum position and any overrides.
+- **Schedules:** slit, open, dusk and night per shutter, with weekend and holiday times (from a calendar,
+  with holidays you can switch off), sunset-relative evenings and sleep-in.
+- **Heat protection:** the sun's position against the window direction, with PV power as a measure of
+  clouds (learned clear-sky reference), and delays so passing clouds do not move the shutters.
+- **Calibrated positions:** an assistant measures each shutter, so 50 % is half way down the window from
+  either direction; fully open and closed use the module's own ends.
+- **Manual operation is respected:** a manual move pauses automatic control until the next phase (or for a
+  while); it resumes with a button, or when you move the shutter to where automatic control wants it.
+- **Safety:** in a storm only fully open or fully closed; no moves during frost; optional temperature limits.
+- **Winter mode:** closed all day in severe cold, and a closed shutter stays closed in the evening.
+- **Lovelace card:** drag the drawing to a position, up/stop/down, the reason and the next actions; or all
+  shutters at a glance. English and Dutch.
+
+| Dragging to a position | All shutters | Dark theme |
+|---|---|---|
+| ![Dragging](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-drag.png) | ![All shutters](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-overview.png) | ![Dark](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-dark.png) |
+
+## Installation
+
+HACS → ⋮ → *Custom repositories* → `https://github.com/abroeders/smart-shutter-control` (type *Integration*)
+→ download **Smart Shutter Control** → restart. Then *Settings → Devices & services → Add integration →
+Smart Shutter Control*, and *Add shutter* for each shutter. Details: [Installation](docs/installation.md).
+
+## Documentation
+
+| | |
+|---|---|
+| [Installation](docs/installation.md) | requirements, HACS, adding shutters |
+| [Configuration](docs/configuration.md) | every setting with its default and effect |
+| [Calibration](docs/calibration.md) | making 50 % mean half way |
+| [Entities](docs/entities.md) | what each entity shows or does |
+| [How it works](docs/how-it-works.md) | rules and priorities, sun, clouds, manual operation, storm, frost, winter |
+| [The card](docs/card.md) | the Lovelace card |
+| [FAQ and troubleshooting](docs/faq.md) | common questions and problems |
+| [Architecture](docs/architecture.md) | code structure with UML, for developers |
 
 ## Development
 
