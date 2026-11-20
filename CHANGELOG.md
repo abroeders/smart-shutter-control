@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Number *Opening* per shutter: shows the real (calibrated) opening of the window and moves the shutter to
+  a value you enter.
+- Sensor *State* per shutter: closed, slit (gaps open, bottom bar on the sill), partly open or open.
+
+### Changed
+
+- The calibration assistant first finds where the bottom bar leaves the sill and then measures four points
+  spread over the travel above it, in both directions, so no point falls on the sill. A point on the sill
+  anyway adds one higher (up) or skips the lower ones (down). The result explains whether the motor is
+  equally fast up and down.
+
+### Fixed
+
+- Calibration assistant: a shutter that stopped short of a point (e.g. 13 % instead of 25 % right after
+  reaching closed) is sent there again, and the assistant waits for the run-on after an end position.
+- A shutter with open slat gaps (opening 0 %) is shown as open, not closed.
+- Entering a real position picks the whole module position that comes closest.
+- Fully closed and fully open are always the module's end positions (0 and 100), so it runs to its limit
+  switches; at module 100 the shutter is shown as fully open in both directions.
+
 ## [0.2.0] - 2026-11-20
 
 ### Added

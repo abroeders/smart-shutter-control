@@ -9,25 +9,36 @@ from custom_components.smart_shutter_control import assistant
 
 from .conftest import LIVING, add_shutter, setup_base
 
-# real opening (%) per module position (%) per direction, like a roller that is slower going up
-UP = {25: 9, 50: 27, 75: 54}
-DOWN = {75: 60, 50: 31, 25: 11}
+# real opening (%) for a module position (%): the bar leaves the sill at 6 %, a bit lower going up
+
+
+def opening(module: int, direction: str) -> float:
+    lift = 6
+    if module <= lift:
+        return 0.0
+    share = (module - lift) / (100 - lift)
+    return 100 * share * (0.55 + 0.45 * share) * (0.97 if direction == "↑" else 1.0)
 
 
 @pytest.fixture
 def fast(monkeypatch):
     monkeypatch.setattr(assistant, "POLL", 0.01)
-    monkeypatch.setattr(assistant, "STABLE", 0.0)
+    monkeypatch.setattr(assistant, "STABLE", 0.03)
+    monkeypatch.setattr(assistant, "MIN_RUN", 0.02)
+    monkeypatch.setattr(assistant, "END_SETTLE", 0.0)
     monkeypatch.setattr(assistant, "MAX_WAIT", 2.0)
 
 
-def physical(hass: HomeAssistant) -> list[int]:
-    """The physical cover goes straight to the requested position."""
+def physical(hass: HomeAssistant, stop_short: dict[int, int] | None = None) -> list[int]:
+    """The physical cover goes straight to the requested position (or stops short once, like a module
+    that gets a command while it still runs on to its limit switch)."""
     moves: list[int] = []
+    short = dict(stop_short or {})
 
     async def set_position(call: ServiceCall) -> None:
         position = int(call.data["position"])
         moves.append(position)
+        position = short.pop(position, position)
         hass.states.async_set(
             LIVING,
             "open" if position else "closed",
@@ -69,27 +80,41 @@ async def test_full_calibration(hass: HomeAssistant, covers, fast) -> None:
         await hass.config_entries.subentries.async_configure(flow_id, {"window_height_cm": 140}),
     )
     assert controller.paused
-    while result["step_id"] == "cal_measure":
-        module = int(result["description_placeholders"]["position"])
-        table = UP if result["description_placeholders"]["direction"] == "↑" else DOWN
-        cm = table[module] / 100 * 140
-        result = await run(
-            hass, flow_id, await hass.config_entries.subentries.async_configure(flow_id, {"opening": cm})
-        )
+    assert result["step_id"] == "cal_lift"  # first the lift point
     while result["step_id"] == "cal_lift":  # the bar lifts at 6 %
         lifted = int(result["description_placeholders"]["position"]) >= 6
         result = await run(
             hass, flow_id, await hass.config_entries.subentries.async_configure(flow_id, {"lifted": lifted})
         )
+    measured = []
+    while result["step_id"] == "cal_measure":
+        module = int(result["description_placeholders"]["position"])
+        direction = result["description_placeholders"]["direction"]
+        measured.append((module, direction))
+        cm = opening(module, direction) / 100 * 140
+        result = await run(
+            hass, flow_id, await hass.config_entries.subentries.async_configure(flow_id, {"opening": cm})
+        )
+    assert measured == [
+        (20, "↑"),
+        (44, "↑"),
+        (67, "↑"),
+        (91, "↑"),
+        (91, "↓"),
+        (67, "↓"),
+        (44, "↓"),
+        (20, "↓"),
+    ]
     assert result["step_id"] == "cal_review"
     assert "↑" in result["description_placeholders"]["summary"]
     result = await hass.config_entries.subentries.async_configure(flow_id, {})
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "reconfigure_successful"
     await hass.async_block_till_done()
 
-    assert moves[:4] == [0, 25, 50, 75] and 100 in moves
+    assert moves[:5] == [0, 2, 4, 6, 20] and 100 in moves
     data = entry.subentries[subentry_id].data["calibration"]
-    assert len(data["points"]["up"]) == 3 and len(data["points"]["down"]) == 3
+    assert len(data["points"]["up"]) == 4 and len(data["points"]["down"]) == 4
+    assert all(o > 0 for _, o in data["points"]["up"] + data["points"]["down"])  # none on the sill
     assert data["slit"]["up"] == pytest.approx(0.04)
 
     controller = entry.runtime_data.shutters[subentry_id]  # reloaded
@@ -146,3 +171,39 @@ async def test_add_one_point(hass: HomeAssistant, covers, fast) -> None:
     result = await hass.config_entries.subentries.async_configure(flow_id, {})
     await hass.async_block_till_done()
     assert entry.subentries[subentry_id].data["calibration"]["points"]["down"] == [[0.4, 0.22]]
+
+
+async def test_a_shutter_that_stops_short_gets_the_command_again(hass: HomeAssistant, covers, fast) -> None:
+    hass.states.async_set(LIVING, "closed", {"current_position": 0, "supported_features": 15})
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    moves = physical(hass, stop_short={25: 13})  # the first move to 25 ends at 13
+    subentry_id = next(iter(entry.subentries))
+    result = await open_menu(hass, entry, subentry_id, "add_point")
+    flow_id = result["flow_id"]
+    result = await run(
+        hass,
+        flow_id,
+        await hass.config_entries.subentries.async_configure(flow_id, {"module": 25, "direction": "up"}),
+    )
+    assert result["step_id"] == "cal_measure"
+    assert result["description_placeholders"]["reached"] == "✓"
+    assert moves == [25, 25]  # sent again after it stopped at 13
+    assert hass.states.get(LIVING).attributes["current_position"] == 25
+
+
+def test_a_point_on_the_sill_adds_one_higher_and_skips_lower_ones() -> None:
+    from types import SimpleNamespace
+
+    from custom_components.smart_shutter_control.assistant import Action, CalibrationSession
+    from custom_components.smart_shutter_control.core.model import Direction
+
+    session = CalibrationSession(SimpleNamespace())
+    session.plan_measuring(20)
+    assert session.measuring == [32, 52, 72, 92]
+    up = session.queue.pop(0)
+    session.add_point(up, 0)  # the bar is still on the sill at 32
+    assert session.queue[0] == Action("measure", 42, Direction.UP)
+    session.queue = [Action("measure", 32, Direction.DOWN)]  # 72 and 52 done; going down
+    session.add_point(Action("measure", 52, Direction.DOWN), 0)  # already on the sill at 52
+    assert session.queue == []  # so 32 is skipped

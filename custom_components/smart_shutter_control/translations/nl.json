@@ -161,7 +161,7 @@
         },
         "calibrate": {
           "title": "Kalibreren",
-          "description": "De assistent stuurt het rolluik vanuit dicht naar 25, 50 en 75 %, daarna vanuit open naar 75, 50 en 25 %, en vraagt telkens hoe ver het raam onder de onderlat open is. Tot slot zoekt hij het punt waarop de onderlat loskomt. De automaat voor dit rolluik staat zolang op pauze.\n\nVul de raamhoogte in om in cm te meten, of laat leeg om te schatten in % van het raam.",
+          "description": "Eerst zoekt de assistent het punt waarop de onderlat loskomt van de dorpel: vanuit dicht gaat hij in kleine stappen omhoog en vraagt of de onderlat los is. Daarna meet hij vier punten, verdeeld over het stuk boven dat punt, vanuit dicht en vanuit open, en vraagt telkens hoe ver het raam onder de onderlat open is. De automaat voor dit rolluik staat zolang op pauze.\n\nVul de raamhoogte in om in cm te meten, of laat leeg om te schatten in % van het raam.",
           "data": {
             "window_height_cm": "Raamhoogte"
           }
@@ -190,7 +190,7 @@
         },
         "cal_review": {
           "title": "Resultaat",
-          "description": "Module-stand voor 50 % open: {summary}\n\nVerschil tussen de richtingen: {difference} %. Meer dan 5 % betekent meestal dat de motor in één richting langzamer is; de kalibratie corrigeert dat.\n\nKalibratie opslaan?"
+          "description": "Module-stand voor 50 % open: {summary}\n\nVerschil tussen de richtingen: {difference} %. Tot ongeveer 2 % is de motor op en neer even snel; meer dan 5 % betekent meestal dat hij in één richting langzamer is, en de kalibratie corrigeert dat.\n\nKalibratie opslaan?"
         }
       },
       "error": {
@@ -227,6 +227,9 @@
       },
       "shading_position": {
         "name": "Schaduwstand"
+      },
+      "opening": {
+        "name": "Opening raam"
       }
     },
     "sensor": {
@@ -252,6 +255,15 @@
       },
       "sun_factor": {
         "name": "Zonfactor"
+      },
+      "stand": {
+        "name": "Stand",
+        "state": {
+          "closed": "Dicht",
+          "slit": "Spleetstand",
+          "partly_open": "Deels open",
+          "open": "Open"
+        }
       }
     },
     "binary_sensor": {
