@@ -160,6 +160,7 @@ class HolidayCalendar:
     extra: list[HolidayEntry] = field(default_factory=list)
     excluded: list[HolidayEntry] = field(default_factory=list)
     from_calendar: dict[date, str] = field(default_factory=dict)
+    disabled: frozenset[str] = frozenset()  # names of calendar holidays that do not count (every year)
 
     def holiday(self, d: date) -> str | None:
         """The name of the holiday on this date (empty string when it has none), or None."""
@@ -168,7 +169,16 @@ class HolidayCalendar:
         for e in self.extra:
             if e.matches(d):
                 return e.name
-        return self.from_calendar.get(d)
+        name = self.from_calendar.get(d)
+        return None if name is not None and name in self.disabled else name
+
+    def calendar_names(self) -> list[tuple[str, date]]:
+        """Each holiday name from the calendar with its next date, in date order (for the options page)."""
+        first: dict[str, date] = {}
+        for d, name in sorted(self.from_calendar.items()):
+            if name and name not in first:
+                first[name] = d
+        return sorted(((n, d) for n, d in first.items()), key=lambda x: x[1])
 
     def is_free(self, d: date) -> bool:
         return d.weekday() in self.weekend_days or self.holiday(d) is not None

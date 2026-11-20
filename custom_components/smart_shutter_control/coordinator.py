@@ -33,6 +33,7 @@ from .const import (
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
     OPT_HOLIDAY_CALENDAR,
+    OPT_HOLIDAYS_DISABLED,
     OPT_HOLIDAYS_EXCLUDED,
     OPT_HOLIDAYS_EXTRA,
     OPT_MAX_INCIDENCE,
@@ -171,7 +172,12 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     def _holiday_calendar(self) -> HolidayCalendar:
         extra, _ = parse_holidays(self.options.get(OPT_HOLIDAYS_EXTRA))
         excluded, _ = parse_holidays(self.options.get(OPT_HOLIDAYS_EXCLUDED))
-        return HolidayCalendar(weekend_set(self.options.get(OPT_WEEKEND_DAYS)), extra, excluded)
+        return HolidayCalendar(
+            weekend_set(self.options.get(OPT_WEEKEND_DAYS)),
+            extra,
+            excluded,
+            disabled=frozenset(self.options.get(OPT_HOLIDAYS_DISABLED) or []),
+        )
 
     async def async_refresh_holidays(self) -> None:
         """Read the public holidays of the coming 400 days from the calendar entity, if one is set."""
