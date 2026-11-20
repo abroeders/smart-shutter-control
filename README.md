@@ -12,8 +12,9 @@ shutter by hand.
   the base schedule) and per shutter its window direction, maximum position and any overrides.
 - **Schedules:** slit, open, dusk and night per shutter, with weekend and holiday times (from a calendar,
   with holidays you can switch off), sunset-relative evenings and sleep-in.
-- **Heat protection:** the sun's position against the window direction, with PV power as a measure of
-  clouds (learned clear-sky reference), and delays so passing clouds do not move the shutters.
+- **Heat protection:** the sun's position against the window direction, with PV power or light sensors
+  (lux) as a measure of clouds (learned clear-sky reference), and delays so passing clouds do not move the
+  shutters.
 - **Calibrated positions:** an assistant measures each shutter, so 50 % is half way down the window from
   either direction; fully open and closed use the module's own ends.
 - **Manual operation is respected:** a manual move pauses automatic control until the next phase (or for a

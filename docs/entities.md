@@ -6,7 +6,7 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 
 | Entity | Shows or does |
 |---|---|
-| sensor *Sun factor* | PV power as % of the learned clear-sky power for this position of the sun; attributes `source` (`learned`, `pv_peak`, `weather`, `geometry`), `sun_azimuth`, `sun_elevation` |
+| sensor *Sun factor* | PV power or illuminance as % of its learned clear-sky value for this position of the sun; attributes `source` (`learned`, `pv_peak`, `lux_learned`, `lux_limit`, `weather`, `geometry`), `sun_source`, `lux`, `sun_azimuth`, `sun_elevation` |
 | binary_sensor *Sunny* | sun factor above the threshold (with hysteresis) |
 | binary_sensor *Weekend or holiday* | today uses the weekend times; attribute `holiday` (its name) |
 | binary_sensor *Storm* | storm (see [How it works](how-it-works.md#storm)) |
@@ -32,5 +32,5 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | sensor *Phase* | night, slit, day or dusk |
 | sensor *State* | closed, slit (gaps open, bar on the sill), partly open, open; attributes `opening`, `module_position` |
 | sensor *Calibration* (diagnostic) | calibrated or not; the points, the model and the fit per direction |
-| binary_sensor *Sun on the window* | the sun is in front of the window and not blocked (geometry only); attribute `incidence` |
+| binary_sensor *Sun on the window* | the sun is in front of the window and not blocked (geometry only); attribute `incidence`; with a facade light sensor also `sunny`, `sun_factor`, `lux`, `source` |
 | binary_sensor *Manual pause* | automatic control is paused after a manual action; attributes `since`, `until`, `source` |
