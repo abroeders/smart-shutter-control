@@ -4,6 +4,7 @@
   "after_dependencies": [
     "calendar",
     "holiday",
+    "recorder",
     "sun",
     "weather"
   ],
