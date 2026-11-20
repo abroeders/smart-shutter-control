@@ -22,6 +22,7 @@ async def async_setup_entry(
             FreeDaySensor(entry.runtime_data, "holiday"),
             StormSensor(entry.runtime_data, "storm"),
             FrostSensor(entry.runtime_data, "frost"),
+            WinterSensor(entry.runtime_data, "winter"),
         ]
     )
     add_per_shutter(
@@ -104,3 +105,16 @@ class FrostSensor(BaseEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {"since": _iso(self.coordinator.frost.since)}
+
+
+class WinterSensor(BaseEntity, BinarySensorEntity):
+    """Winter mode is active (auto: the 24-hour mean outdoor temperature is below the limit)."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.winter.active
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        mean = self.coordinator.outdoor_mean.mean(self.coordinator.inputs.now)
+        return {"mean_24h": None if mean is None else round(mean, 1), "mode": self.coordinator.winter.mode}

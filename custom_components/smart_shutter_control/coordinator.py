@@ -50,6 +50,7 @@ from .const import (
     OPT_STORM_WIND_LIMIT,
     OPT_SUNNY_THRESHOLD,
     OPT_WEEKEND_DAYS,
+    OPT_WINTER_LIMIT,
     SUBENTRY_SHUTTER,
     TICK_SECONDS,
 )
@@ -60,6 +61,7 @@ from .core.schedule import HolidayCalendar, parse_holidays, weekend_set
 from .core.sun import SunPosition
 from .core.sunny import ClearSkyReference, SunnyDetector
 from .core.weather import FrostDetector, StormDetector
+from .core.winter import OutdoorMean, WinterDetector
 from .storage import RuntimeStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -117,6 +119,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             "close_below": _num(o.get(OPT_CLOSE_BELOW)),
         }
         self._quick = None
+        self.outdoor_mean = OutdoorMean()
+        self.winter = WinterDetector(float(o[OPT_WINTER_LIMIT]))
         self.store = RuntimeStore(hass, entry.entry_id)
         self.shutters: dict[str, ShutterController] = {}
         self.inputs = Inputs(now=time.time())
@@ -138,6 +142,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
 
     async def async_start(self) -> None:
         await self.store.async_load()
+        self.outdoor_mean = OutdoorMean.from_dict(self.store.globals.get("outdoor_mean"))
+        self.winter.mode = str(self.store.globals.get("winter_mode", "auto"))
         self.sunny = SunnyDetector(
             reference=ClearSkyReference.from_dict(self.store.globals.get("clear_sky")),
             threshold=float(self.options[OPT_SUNNY_THRESHOLD]) / 100,
@@ -224,7 +230,13 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             now,
         )
         frost = self.frost.update(outdoor, now)
+        before = len(self.outdoor_mean.samples)
+        self.outdoor_mean.add(outdoor, now)
+        if len(self.outdoor_mean.samples) != before:
+            self.store.set_global("outdoor_mean", self.outdoor_mean.to_dict())
+        winter = self.winter.update(self.outdoor_mean.mean(now))
         return Inputs(
+            winter=winter,
             now=now,
             storm=storm,
             frost=frost,
@@ -265,6 +277,10 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         days = await read_calendar(self.hass, entity_id)
         if days is not None:
             self.calendar.from_calendar = days
+
+    def set_winter_mode(self, mode: str) -> None:
+        self.winter.mode = mode
+        self.store.set_global("winter_mode", mode)
 
     @callback
     def _on_manual(self) -> None:

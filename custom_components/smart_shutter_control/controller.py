@@ -38,6 +38,7 @@ from .core.model import Decision, Direction, Inputs, Reason, ShutterConfig, Shut
 from .core.rules import RuleChain
 from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, merged, overridden
 from .core.weather import FrostRule, StormRule, TemperatureLimitRule
+from .core.winter import WinterRule
 from .storage import RuntimeStore
 
 KEY_AUTOMATIC = "automatic"
@@ -136,6 +137,12 @@ class ShutterController:
                 self.pause_rule,
                 SleepInRule(self.sleep_in, self.schedule),
                 self.heat_rule,
+                WinterRule(
+                    lambda: _on(self.schedule_values["winter"]),
+                    lambda: _number(self.schedule_values["winter_closed_below"]),
+                    self.schedule_rule.phase,
+                    lambda: int(self.schedule_values["dusk_position"]),
+                ),
                 self.schedule_rule,
             ]
         )
@@ -366,3 +373,14 @@ def _zone(hass: HomeAssistant):
     from zoneinfo import ZoneInfo
 
     return ZoneInfo(hass.config.time_zone)
+
+
+def _on(value) -> bool:
+    return value not in (False, "off", "none", "false", None)
+
+
+def _number(value) -> float | None:
+    try:
+        return None if value in (None, "", "none", "off") else float(value)
+    except (TypeError, ValueError):
+        return None

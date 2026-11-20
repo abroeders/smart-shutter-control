@@ -150,3 +150,29 @@ async def test_old_storm_limit_becomes_the_gust_limit(hass: HomeAssistant, cover
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.runtime_data.storm.gust_limit == 65
+
+
+async def test_winter_cold_day_and_evening(hass: HomeAssistant, covers, amsterdam) -> None:
+    amsterdam.move_to("2026-11-18 12:00:00+01:00")
+    report(hass, 100)
+    hass.states.async_set(OUTDOOR, "-6", {"device_class": "temperature", "unit_of_measurement": "°C"})
+    entry = await setup(hass, frost_limit=-20)  # no frost lock for this test
+    calls = async_mock_service(hass, "cover", "set_cover_position")
+    await add_shutter(hass, entry, LIVING)
+    select = eid(hass, entry, "select", "winter_mode", shutter=False)
+    await hass.services.async_call(
+        "select", "select_option", {"entity_id": select, "option": "on"}, blocking=True
+    )
+    assert hass.states.get(eid(hass, entry, "binary_sensor", "winter", shutter=False)).state == "on"
+    assert calls[-1].data["position"] == 0  # very cold: closed all day
+    assert hass.states.get(eid(hass, entry, "sensor", "reason")).state == "winter"
+    report(hass, 0)
+    await hass.async_block_till_done()
+
+    # milder in the evening: the dusk position does not raise the closed shutter
+    calls.clear()
+    hass.states.async_set(OUTDOOR, "2", {"device_class": "temperature", "unit_of_measurement": "°C"})
+    amsterdam.move_to("2026-11-18 16:45:00+01:00")
+    await tick(hass, entry)
+    assert hass.states.get(eid(hass, entry, "sensor", "phase")).state == "dusk"
+    assert not calls

@@ -55,7 +55,8 @@
           "storm": "Storm and frost",
           "sun": "Sun",
           "schedule": "Schedule",
-          "holidays": "Holidays"
+          "holidays": "Holidays",
+          "winter": "Winter"
         }
       },
       "storm": {
@@ -119,12 +120,15 @@
           "sleep_in_until": "Sleep in until",
           "manual_mode": "After a manual action",
           "manual_duration": "Pause after a manual action",
-          "storm_position": "Storm position"
+          "storm_position": "Storm position",
+          "winter": "Winter mode",
+          "winter_closed_below": "Winter: closed all day at or below"
         },
         "data_description": {
           "slit_module": "Only used when the shutter is not calibrated; with a calibration the slit is the measured lift point.",
           "manual_duration": "Only for 'For a while'.",
-          "sunrise_offset": "Only with 'Not before sunrise'."
+          "sunrise_offset": "Only with 'Not before sunrise'.",
+          "winter_closed_below": "Empty: off. A manual action overrides it."
         }
       },
       "holidays": {
@@ -150,6 +154,13 @@
           "holidays_disabled": "Checked holidays count as normal days, every year. The list shows the holidays of the chosen calendar (after saving it once).",
           "holidays_extra": "One date per line: 2026-12-24 (once) or 12-31 (every year), optionally followed by a name.",
           "holidays_excluded": "Dates from the calendar that count as normal days, same format."
+        }
+      },
+      "winter": {
+        "title": "Winter",
+        "description": "Winter mode is on while the mean outdoor temperature of the last 24 hours is below the limit (with the select Winter mode on auto).",
+        "data": {
+          "winter_limit": "Winter below (24-hour mean)"
         }
       }
     },
@@ -296,7 +307,9 @@
             "sleep_in_until": "Sleep in until",
             "manual_mode": "After a manual action",
             "manual_duration": "Pause after a manual action",
-            "storm_position": "Storm position"
+            "storm_position": "Storm position",
+            "winter": "Winter mode",
+            "winter_closed_below": "Winter: closed all day at or below"
           },
           "data_description": {
             "weekday_slit": "Base schedule: {base_weekday_slit}",
@@ -317,7 +330,9 @@
             "sleep_in_until": "Base schedule: {base_sleep_in_until}",
             "manual_mode": "Base schedule: {base_manual_mode}",
             "manual_duration": "Base schedule: {base_manual_duration}",
-            "storm_position": "Base schedule: {base_storm_position}"
+            "storm_position": "Base schedule: {base_storm_position}",
+            "winter": "Base schedule: {base_winter}",
+            "winter_closed_below": "Base schedule: {base_winter_closed_below}"
           }
         }
       },
@@ -382,7 +397,8 @@
           "storm": "Storm",
           "frost": "Frost",
           "heat_limit": "Heat limit",
-          "cold_limit": "Cold limit"
+          "cold_limit": "Cold limit",
+          "winter": "Winter"
         }
       },
       "next_action": {
@@ -435,11 +451,24 @@
       },
       "frost": {
         "name": "Frost"
+      },
+      "winter": {
+        "name": "Winter"
       }
     },
     "button": {
       "resume": {
         "name": "Resume automatic control"
+      }
+    },
+    "select": {
+      "winter_mode": {
+        "name": "Winter mode",
+        "state": {
+          "auto": "Auto",
+          "on": "On",
+          "off": "Off"
+        }
       }
     }
   },
