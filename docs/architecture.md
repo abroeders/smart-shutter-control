@@ -123,6 +123,8 @@ classDiagram
         +entity_id str
         +last_command Command
         +module_position() int|None
+        +power_entity str|None
+        +motor_power() float|None
         +async_move(position, automatic)
         +async_stop()
     }
@@ -329,18 +331,25 @@ sequenceDiagram
     participant S as CalibrationSession
     participant A as CoverAdapter
     participant M as shutter module
-    loop at most 3 attempts
-        S->>A: async_move(target)
+    participant P as motor power sensor
+    alt end position 0 or 100
+        S->>A: async_move(0 or 100), once
         A->>M: set position
-        S->>S: wait until no position change for 3 s
-        alt within 1 % of the target
-            S->>S: reached
-        else stopped short
-            S->>S: send again
-        end
-    end
-    opt target is 0 or 100
+        S->>S: wait until M reports exactly 0/100 and P idle for 2 s (max 3 min)
         S->>S: wait 5 s (run-on to the limit switch)
+    else intermediate position
+        loop at most 3 attempts
+            S->>A: async_move(target)
+            A->>M: set position
+            S->>P: wait for the motor to start, then to stop
+            S->>M: update_entity (poll)
+            S->>S: wait for a report after the stop (max 30 s)
+            alt within 1 % of the target
+                S->>S: reached
+            else stopped short
+                S->>S: send again
+            end
+        end
     end
 ```
 

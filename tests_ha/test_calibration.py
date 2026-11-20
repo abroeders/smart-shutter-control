@@ -1,5 +1,7 @@
 """The calibration assistant with a simulated shutter, and the calibrated shutter entity afterwards."""
 
+import asyncio
+
 import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.data_entry_flow import FlowResultType
@@ -24,7 +26,9 @@ def opening(module: int, direction: str) -> float:
 def fast(monkeypatch):
     monkeypatch.setattr(assistant, "POLL", 0.01)
     monkeypatch.setattr(assistant, "STABLE", 0.03)
-    monkeypatch.setattr(assistant, "MIN_RUN", 0.02)
+    monkeypatch.setattr(assistant, "START_WAIT", 0.1)
+    monkeypatch.setattr(assistant, "IDLE", 0.03)
+    monkeypatch.setattr(assistant, "REPORT_WAIT", 1.0)
     monkeypatch.setattr(assistant, "END_SETTLE", 0.0)
     monkeypatch.setattr(assistant, "MAX_WAIT", 2.0)
 
@@ -207,3 +211,86 @@ def test_a_point_on_the_sill_adds_one_higher_and_skips_lower_ones() -> None:
     session.queue = [Action("measure", 32, Direction.DOWN)]  # 72 and 52 done; going down
     session.add_point(Action("measure", 52, Direction.DOWN), 0)  # already on the sill at 52
     assert session.queue == []  # so 32 is skipped
+
+
+POWER = "sensor.living_room_motor_power"
+
+
+def travelling(hass: HomeAssistant, seconds: float = 0.3, report_delay: float = 0.0) -> list[int]:
+    """A cover that takes a while to travel and reports its position only now and then, with motor power."""
+    moves: list[int] = []
+    hass.states.async_set(POWER, "0", {"device_class": "power", "unit_of_measurement": "W"})
+
+    async def set_position(call: ServiceCall) -> None:
+        target = int(call.data["position"])
+        moves.append(target)
+        start = hass.states.get(LIVING).attributes["current_position"]
+
+        async def run() -> None:
+            hass.states.async_set(POWER, "100", {"device_class": "power", "unit_of_measurement": "W"})
+            await asyncio.sleep(seconds / 2)
+            middle = (start + target) // 2  # one report half way, then silence
+            hass.states.async_set(LIVING, "open", {"current_position": middle, "supported_features": 15})
+            await asyncio.sleep(seconds / 2)
+            hass.states.async_set(
+                LIVING,
+                "closed" if target == 0 else "open",
+                {"current_position": target, "supported_features": 15},
+            )
+            hass.states.async_set(POWER, "0", {"device_class": "power", "unit_of_measurement": "W"})
+
+        hass.async_create_task(run())
+
+    hass.services.async_register("cover", "set_cover_position", set_position)
+    return moves
+
+
+async def test_closing_is_one_command_and_waits_for_the_end(hass: HomeAssistant, covers, fast) -> None:
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING, motor_power=POWER)
+    moves = travelling(hass)
+    subentry_id = next(iter(entry.subentries))
+    result = await open_menu(hass, entry, subentry_id, "calibrate")
+    flow_id = result["flow_id"]
+    result = await run(hass, flow_id, await hass.config_entries.subentries.async_configure(flow_id, {}))
+    # the first lift step only after the shutter really reached 0 (one command, no steps on the way)
+    assert result["step_id"] == "cal_lift"
+    assert moves == [0, 2]
+    assert hass.states.get(LIVING).attributes["current_position"] == 2
+
+
+async def test_intermediate_points_wait_for_the_late_report(hass: HomeAssistant, covers, fast) -> None:
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING, motor_power=POWER)
+    moves = travelling(hass, report_delay=0.2)  # the final position comes well after the motor stopped
+    subentry_id = next(iter(entry.subentries))
+    result = await open_menu(hass, entry, subentry_id, "add_point")
+    flow_id = result["flow_id"]
+    result = await run(
+        hass,
+        flow_id,
+        await hass.config_entries.subentries.async_configure(flow_id, {"module": 40, "direction": "down"}),
+    )
+    assert result["step_id"] == "cal_measure"
+    assert result["description_placeholders"]["reached"] == "✓"
+    assert moves == [40]  # one command: no stop-and-go while the report was on its way
+
+
+async def test_a_report_on_the_way_up_is_not_taken_for_the_next_point(
+    hass: HomeAssistant, covers, fast
+) -> None:
+    hass.states.async_set(LIVING, "open", {"current_position": 84, "supported_features": 15})
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING, motor_power=POWER)
+    moves = travelling(hass)  # on the way from 84 to 100 it reports 92 half way
+    subentry_id = next(iter(entry.subentries))
+    result = await open_menu(hass, entry, subentry_id, "add_point")
+    flow_id = result["flow_id"]
+    result = await run(
+        hass,
+        flow_id,
+        await hass.config_entries.subentries.async_configure(flow_id, {"module": 92, "direction": "down"}),
+    )
+    assert result["step_id"] == "cal_measure"
+    assert moves == [100, 92]  # first really at 100, then down to 92 before asking for the opening
+    assert hass.states.get(LIVING).attributes["current_position"] == 92

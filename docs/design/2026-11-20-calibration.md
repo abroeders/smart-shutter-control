@@ -130,11 +130,19 @@ stateDiagram-v2
     Review --> [*]: show the module position for 50 % per direction, save
 ```
 
-- **Moving and waiting** use the shutter's module directly (no calibration, no limits). A progress step waits
-  until the shutter has stopped: no position change for 3 s, at least 2 s after the command (at most 3 min per
-  attempt). If it stopped more than 1 % from the target, the command is sent again (at most twice). A module
-  that gets a command while it still runs on to its limit switch can stop short (seen in practice: 13 % instead
-  of 25 % right after reaching closed), so after an end position the assistant waits 5 s more.
+- **Moving and waiting** use the shutter's module directly (no calibration, no limits).
+  - **End positions (0 and 100):** one uninterrupted command; the module runs to its limit switch. The step
+    is done when the module reports exactly 0 or 100 and the motor has been idle for 2 s (at most 3 min), then
+    5 s more for the run-on. No resending: a new command would interrupt the travel.
+  - **Intermediate positions:** the motor's power tells when it runs (above 5 W) and when it has stopped.
+    Then the assistant asks the cover's integration for the position (`homeassistant.update_entity`, a poll
+    for Z-Wave) and waits for a report that came after the stop (at most 30 s). Modules report their
+    position rarely while moving (seen in practice: one report during a 40 s travel) and late after a stop
+    (9–20 s), so neither the position nor a short wait is a reliable sign of a stop. If the shutter stopped more than 1 % from the target, the command is sent again (at most twice):
+    a command during a limit switch run-on can stop early.
+  - **Motor power sensor:** optional per shutter; when empty, a power sensor on the cover's device is used,
+    preferring one that reads (almost) 0 W while the shutter stands still. Without one, a stop is assumed
+    after 12 s without a position change.
 - **Measuring:** the opening in cm (with the window height), or in % if no height is given. 0 is allowed
   (bar still on the sill).
 - **Lift point first:** from closed the assistant moves up in steps of 2 % module position and asks *"Has

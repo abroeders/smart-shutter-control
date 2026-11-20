@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Calibration: moving to closed (and open) is one uninterrupted command, confirmed when the module reports
+  the end position and the motor has stopped. Before, a module that reports its position rarely while moving
+  was taken for stopped: the command was sent again (the shutter moved in steps) and the assistant went on
+  before the shutter was closed (#16).
+- Calibration: a stop is detected from the motor power instead of the position reports, and the position
+  is read from a report that came after the stop (with a poll), so the shutter no longer stops and starts on
+  its way to a measuring point (#16).
+
+### Added
+
+- Optional *Motor power sensor* per shutter; when empty, a power sensor on the shutter's device is used (#16).
+
 ## [0.2.1] - 2026-11-20
 
 ### Added

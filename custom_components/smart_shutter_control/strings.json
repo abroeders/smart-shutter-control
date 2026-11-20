@@ -107,7 +107,8 @@
             "heat_protection": "Heat protection",
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
-            "heat_room": "Heat protection from (room)"
+            "heat_room": "Heat protection from (room)",
+            "motor_power": "Motor power sensor"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -119,7 +120,8 @@
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
-            "heat_room": "Leave empty to use the base controller's value."
+            "heat_room": "Leave empty to use the base controller's value.",
+            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used."
           }
         },
         "settings": {
@@ -136,7 +138,8 @@
             "heat_protection": "Heat protection",
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
-            "heat_room": "Heat protection from (room)"
+            "heat_room": "Heat protection from (room)",
+            "motor_power": "Motor power sensor"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -148,7 +151,8 @@
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
-            "heat_room": "Leave empty to use the base controller's value."
+            "heat_room": "Leave empty to use the base controller's value.",
+            "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used."
           }
         },
         "reconfigure": {

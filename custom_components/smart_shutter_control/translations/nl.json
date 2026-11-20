@@ -107,7 +107,8 @@
             "heat_protection": "Hittewering",
             "shading_position": "Schaduwstand",
             "heat_outdoor": "Hittewering vanaf (buiten)",
-            "heat_room": "Hittewering vanaf (kamer)"
+            "heat_room": "Hittewering vanaf (kamer)",
+            "motor_power": "Motorvermogensensor"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -119,7 +120,8 @@
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
             "shading_position": "Stand terwijl de zon op het raam staat.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
-            "heat_room": "Leeg laten voor de waarde van de basiscontroller."
+            "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
+            "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt."
           }
         },
         "settings": {
@@ -136,7 +138,8 @@
             "heat_protection": "Hittewering",
             "shading_position": "Schaduwstand",
             "heat_outdoor": "Hittewering vanaf (buiten)",
-            "heat_room": "Hittewering vanaf (kamer)"
+            "heat_room": "Hittewering vanaf (kamer)",
+            "motor_power": "Motorvermogensensor"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -148,7 +151,8 @@
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
             "shading_position": "Stand terwijl de zon op het raam staat.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
-            "heat_room": "Leeg laten voor de waarde van de basiscontroller."
+            "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
+            "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt."
           }
         },
         "reconfigure": {
