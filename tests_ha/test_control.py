@@ -108,3 +108,30 @@ async def test_opening_number_moves_to_the_real_position(hass: HomeAssistant, co
     assert float(hass.states.get(number).state) == 0
     assert hass.states.get(entity(hass, entry, "cover", "shutter")).state == "open"
     assert hass.states.get(entity(hass, entry, "sensor", "stand")).state == "slit"
+
+
+async def test_motor_power_sensor_is_found_on_the_device(hass: HomeAssistant, covers) -> None:
+    from homeassistant.helpers import device_registry as dr
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.smart_shutter_control.adapter import CoverAdapter
+
+    other = MockConfigEntry(domain="zwave_js")
+    other.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=other.entry_id, identifiers={("zwave_js", "8")}
+    )
+    registry = er.async_get(hass)
+    registry.async_get_or_create("cover", "zwave_js", "c8", device_id=device.id, suggested_object_id="living")
+    for uid, object_id, value in (("p1", "stale_w", "672"), ("p2", "consumption_w", "0.0")):
+        registry.async_get_or_create(
+            "sensor",
+            "zwave_js",
+            uid,
+            device_id=device.id,
+            suggested_object_id=object_id,
+            original_device_class="power",
+        )
+        hass.states.async_set(f"sensor.{object_id}", value, {"unit_of_measurement": "W"})
+    assert CoverAdapter(hass, "cover.living").power_entity == "sensor.consumption_w"  # not the stale 672 W
+    assert CoverAdapter(hass, "cover.unknown").power_entity is None
