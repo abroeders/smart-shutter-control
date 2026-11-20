@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Winter mode: on while the 24-hour mean outdoor temperature is below a limit (select *Winter mode*: auto, on,
+  off). In winter a shutter stays closed all day at or below a temperature (default −5 °C; a manual action
+  overrides it), and the dusk position never raises a closed shutter. Per shutter on/off and limit, inherited
+  from the base schedule. Sensor *Winter* with the 24-hour mean (#7).
+
 ## [0.4.0] - 2026-11-20
 
 ### Added
