@@ -77,6 +77,25 @@ def test_one_direction_is_used_for_the_other_and_slit():
     assert cal.slit(Direction.DOWN) == round(100 * cal.curve(Direction.DOWN).lift)
 
 
+def test_whole_module_positions_give_the_closest_real_position():
+    cal = RollerCalibration.from_data({"points": {"up": [[0.5, 0.25], [0.75, 0.58]]}})
+    for target in range(0, 101, 5):
+        assert cal.from_module(cal.to_module(target, Direction.UP), Direction.UP) == pytest.approx(
+            target, abs=1
+        )
+
+
+def test_end_positions_are_the_module_ends():
+    slow_up = [(m, spiral(m, speed=0.85)) for m in (0.25, 0.5, 0.75)]  # not fully open at the end of its time
+    cal = RollerCalibration.from_data({"points": {"up": slow_up, "down": slow_up}})
+    assert cal.curve(Direction.UP).opening(1.0) < 1.0
+    for d in Direction:
+        assert cal.to_module(0, d) == 0
+        assert cal.to_module(100, d) == 100
+        assert cal.from_module(0, d) == 0
+        assert cal.from_module(100, d) == 100  # on the limit switch: fully open
+
+
 def test_no_data_is_identity():
     assert isinstance(RollerCalibration.from_data(None), IdentityCalibration)
     assert isinstance(RollerCalibration.from_data({"points": {"up": [(0.5, 0.4)]}}), IdentityCalibration)
