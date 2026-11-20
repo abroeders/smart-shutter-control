@@ -1,7 +1,7 @@
 # Sun on the window: heat protection
 
 - Issue: #3
-- Status: draft
+- Status: **approved** (2026-11-20)
 - Date: 2026-11-20
 - Depends on: #2; uses calibrated positions from #10 when present
 
