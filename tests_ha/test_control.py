@@ -46,6 +46,7 @@ async def test_moves_limited_and_only_when_automatic(hass: HomeAssistant, covers
     calls = async_mock_service(hass, "cover", "set_cover_position")
     controller = next(iter(entry.runtime_data.shutters.values()))
     controller.chain = RuleChain([FixedRule(90)])
+    controller.last_target = None  # the first tick when the shutter was added may already have sent a target
     await entry.runtime_data.async_tick()
     assert calls[-1].data == {"entity_id": LIVING, "position": 60}  # limited to the maximum position
     assert controller.adapter.last_command.automatic
