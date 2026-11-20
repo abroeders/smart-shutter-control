@@ -1,0 +1,162 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Smart Shutter Control",
+        "description": "De basiscontroller bevat de instellingen voor alle rolluiken. Voeg daarna de rolluiken toe op de pagina van de integratie.",
+        "data": {
+          "name": "Naam"
+        }
+      },
+      "sources": {
+        "title": "Bronnen",
+        "data": {
+          "outdoor_temperature": "Buitentemperatuur",
+          "weather": "Weer",
+          "pv_power": "Pv-vermogensensoren",
+          "pv_peak": "Piekvermogen pv",
+          "pv_forecast": "Pv-verwachting",
+          "wind_speed": "Windsnelheidsensor",
+          "wind_gust": "Windstootsensor"
+        },
+        "data_description": {
+          "pv_power": "Eén of meer sensoren; ze worden opgeteld. Dient als maat voor bewolking.",
+          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht.",
+          "wind_gust": "Optioneel; de stormgrens geldt voor de windsnelheid en de windstoten."
+        }
+      },
+      "reconfigure": {
+        "title": "Bronnen",
+        "data": {
+          "outdoor_temperature": "Buitentemperatuur",
+          "weather": "Weer",
+          "pv_power": "Pv-vermogensensoren",
+          "pv_peak": "Piekvermogen pv",
+          "pv_forecast": "Pv-verwachting",
+          "wind_speed": "Windsnelheidsensor",
+          "wind_gust": "Windstootsensor"
+        },
+        "data_description": {
+          "pv_power": "Eén of meer sensoren; ze worden opgeteld. Dient als maat voor bewolking.",
+          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht.",
+          "wind_gust": "Optioneel; de stormgrens geldt voor de windsnelheid en de windstoten."
+        }
+      }
+    },
+    "abort": {
+      "reconfigure_successful": "De instellingen zijn opgeslagen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Instellingen",
+        "menu_options": {
+          "storm": "Storm"
+        }
+      },
+      "storm": {
+        "title": "Storm",
+        "data": {
+          "storm_limit": "Stormgrens"
+        },
+        "data_description": {
+          "storm_limit": "Boven deze windsnelheid of windstoot staan rolluiken alleen helemaal open of helemaal dicht."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "shutter": {
+      "entry_type": "Rolluik",
+      "initiate_flow": {
+        "user": "Rolluik toevoegen",
+        "reconfigure": "Rolluik wijzigen"
+      },
+      "step": {
+        "user": {
+          "title": "Rolluik",
+          "data": {
+            "cover": "Rolluik",
+            "name": "Naam",
+            "azimuth": "Raamrichting",
+            "tilt": "Hellingshoek raam",
+            "min_elevation": "Laagste zonshoogte",
+            "max_elevation": "Hoogste zonshoogte",
+            "room_temperature": "Kamertemperatuursensor",
+            "max_position": "Maximale stand"
+          },
+          "data_description": {
+            "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
+            "name": "Leeg laten voor de naam van het rolluik.",
+            "azimuth": "Graden: 0 = noord, 90 = oost, 180 = zuid, 270 = west.",
+            "tilt": "90 = verticaal raam; minder voor een dakraam.",
+            "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
+            "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
+            "max_position": "De automaat opent het rolluik nooit verder; met de hand wel."
+          }
+        },
+        "reconfigure": {
+          "title": "Rolluik",
+          "data": {
+            "cover": "Rolluik",
+            "name": "Naam",
+            "azimuth": "Raamrichting",
+            "tilt": "Hellingshoek raam",
+            "min_elevation": "Laagste zonshoogte",
+            "max_elevation": "Hoogste zonshoogte",
+            "room_temperature": "Kamertemperatuursensor",
+            "max_position": "Maximale stand"
+          },
+          "data_description": {
+            "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
+            "name": "Leeg laten voor de naam van het rolluik.",
+            "azimuth": "Graden: 0 = noord, 90 = oost, 180 = zuid, 270 = west.",
+            "tilt": "90 = verticaal raam; minder voor een dakraam.",
+            "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
+            "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
+            "max_position": "De automaat opent het rolluik nooit verder; met de hand wel."
+          }
+        }
+      },
+      "error": {
+        "no_position": "Dit rolluik kan niet op een stand gezet worden.",
+        "already_configured": "Dit rolluik heeft al een rolluikcontroller.",
+        "elevation_order": "De hoogste zonshoogte moet boven de laagste liggen."
+      },
+      "abort": {
+        "reconfigure_successful": "Het rolluik is opgeslagen."
+      }
+    }
+  },
+  "entity": {
+    "cover": {
+      "shutter": {
+        "name": "Rolluik"
+      }
+    },
+    "switch": {
+      "automatic": {
+        "name": "Automatisch"
+      }
+    },
+    "number": {
+      "max_position": {
+        "name": "Maximale stand"
+      }
+    },
+    "sensor": {
+      "reason": {
+        "name": "Reden",
+        "state": {
+          "idle": "Geen actie",
+          "off": "Automatisch uit",
+          "manual": "Handmatig"
+        }
+      },
+      "next_action": {
+        "name": "Volgende actie"
+      }
+    }
+  }
+}

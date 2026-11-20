@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop, "feature/**"]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pytest ruff
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest
+
+  home-assistant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pytest-homeassistant-custom-component
+      - run: pytest tests_ha -p no:cacheprovider -o pythonpath=. -o testpaths=tests_ha -o asyncio_mode=auto
+
+  diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-save mermaid@11 jsdom@24
+      - run: node scripts/check_mermaid.mjs docs/*.md docs/design/*.md
