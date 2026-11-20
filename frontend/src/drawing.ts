@@ -14,6 +14,7 @@ export class ShutterDrawing extends LitElement {
     position: { type: Number },
     max: { type: Number },
     moving: { type: String },
+    gaps: { type: Boolean },
     storm: { type: Boolean },
     compact: { type: Boolean },
     interactive: { type: Boolean },
@@ -25,6 +26,8 @@ export class ShutterDrawing extends LitElement {
   position: number | null = null;
   max = 100;
   moving: string | null = null;
+  /** light between the slats: whenever the shutter is not fully closed (only then are they pressed together) */
+  gaps = false;
   storm = false;
   compact = false;
   interactive = false;
@@ -44,6 +47,7 @@ export class ShutterDrawing extends LitElement {
       --ssc-slat-1: #eceff1;
       --ssc-slat-2: #b0bec5;
       --ssc-slat-line: #90a4ae;
+      --ssc-gap: #fff8e1;
       --ssc-bar: #546e7a;
       --ssc-accent: var(--primary-color, #1e88e5);
       --ssc-max: var(--warning-color, #ef6c00);
@@ -54,6 +58,7 @@ export class ShutterDrawing extends LitElement {
       --ssc-slat-1: #607d8b;
       --ssc-slat-2: #455a64;
       --ssc-slat-line: #37474f;
+      --ssc-gap: #b7c9d8;
       --ssc-bar: #b0bec5;
     }
     svg {
@@ -172,6 +177,9 @@ export class ShutterDrawing extends LitElement {
         <pattern id="slats" width="10" height="13" patternUnits="userSpaceOnUse" y="-3">
           <rect width="10" height="13" fill="url(#slat)"></rect><line x1="0" y1="12" x2="10" y2="12" stroke="var(--ssc-slat-line)" stroke-width="1.5"></line>
         </pattern>
+        <pattern id="slats-open" width="10" height="13" patternUnits="userSpaceOnUse" y="-3">
+          <rect width="10" height="10.5" fill="url(#slat)"></rect><rect y="10.5" width="10" height="2.5" fill="var(--ssc-gap)"></rect>
+        </pattern>
         <clipPath id="opening"><rect x="58" y="40" width="168" height="208"></rect></clipPath>
       </defs>
       <rect class="frame" x="52" y="24" width="180" height="230" rx="6" fill="none" stroke="var(--ssc-frame)" stroke-width="4"></rect>
@@ -180,7 +188,7 @@ export class ShutterDrawing extends LitElement {
       <rect x="220" y="40" width="6" height="206" fill="var(--ssc-slat-2)"></rect>
       <g clip-path="url(#opening)">
         <g class="curtain" style=${`transform: translateY(${shift}px)`}>
-          <rect x="64" y="-170" width="156" height="406" fill="url(#slats)"></rect>
+          <rect class="slats ${this.gaps ? "open" : "closed"}" x="64" y="-170" width="156" height="406" fill=${this.gaps ? "url(#slats-open)" : "url(#slats)"}></rect>
           <rect class="bar" x="60" y="236" width="164" height="10" rx="3" fill="var(--ssc-bar)"></rect>
           ${handle
             ? svg`<rect x="124" y="230" width="36" height="22" rx="11" fill="var(--ssc-accent)" stroke="#fff" stroke-width="2"></rect>

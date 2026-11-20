@@ -134,6 +134,7 @@ export class SmartShutterCard extends LitElement {
           .position=${m.position}
           .max=${m.max}
           .moving=${m.moving}
+          .gaps=${!m.closed}
           .storm=${m.storm}
           .interactive=${!!m.entities.shutter}
           .label=${`${m.name}: ${t("position")}`}
@@ -178,7 +179,7 @@ export class SmartShutterCard extends LitElement {
             .filter(Boolean)
             .join(" · ");
           return html`<div class="tile" @click=${() => this.moreInfo(m.entities.shutter)}>
-            <ssc-drawing compact ?dark=${dark} .position=${m.position} .max=${m.max} .moving=${m.moving}></ssc-drawing>
+            <ssc-drawing compact ?dark=${dark} .position=${m.position} .max=${m.max} .moving=${m.moving} .gaps=${!m.closed}></ssc-drawing>
             <div class="tile-text">
               <div class="tile-name">${m.name}</div>
               <div class="sub ${s.chip === "manual_pause" ? "manual" : ""}">${line}${s.chip === "manual_pause" ? ` · ${s.detail}` : ""}</div>
