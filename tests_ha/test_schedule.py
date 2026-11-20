@@ -108,6 +108,14 @@ async def test_base_schedule_and_overrides(hass: HomeAssistant, covers, amsterda
     )
     await hass.async_block_till_done()
     assert entry.runtime_data.shutters[sub].overrides() == []
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "shutter"), context={"source": "reconfigure", "subentry_id": sub}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "schedule"}
+    )
+    suggested = {str(k): (k.description or {}).get("suggested_value") for k in result["data_schema"].schema}
+    assert suggested["slit_phase"] == "inherit" and suggested["weekday_open"] is None  # after the reset
 
 
 async def test_holidays_from_a_calendar_and_the_list(hass: HomeAssistant, covers, amsterdam) -> None:

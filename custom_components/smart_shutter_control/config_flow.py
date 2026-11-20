@@ -67,6 +67,7 @@ from .const import (
     OPT_STORM_WIND_LIMIT,
     OPT_SUNNY_THRESHOLD,
     OPT_WEEKEND_DAYS,
+    OPT_WINTER_LIMIT,
     SUBENTRY_SHUTTER,
 )
 from .coordinator import read_calendar
@@ -137,6 +138,18 @@ async def _max_30_days(hass, entity_id: str | None) -> str:
         return "–"
 
 
+INHERIT_MANUAL = ["inherit", "until_next_phase", "for_duration", "ignore"]
+# override fields with a choice: they show "inherit" when the shutter follows the base schedule
+INHERIT_CHOICES = (
+    "slit_phase",
+    "not_before_sunrise",
+    "dusk_phase",
+    "winter",
+    "storm_position",
+    "manual_mode",
+)
+
+
 def schedule_fields(base: bool) -> dict:
     """The schedule settings; for a shutter every field is optional (empty = the base value)."""
     key = vol.Required if base else vol.Optional
@@ -159,10 +172,13 @@ def schedule_fields(base: bool) -> dict:
         key("sleep_in_until"): _time(),
         key("manual_mode"): selector.SelectSelector(
             selector.SelectSelectorConfig(
-                options=["until_next_phase", "for_duration", "ignore"], translation_key="manual_mode"
+                options=(INHERIT_MANUAL[1:] if base else INHERIT_MANUAL),
+                translation_key="manual_mode",
             )
         ),
         key("manual_duration"): _number(5, 1440, 5, "min"),
+        key("winter"): _phase_switch(base),
+        vol.Optional("winter_closed_below"): _number(-30, 10, 0.5, "°C"),
         key("storm_position"): selector.SelectSelector(
             selector.SelectSelectorConfig(
                 options=(["nearest", "open", "closed"] if base else ["inherit", "nearest", "open", "closed"]),
@@ -273,7 +289,16 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
     """One page per subject; later issues add their pages to the menu."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="init", menu_options=["schedule", "holidays", "sun", "storm"])
+        return self.async_show_menu(
+            step_id="init", menu_options=["schedule", "holidays", "sun", "storm", "winter"]
+        )
+
+    async def async_step_winter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        if user_input is not None:
+            return self.async_create_entry(data={**current, **user_input})
+        schema = {vol.Required(OPT_WINTER_LIMIT): _number(0, 25, 0.5, "°C")}
+        return self.async_show_form(step_id="winter", data_schema=_with_defaults(schema, current))
 
     async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
@@ -521,9 +546,10 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
                 self._get_entry(), subentry, data_updates={CONF_SCHEDULE: overrides}
             )
         overrides = dict(subentry.data.get(CONF_SCHEDULE) or {})
+        shown = {**dict.fromkeys(INHERIT_CHOICES, "inherit"), **overrides}
         return self.async_show_form(
             step_id="schedule",
-            data_schema=_with_defaults(schedule_fields(base=False), overrides),
+            data_schema=_with_defaults(schedule_fields(base=False), shown),
             description_placeholders=base_placeholders(self._base_schedule(), self.hass.config.language),
         )
 

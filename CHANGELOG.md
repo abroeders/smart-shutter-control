@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-20
+
+### Added
+
+- Winter mode: on while the 24-hour mean outdoor temperature is below a limit (select *Winter mode*: auto, on,
+  off). In winter a shutter stays closed all day at or below a temperature (default −5 °C; a manual action
+  overrides it), and the dusk position never raises a closed shutter. Per shutter on/off and limit, inherited
+  from the base schedule. Sensor *Winter* with the 24-hour mean (#7).
+
+### Changed
+
+- *Schedule overrides*: the choice fields show *Inherit* when the shutter follows the base schedule, also
+  after *Reset to the base schedule*; *After a manual action* can now be inherited too.
+
 ## [0.4.0] - 2026-11-20
 
 ### Added
@@ -149,7 +163,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.2...v0.3.0

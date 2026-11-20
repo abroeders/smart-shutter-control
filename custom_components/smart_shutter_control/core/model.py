@@ -22,6 +22,7 @@ class Reason(StrEnum):
     FROST = "frost"
     HEAT_LIMIT = "heat_limit"
     COLD_LIMIT = "cold_limit"
+    WINTER = "winter"  # (#7)
 
 
 class Kind(StrEnum):
@@ -60,6 +61,7 @@ class Inputs:
     sun_factor: float | None = None
     storm: bool = False
     frost: bool = False
+    winter: bool = False
     extra: dict = field(default_factory=dict)
 
 
