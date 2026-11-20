@@ -66,6 +66,7 @@ o_dir(m) = clamp(a_dir·m + b_dir·m² − c_dir, 0, 1)
 |---|---|
 | `to_module(o, dir)` | the module position to send to reach real position `o` moving in direction `dir`: the inverse of `o_dir`, solved from the quadratic (or by bisection for PCHIP); `o = 0` → module 0, `o = 1` → module 1 |
 | `from_module(m, dir)` | the real position for a module position reached moving in `dir` |
+| end positions | real 0 and 100 are always module 0 and 100 in both directions, so the module runs to its limit switches; module 100 is shown as 100 % open even when the slower direction's curve ends just below 1 |
 
 - **Direction of a command:** up when the target is above the current real position, else down.
 - **Direction of a report:** the shutter controller watches the module position. While it changes, the
@@ -116,24 +117,33 @@ The *Reconfigure* flow of a shutter becomes a menu: **Settings** (the form of #2
 stateDiagram-v2
     [*] --> Height: window height (cm), or measure in % of the window
     Height --> ToClosed: move to 0 and wait (progress)
-    ToClosed --> UpPoint: move up to the next module point (25, 50, 75 %), wait
-    UpPoint --> AskUp: "measure the opening below the bar"
-    AskUp --> UpPoint: next point
+    ToClosed --> Lift: move up 2 % at a time, "has the bar left the sill?"
+    Lift --> Lift: no
+    Lift --> UpPoint: yes: lift point and slit known; plan 4 points above it
+    UpPoint --> AskUp: measure the opening below the bar
+    AskUp --> UpPoint: next point (an extra one if the bar was still on the sill)
     AskUp --> ToOpen: last up point
-    ToOpen --> DownPoint: move to 100, then down to the next point (75, 50, 25 %)
+    ToOpen --> DownPoint: move to 100, then down to the points in reverse
     DownPoint --> AskDown: measure
-    AskDown --> DownPoint: next point
-    AskDown --> Slit: last down point
-    Slit --> Review: find the lift point (from closed, steps of 2 %)
-    Review --> [*]: show the curves and the 50 % positions, save
+    AskDown --> DownPoint: next point (lower ones skipped once the bar is on the sill)
+    AskDown --> Review: last down point
+    Review --> [*]: show the module position for 50 % per direction, save
 ```
 
 - **Moving and waiting** use the shutter's module directly (no calibration, no limits). A progress step waits
-  until the position has been stable for 3 s (timeout: 2 × the longest travel seen, at most 3 min).
+  until the shutter has stopped: no position change for 3 s, at least 2 s after the command (at most 3 min per
+  attempt). If it stopped more than 1 % from the target, the command is sent again (at most twice). A module
+  that gets a command while it still runs on to its limit switch can stop short (seen in practice: 13 % instead
+  of 25 % right after reaching closed), so after an end position the assistant waits 5 s more.
 - **Measuring:** the opening in cm (with the window height), or in % if no height is given. 0 is allowed
   (bar still on the sill).
-- **Lift point:** from closed the assistant moves up in steps of 2 % module position and asks *"Has the
-  bottom bar lifted from the sill?"* until the answer is yes; the step before is `slit`.
+- **Lift point first:** from closed the assistant moves up in steps of 2 % module position and asks *"Has
+  the bottom bar lifted from the sill?"* until the answer is yes; the step before is `slit`.
+- **Measuring points above the sill:** four points at 15, 40, 65 and 90 % of the travel above the lift point
+  (e.g. lift 22 % → 34, 53, 73, 92 %), from closed and then from open. Fixed points like 25/50/75 % can fall
+  in the gap zone and give no information (seen in practice: the bar was still on the sill at 25 %).
+- **A point on the sill anyway:** going up, an extra point half way to the next one is added; going down, the
+  lower points are skipped.
 - **Review page:** for each direction, the module position for real 25 / 50 / 75 % and the largest residual.
   If the two directions differ by more than 5 % at 50 %, the page says so (a sign of different speeds up and
   down).
@@ -195,7 +205,8 @@ classDiagram
 
 | Entity | Change |
 |---|---|
-| shutter cover | position = calibrated real position; attributes `module_position`, `direction`, `calibrated` (true/false), `slit` |
+| shutter cover | position = calibrated real position; closed only when the module is at 0 (in the slit the opening is 0 % but the shutter is open); attributes `module_position`, `direction`, `calibrated` (true/false), `slit` |
+| new: number `opening` | the real opening of the window in %, editable: entering a value moves the shutter there (like manual operation, no maximum position). With whole module percents the result is within about 1 % |
 | new: sensor `calibration` (diagnostic) | `calibrated` / `not_calibrated`; attributes: points, model per direction (`quadratic` / `monotone`), residuals, module position at real 50 % per direction |
 
 ## 8. Tests

@@ -137,7 +137,9 @@ classDiagram
     ShutterEntity <|-- ShutterCover
     ShutterEntity <|-- AutomaticSwitch
     ShutterEntity <|-- MaxPositionNumber
+    ShutterEntity <|-- OpeningNumber
     ShutterEntity <|-- ReasonSensor
+    ShutterEntity <|-- StandSensor
     ShutterEntity <|-- NextActionSensor
     BaseCoordinator o-- ShutterController
     BaseCoordinator o-- RuntimeStore
@@ -252,7 +254,9 @@ classDiagram
         +points dict
         +slit dict
         +queue list~Action~
+        +measuring list~int~
         +full(controller, height)$
+        +plan_measuring(lift)
         +one_point(controller, stored, module, direction)$
         +add_point(action, value)
         +lifted(yes) bool
@@ -303,7 +307,7 @@ stateDiagram-v2
     Menu --> Settings
     Menu --> Height: calibrate
     Menu --> OnePoint: add a point
-    Height --> Move: queue goto 0, measure 25/50/75 up, goto 100, measure 75/50/25 down, lift
+    Height --> Move: queue goto 0, lift; after the lift point: 4 points up, goto 100, 4 points down
     OnePoint --> Move: queue goto 0 or 100, measure
     Move --> Measure: measure action
     Move --> Lift: lift action
@@ -317,6 +321,28 @@ stateDiagram-v2
 ```
 
 During the assistant the controller is paused (`Reason.CALIBRATING`); ending the flow in any way resumes it.
+
+### 5.4 Moving during the assistant
+
+```mermaid
+sequenceDiagram
+    participant S as CalibrationSession
+    participant A as CoverAdapter
+    participant M as shutter module
+    loop at most 3 attempts
+        S->>A: async_move(target)
+        A->>M: set position
+        S->>S: wait until no position change for 3 s
+        alt within 1 % of the target
+            S->>S: reached
+        else stopped short
+            S->>S: send again
+        end
+    end
+    opt target is 0 or 100
+        S->>S: wait 5 s (run-on to the limit switch)
+    end
+```
 
 ## 6. Sun on the window (#3)
 
