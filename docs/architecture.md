@@ -30,8 +30,10 @@ flowchart LR
 |---|---|
 | Single responsibility | one module per concern; one class per rule |
 | Dependency inversion | `core/` depends on its own protocols, not on Home Assistant |
-| **Chain of responsibility** | `RuleChain` asks the `Rule`s by priority; the first decision wins (#2) |
-| **Strategy** | `Calibration`: `IdentityCalibration` now, a roller model with #10 |
+| **Chain of responsibility** | `RuleChain` asks every `Rule` by priority: the first target wins, caps may lower it, a final target (safety) is not lowered (#2, #3) |
+| **State** | `HeatProtectionRule` phases open → pending → shading → leaving (#3) |
+| **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
+| **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
 | **Observer** | the entities listen to `BaseCoordinator` |
 | **Repository** | `RuntimeStore` keeps automatic on/off and the maximum position per shutter |
@@ -195,3 +197,218 @@ sequenceDiagram
     Note over SC: no maximum position for manual operation
     SC->>A: async_move(to_module(80), automatic=False)
 ```
+
+## 5. Calibrated positions (#10)
+
+Design: [`design/2026-11-20-calibration.md`](design/2026-11-20-calibration.md).
+
+### 5.1 Classes
+
+```mermaid
+classDiagram
+    direction TB
+    class Calibration {
+        <<protocol>>
+        +calibrated bool
+        +to_module(position, direction) int
+        +from_module(position, direction) int
+        +slit(direction) int|None
+    }
+    class IdentityCalibration
+    class RollerCalibration {
+        +curves dict~Direction, Curve~
+        +slits dict~Direction, float~
+        +curve(direction) Curve
+        +summary() dict
+        +from_data(data)$ Calibration
+    }
+    class Curve {
+        <<protocol>>
+        +residual float
+        +opening(m) float
+        +module(o) float
+    }
+    class QuadraticCurve {
+        +a float
+        +b float
+        +c float
+        +lift float
+        +increasing() bool
+        +fit(points)$ QuadraticCurve|None
+    }
+    class MonotoneCurve {
+        +xs, ys, slopes
+        +fit(points)$ MonotoneCurve|None
+    }
+    class DirectionTracker {
+        +direction Direction|None
+        +expect(direction)
+        +observe(module_position)
+        +current(module_position) Direction
+    }
+    class CalibrationSession {
+        +controller ShutterController
+        +height_cm float|None
+        +points dict
+        +slit dict
+        +queue list~Action~
+        +full(controller, height)$
+        +one_point(controller, stored, module, direction)$
+        +add_point(action, value)
+        +lifted(yes) bool
+        +async move(module)
+        +data() dict
+    }
+    class ShutterSubentryFlow {
+        <<ConfigSubentryFlow>>
+        +reconfigure: menu settings / calibrate / add_point
+        +cal_move (progress)
+        +cal_measure
+        +cal_lift
+        +cal_review
+    }
+    Calibration <|.. IdentityCalibration
+    Calibration <|.. RollerCalibration
+    RollerCalibration o-- Curve
+    Curve <|.. QuadraticCurve
+    Curve <|.. MonotoneCurve
+    ShutterController o-- Calibration
+    ShutterController o-- DirectionTracker
+    ShutterSubentryFlow o-- CalibrationSession
+    CalibrationSession ..> ShutterController : pauses, moves through its adapter
+```
+
+### 5.2 Moving to a real position
+
+```mermaid
+sequenceDiagram
+    participant SC as ShutterController
+    participant K as RollerCalibration
+    participant D as DirectionTracker
+    participant A as CoverAdapter
+    SC->>SC: target real position, current real position
+    SC->>K: to_module(target, up or down)
+    K-->>SC: module position
+    SC->>D: expect(direction)
+    SC->>A: async_move(module position)
+    A-->>D: reports while moving (observe)
+    SC->>K: from_module(reported, D.current) for the entities
+```
+
+### 5.3 The assistant
+
+```mermaid
+stateDiagram-v2
+    [*] --> Menu
+    Menu --> Settings
+    Menu --> Height: calibrate
+    Menu --> OnePoint: add a point
+    Height --> Move: queue goto 0, measure 25/50/75 up, goto 100, measure 75/50/25 down, lift
+    OnePoint --> Move: queue goto 0 or 100, measure
+    Move --> Measure: measure action
+    Move --> Lift: lift action
+    Move --> Move: goto action
+    Measure --> Move: next action
+    Lift --> Move: not lifted (2 % higher)
+    Lift --> Review: lifted
+    Measure --> Review: queue empty
+    Review --> [*]: save in the subentry, reload
+    Settings --> [*]
+```
+
+During the assistant the controller is paused (`Reason.CALIBRATING`); ending the flow in any way resumes it.
+
+## 6. Sun on the window (#3)
+
+Design: [`design/2026-11-20-sun-on-the-window.md`](design/2026-11-20-sun-on-the-window.md).
+
+### 6.1 Classes
+
+```mermaid
+classDiagram
+    direction TB
+    class SunPosition {
+        +azimuth float
+        +elevation float
+        +at(latitude, longitude, epoch)$ SunPosition
+    }
+    class WindowGeometry {
+        +azimuth float
+        +tilt float
+        +min_elevation float
+        +max_elevation float
+        +incidence(sun) float
+        +sun_on(sun, max_incidence) bool
+    }
+    class ClearSkyReference {
+        +cells dict
+        +observe(sun, pv_power, now)
+        +reference(sun) float|None
+        +to_dict() dict
+        +from_dict(data)$
+    }
+    class SunnyDetector {
+        +threshold float
+        +pv_peak_kw float|None
+        +sunny bool
+        +factor float|None
+        +source str
+        +update(sun, pv_power, weather, now) bool
+    }
+    class HeatProtectionRule {
+        +priority 40
+        +settings SunSettings
+        +phase Phase
+        +sun_on bool
+        +incidence float|None
+        +propose(ctx) Decision|None
+    }
+    class Decision {
+        +position int|None
+        +reason str
+        +kind target|cap
+        +final bool
+    }
+    SunnyDetector o-- ClearSkyReference
+    HeatProtectionRule ..> WindowGeometry
+    HeatProtectionRule ..> Decision : cap
+    BaseCoordinator o-- SunnyDetector
+    BaseCoordinator ..> SunPosition : once per tick
+    ShutterController o-- HeatProtectionRule
+```
+
+### 6.2 A tick with the sun
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant SP as SunPosition
+    participant SD as SunnyDetector
+    participant SC as ShutterController
+    participant R as RuleChain
+    participant H as HeatProtectionRule
+    C->>SP: at(latitude, longitude, now)
+    C->>SD: update(sun, PV power, weather)
+    SD-->>C: sunny, factor, source (learned / pv_peak / weather / geometry)
+    C->>SC: async_evaluate(inputs with sun and sunny)
+    SC->>R: decide(ctx: room temperature, heat protection, shading position)
+    R->>H: propose(ctx)
+    H-->>R: cap shading position (or nothing)
+    R-->>SC: min(target or current position, caps)
+```
+
+### 6.3 Heat protection phases
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open
+    Open --> Pending: sun on window, sunny, warm
+    Pending --> Open: a condition falls away
+    Pending --> Shading: held for close_delay
+    Shading --> Leaving: a condition falls away
+    Leaving --> Shading: conditions back
+    Leaving --> Open: open_delay passed, or the sun left the window
+```
+
+The learned clear-sky reference is kept with the runtime state (`RuntimeStore.globals`, saved every few
+minutes).

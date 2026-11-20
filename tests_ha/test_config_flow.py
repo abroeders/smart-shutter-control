@@ -58,9 +58,25 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
     for subentry_id in shutters.values():
         assert device(hass, subentry_id).via_device_id == base.id
     entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
-    keys = sorted(e.unique_id.rsplit("_", 1)[-1] for e in entities if shutters["Living room"] in e.unique_id)
-    assert keys == ["action", "automatic", "position", "reason", "shutter"]  # next_action, max_position
-    assert {e.config_subentry_id for e in entities} == set(shutters.values())
+    living = shutters["Living room"]
+    prefix = f"{entry.entry_id}_{living}_"
+    keys = sorted(e.unique_id.removeprefix(prefix) for e in entities if e.unique_id.startswith(prefix))
+    assert keys == [
+        "automatic",
+        "calibration",
+        "heat_protection",
+        "max_position",
+        "next_action",
+        "reason",
+        "shading_position",
+        "shutter",
+        "sun_on_window",
+    ]
+    per_shutter = {e.config_subentry_id for e in entities if e.config_subentry_id}
+    assert per_shutter == set(shutters.values())
+    base = [e for e in entities if not e.config_subentry_id]
+    base_keys = sorted(e.unique_id.removeprefix(f"{entry.entry_id}_") for e in base)
+    assert base_keys == ["sun_factor", "sunny"]
 
 
 async def test_shutter_flow_errors(hass: HomeAssistant, covers) -> None:
@@ -82,7 +98,11 @@ async def test_reconfigure_and_remove_a_shutter(hass: HomeAssistant, covers) -> 
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, "shutter"), context={"source": "reconfigure", "subentry_id": living.subentry_id}
     )
-    assert result["step_id"] == "reconfigure"
+    assert result["type"] is FlowResultType.MENU
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    assert result["step_id"] == "settings"
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"],
         {

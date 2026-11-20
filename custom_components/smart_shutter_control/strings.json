@@ -52,7 +52,8 @@
       "init": {
         "title": "Settings",
         "menu_options": {
-          "storm": "Storm"
+          "storm": "Storm",
+          "sun": "Sun"
         }
       },
       "storm": {
@@ -62,6 +63,24 @@
         },
         "data_description": {
           "storm_limit": "Above this wind speed or gust shutters are only fully open or fully closed."
+        }
+      },
+      "sun": {
+        "title": "Sun",
+        "data": {
+          "sunny_threshold": "Sunny from",
+          "max_incidence": "Largest angle of incidence",
+          "heat_outdoor": "Heat protection from (outdoor)",
+          "heat_room": "Heat protection from (room)",
+          "close_delay": "Close after",
+          "open_delay": "Open after"
+        },
+        "data_description": {
+          "sunny_threshold": "PV power as a share of its clear-sky value at this position of the sun.",
+          "max_incidence": "Sun at a larger angle to the window counts as not shining on it.",
+          "heat_room": "Only for shutters with a room temperature sensor.",
+          "close_delay": "Minutes of sun on the window before the shutter goes down.",
+          "open_delay": "Minutes without sun before it goes up again."
         }
       }
     }
@@ -84,7 +103,11 @@
             "min_elevation": "Lowest sun elevation",
             "max_elevation": "Highest sun elevation",
             "room_temperature": "Room temperature sensor",
-            "max_position": "Maximum position"
+            "max_position": "Maximum position",
+            "heat_protection": "Heat protection",
+            "shading_position": "Shading position",
+            "heat_outdoor": "Heat protection from (outdoor)",
+            "heat_room": "Heat protection from (room)"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -93,10 +116,13 @@
             "tilt": "90 = vertical window; less for a roof window.",
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
-            "max_position": "Automatic control never opens the shutter further; by hand it can."
+            "max_position": "Automatic control never opens the shutter further; by hand it can.",
+            "shading_position": "Position while the sun shines on the window.",
+            "heat_outdoor": "Leave empty to use the base controller's value.",
+            "heat_room": "Leave empty to use the base controller's value."
           }
         },
-        "reconfigure": {
+        "settings": {
           "title": "Shutter",
           "data": {
             "cover": "Shutter",
@@ -106,7 +132,11 @@
             "min_elevation": "Lowest sun elevation",
             "max_elevation": "Highest sun elevation",
             "room_temperature": "Room temperature sensor",
-            "max_position": "Maximum position"
+            "max_position": "Maximum position",
+            "heat_protection": "Heat protection",
+            "shading_position": "Shading position",
+            "heat_outdoor": "Heat protection from (outdoor)",
+            "heat_room": "Heat protection from (room)"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -115,8 +145,52 @@
             "tilt": "90 = vertical window; less for a roof window.",
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
-            "max_position": "Automatic control never opens the shutter further; by hand it can."
+            "max_position": "Automatic control never opens the shutter further; by hand it can.",
+            "shading_position": "Position while the sun shines on the window.",
+            "heat_outdoor": "Leave empty to use the base controller's value.",
+            "heat_room": "Leave empty to use the base controller's value."
           }
+        },
+        "reconfigure": {
+          "title": "Shutter",
+          "menu_options": {
+            "settings": "Settings",
+            "calibrate": "Calibrate",
+            "add_point": "Add a calibration point"
+          }
+        },
+        "calibrate": {
+          "title": "Calibrate",
+          "description": "The assistant moves the shutter from closed to 25, 50 and 75 %, then from open to 75, 50 and 25 %, and each time asks how far the window is open below the bottom bar. Finally it looks for the point where the bottom bar leaves the sill. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm, or leave it empty to estimate in % of the window.",
+          "data": {
+            "window_height_cm": "Window height"
+          }
+        },
+        "add_point": {
+          "title": "Add a calibration point",
+          "description": "The shutter first moves to closed (↑) or open (↓), then to the module position, and asks for the opening.",
+          "data": {
+            "module": "Module position",
+            "direction": "Direction"
+          }
+        },
+        "cal_measure": {
+          "title": "Measure",
+          "description": "The shutter is at module position {position} % ({direction}) {reached}. How far is the window open below the bottom bar ({unit})? 0 if the bar is still on the sill.",
+          "data": {
+            "opening": "Opening"
+          }
+        },
+        "cal_lift": {
+          "title": "Bottom bar",
+          "description": "Module position {position} % from closed. Has the bottom bar left the sill?",
+          "data": {
+            "lifted": "The bottom bar has lifted"
+          }
+        },
+        "cal_review": {
+          "title": "Result",
+          "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %. More than 5 % usually means the motor is slower in one direction; the calibration corrects that.\n\nSave the calibration?"
         }
       },
       "error": {
@@ -125,7 +199,11 @@
         "elevation_order": "The highest sun elevation must be above the lowest."
       },
       "abort": {
-        "reconfigure_successful": "The shutter was saved."
+        "reconfigure_successful": "The shutter was saved.",
+        "not_loaded": "The integration is not loaded; try again after it has started."
+      },
+      "progress": {
+        "moving": "The shutter moves to module position {position} %…"
       }
     }
   },
@@ -138,11 +216,17 @@
     "switch": {
       "automatic": {
         "name": "Automatic control"
+      },
+      "heat_protection": {
+        "name": "Heat protection"
       }
     },
     "number": {
       "max_position": {
         "name": "Maximum position"
+      },
+      "shading_position": {
+        "name": "Shading position"
       }
     },
     "sensor": {
@@ -151,11 +235,39 @@
         "state": {
           "idle": "Idle",
           "off": "Automatic control off",
-          "manual": "Manual"
+          "manual": "Manual",
+          "calibrating": "Calibrating",
+          "sun": "Sun"
         }
       },
       "next_action": {
         "name": "Next action"
+      },
+      "calibration": {
+        "name": "Calibration",
+        "state": {
+          "calibrated": "Calibrated",
+          "not_calibrated": "Not calibrated"
+        }
+      },
+      "sun_factor": {
+        "name": "Sun factor"
+      }
+    },
+    "binary_sensor": {
+      "sunny": {
+        "name": "Sunny"
+      },
+      "sun_on_window": {
+        "name": "Sun on the window"
+      }
+    }
+  },
+  "selector": {
+    "direction": {
+      "options": {
+        "up": "↑ from closed",
+        "down": "↓ from open"
       }
     }
   }

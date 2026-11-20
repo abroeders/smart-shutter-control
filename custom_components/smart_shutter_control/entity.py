@@ -28,6 +28,19 @@ class ShutterEntity(CoordinatorEntity[BaseCoordinator]):
         )
 
 
+class BaseEntity(CoordinatorEntity[BaseCoordinator]):
+    """An entity of the base controller's own device."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: BaseCoordinator, key: str) -> None:
+        super().__init__(coordinator)
+        entry_id = coordinator.entry.entry_id
+        self._attr_translation_key = key
+        self._attr_unique_id = f"{entry_id}_{key}"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, entry_id)})
+
+
 def add_per_shutter(coordinator: BaseCoordinator, async_add_entities, factory) -> None:
     """Add the entities of each shutter to its own subentry."""
     for controller in coordinator.shutters.values():

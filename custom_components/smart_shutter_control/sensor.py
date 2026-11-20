@@ -7,20 +7,26 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import PERCENTAGE, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .core.model import Reason
-from .entity import ShutterEntity, add_per_shutter
+from .entity import BaseEntity, ShutterEntity, add_per_shutter
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
+    async_add_entities([SunFactorSensor(entry.runtime_data, "sun_factor")])
     add_per_shutter(
         entry.runtime_data,
         async_add_entities,
-        lambda c, s: [ReasonSensor(c, s, "reason"), NextActionSensor(c, s, "next_action")],
+        lambda c, s: [
+            ReasonSensor(c, s, "reason"),
+            NextActionSensor(c, s, "next_action"),
+            CalibrationSensor(c, s, "calibration"),
+        ],
     )
 
 
@@ -48,3 +54,41 @@ class NextActionSensor(ShutterEntity, SensorEntity):
     @property
     def native_value(self) -> datetime | None:
         return None
+
+
+class CalibrationSensor(ShutterEntity, SensorEntity):
+    """Whether the shutter is calibrated, with the model per direction."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["calibrated", "not_calibrated"]
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def native_value(self) -> str:
+        return "calibrated" if self.controller.calibration.calibrated else "not_calibrated"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        calibration = self.controller.calibration
+        summary = calibration.summary() if hasattr(calibration, "summary") else {}
+        return {"directions": summary, "points": self.controller.calibration_points()}
+
+
+class SunFactorSensor(BaseEntity, SensorEntity):
+    """PV power as a share of the clear-sky power for this position of the sun."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    @property
+    def native_value(self) -> float | None:
+        factor = self.coordinator.sunny.factor
+        return None if factor is None else round(factor * 100)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        sun = self.coordinator.inputs.sun
+        return {
+            "source": self.coordinator.sunny.source,
+            "sun_azimuth": None if sun is None else round(sun.azimuth, 1),
+            "sun_elevation": None if sun is None else round(sun.elevation, 1),
+        }
