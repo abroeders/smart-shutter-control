@@ -36,15 +36,17 @@ async def test_sun_options(hass: HomeAssistant, covers) -> None:
     assert entry.runtime_data.sun_settings().close_delay == 0
 
 
-async def test_sunny_afternoon(hass: HomeAssistant, covers, monkeypatch) -> None:
+async def test_sunny_afternoon(hass: HomeAssistant, covers, monkeypatch, freezer) -> None:
+    freezer.move_to("2026-11-18 13:00:00+01:00")  # the day phase
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
     monkeypatch.setattr(SunPosition, "at", classmethod(lambda cls, *args: SunPosition(200, 35)))
     hass.states.async_set(OUTDOOR, "26.0", {"device_class": "temperature", "unit_of_measurement": "°C"})
     entry = await setup_base(hass)
     hass.config_entries.async_update_entry(entry, options={**entry.options, "close_delay": 0})
     await hass.async_block_till_done()
+    calls = async_mock_service(hass, "cover", "set_cover_position")
     await add_shutter(hass, entry, LIVING, azimuth=190, shading_position=30)
     await add_shutter(hass, entry, BEDROOM, azimuth=10)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
     await entry.runtime_data.async_tick()
 
     assert calls and all(c.data["entity_id"] == LIVING for c in calls)
@@ -63,5 +65,6 @@ async def test_sunny_afternoon(hass: HomeAssistant, covers, monkeypatch) -> None
     calls.clear()
     switch = entity_id(hass, entry, south, "switch", "heat_protection")
     await hass.services.async_call("switch", "turn_off", {"entity_id": switch}, blocking=True)
-    assert not calls  # without heat protection nothing raises the shutter again: no rule wants it
-    assert hass.states.get(entity_id(hass, entry, south, "sensor", "reason")).state == "idle"
+    # without heat protection the day phase wants it open; the (mocked) shutter never left 100 %
+    assert not calls
+    assert hass.states.get(entity_id(hass, entry, south, "sensor", "reason")).state == "schedule"

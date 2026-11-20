@@ -27,6 +27,7 @@ async def async_setup_entry(
             NextActionSensor(c, s, "next_action"),
             CalibrationSensor(c, s, "calibration"),
             StandSensor(c, s, "stand"),
+            PhaseSensor(c, s, "phase"),
         ],
     )
 
@@ -48,13 +49,23 @@ class ReasonSensor(ShutterEntity, SensorEntity):
 
 
 class NextActionSensor(ShutterEntity, SensorEntity):
-    """Filled once there are rules with a schedule (#4); unknown until then."""
+    """When the schedule moves the shutter next, and to what."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     @property
     def native_value(self) -> datetime | None:
-        return None
+        change = self.controller.next_change()
+        return None if change is None else change.at
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        change = self.controller.next_change()
+        if change is None:
+            return {}
+        phase = change.phase
+        position = "slit" if phase.value == "slit" else self.controller.schedule.target(phase)
+        return {"phase": phase.value, "position": position, "overrides": self.controller.overrides()}
 
 
 class CalibrationSensor(ShutterEntity, SensorEntity):
@@ -119,3 +130,14 @@ class StandSensor(ShutterEntity, SensorEntity):
             "opening": self.controller.position(),
             "module_position": self.controller.adapter.module_position(),
         }
+
+
+class PhaseSensor(ShutterEntity, SensorEntity):
+    """The phase of the shutter's day: night, slit, day or dusk."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["night", "slit", "day", "dusk"]
+
+    @property
+    def native_value(self) -> str:
+        return self.controller.phase().value

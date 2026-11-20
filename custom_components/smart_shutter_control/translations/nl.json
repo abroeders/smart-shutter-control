@@ -53,7 +53,9 @@
         "title": "Instellingen",
         "menu_options": {
           "storm": "Storm",
-          "sun": "Zon"
+          "sun": "Zon",
+          "schedule": "Schema",
+          "holidays": "Feestdagen"
         }
       },
       "storm": {
@@ -82,7 +84,54 @@
           "close_delay": "Minuten zon op het raam voordat het rolluik zakt.",
           "open_delay": "Minuten zonder zon voordat het weer omhoog gaat."
         }
+      },
+      "schedule": {
+        "title": "Standaardschema",
+        "description": "Het schema dat elk rolluik volgt, tenzij het een instelling overrulet op zijn eigen schemapagina.",
+        "data": {
+          "weekday_slit": "Spleetstand doordeweeks",
+          "weekday_open": "Open doordeweeks",
+          "weekend_slit": "Spleetstand weekend en feestdagen",
+          "weekend_open": "Open weekend en feestdagen",
+          "slit_phase": "Spleetstand",
+          "not_before_sunrise": "Niet vóór zonsopkomst",
+          "sunrise_offset": "Minuten na zonsopkomst",
+          "dusk_phase": "Schemerstand",
+          "dusk_offset": "Schemer: minuten na zonsondergang",
+          "dusk_position": "Schemerstand (positie)",
+          "close_offset": "Dicht: minuten na zonsondergang",
+          "close_earliest": "Dicht niet vóór",
+          "close_latest": "Dicht niet na",
+          "open_position": "Open-stand",
+          "slit_module": "Spleetstand (module-stand, niet gekalibreerd)",
+          "sleep_in_until": "Uitslapen tot",
+          "manual_mode": "Na handbediening",
+          "manual_duration": "Pauze na handbediening"
+        },
+        "data_description": {
+          "slit_module": "Alleen zonder kalibratie; met kalibratie is de spleetstand het gemeten punt waarop de onderlat loskomt.",
+          "manual_duration": "Alleen bij 'Een tijd lang'.",
+          "sunrise_offset": "Alleen bij 'Niet vóór zonsopkomst'."
+        }
+      },
+      "holidays": {
+        "title": "Feestdagen",
+        "description": "Op weekenddagen en feestdagen gebruiken de schema's hun weekendtijden.\n\nFeestdagen dit jaar:\n{list}",
+        "data": {
+          "holiday_calendar": "Agenda met officiële feestdagen",
+          "weekend_days": "Weekenddagen",
+          "holidays_extra": "Extra feestdagen",
+          "holidays_excluded": "Geen feestdag"
+        },
+        "data_description": {
+          "holiday_calendar": "Een agenda van HA's integratie Holiday (Instellingen → Apparaten en diensten → Integratie toevoegen → Holiday).",
+          "holidays_extra": "Eén datum per regel: 2026-12-24 (eenmalig) of 12-31 (elk jaar), eventueel gevolgd door een naam.",
+          "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie."
+        }
       }
+    },
+    "error": {
+      "bad_dates": "Regels {lines} zijn niet te lezen: gebruik 2026-12-24 of 12-31."
     }
   },
   "config_subentries": {
@@ -160,7 +209,9 @@
           "menu_options": {
             "settings": "Instellingen",
             "calibrate": "Kalibreren",
-            "add_point": "Kalibratiepunt toevoegen"
+            "add_point": "Kalibratiepunt toevoegen",
+            "schedule": "Schema",
+            "schedule_reset": "Terug naar het standaardschema"
           }
         },
         "calibrate": {
@@ -195,6 +246,35 @@
         "cal_review": {
           "title": "Resultaat",
           "description": "Module-stand voor 50 % open: {summary}\n\nVerschil tussen de richtingen: {difference} %. Tot ongeveer 2 % is de motor op en neer even snel; meer dan 5 % betekent meestal dat hij in één richting langzamer is, en de kalibratie corrigeert dat.\n\nKalibratie opslaan?"
+        },
+        "schedule": {
+          "title": "Schema",
+          "description": "Laat een veld leeg (of 'Overnemen') voor de waarde uit het standaardschema. Standaardschema: {base}",
+          "data": {
+            "weekday_slit": "Spleetstand doordeweeks",
+            "weekday_open": "Open doordeweeks",
+            "weekend_slit": "Spleetstand weekend en feestdagen",
+            "weekend_open": "Open weekend en feestdagen",
+            "slit_phase": "Spleetstand",
+            "not_before_sunrise": "Niet vóór zonsopkomst",
+            "sunrise_offset": "Minuten na zonsopkomst",
+            "dusk_phase": "Schemerstand",
+            "dusk_offset": "Schemer: minuten na zonsondergang",
+            "dusk_position": "Schemerstand (positie)",
+            "close_offset": "Dicht: minuten na zonsondergang",
+            "close_earliest": "Dicht niet vóór",
+            "close_latest": "Dicht niet na",
+            "open_position": "Open-stand",
+            "slit_module": "Spleetstand (module-stand, niet gekalibreerd)",
+            "sleep_in_until": "Uitslapen tot",
+            "manual_mode": "Na handbediening",
+            "manual_duration": "Pauze na handbediening"
+          },
+          "data_description": {
+            "slit_module": "Alleen zonder kalibratie; met kalibratie is de spleetstand het gemeten punt waarop de onderlat loskomt.",
+            "manual_duration": "Alleen bij 'Een tijd lang'.",
+            "sunrise_offset": "Alleen bij 'Niet vóór zonsopkomst'."
+          }
         }
       },
       "error": {
@@ -223,6 +303,12 @@
       },
       "heat_protection": {
         "name": "Hittewering"
+      },
+      "sleep_in": {
+        "name": "Uitslapen"
+      },
+      "sleep_in_all": {
+        "name": "Uitslapen (alle rolluiken)"
       }
     },
     "number": {
@@ -244,7 +330,9 @@
           "off": "Automatisch uit",
           "manual": "Handmatig",
           "calibrating": "Kalibreren",
-          "sun": "Zon"
+          "sun": "Zon",
+          "schedule": "Schema",
+          "sleep_in": "Uitslapen"
         }
       },
       "next_action": {
@@ -268,6 +356,15 @@
           "partly_open": "Deels open",
           "open": "Open"
         }
+      },
+      "phase": {
+        "name": "Fase",
+        "state": {
+          "night": "Nacht",
+          "slit": "Spleetstand",
+          "day": "Dag",
+          "dusk": "Schemer"
+        }
       }
     },
     "binary_sensor": {
@@ -276,6 +373,17 @@
       },
       "sun_on_window": {
         "name": "Zon op het raam"
+      },
+      "holiday": {
+        "name": "Weekend of feestdag"
+      },
+      "manual_pause": {
+        "name": "Handmatige pauze"
+      }
+    },
+    "button": {
+      "resume": {
+        "name": "Automaat hervatten"
       }
     }
   },
@@ -284,6 +392,31 @@
       "options": {
         "up": "↑ vanuit dicht",
         "down": "↓ vanuit open"
+      }
+    },
+    "phase_switch": {
+      "options": {
+        "inherit": "Overnemen",
+        "on": "Aan",
+        "off": "Uit"
+      }
+    },
+    "manual_mode": {
+      "options": {
+        "until_next_phase": "Pauze tot de volgende fase",
+        "for_duration": "Een tijd lang pauze",
+        "ignore": "Negeren"
+      }
+    },
+    "weekday": {
+      "options": {
+        "mon": "maandag",
+        "tue": "dinsdag",
+        "wed": "woensdag",
+        "thu": "donderdag",
+        "fri": "vrijdag",
+        "sat": "zaterdag",
+        "sun": "zondag"
       }
     }
   }

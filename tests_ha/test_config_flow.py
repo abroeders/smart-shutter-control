@@ -65,12 +65,16 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
         "automatic",
         "calibration",
         "heat_protection",
+        "manual_pause",
         "max_position",
         "next_action",
         "opening",
+        "phase",
         "reason",
+        "resume",
         "shading_position",
         "shutter",
+        "sleep_in",
         "stand",
         "sun_on_window",
     ]
@@ -78,7 +82,7 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
     assert per_shutter == set(shutters.values())
     base = [e for e in entities if not e.config_subentry_id]
     base_keys = sorted(e.unique_id.removeprefix(f"{entry.entry_id}_") for e in base)
-    assert base_keys == ["sun_factor", "sunny"]
+    assert base_keys == ["holiday", "sleep_in_all", "sun_factor", "sunny"]
 
 
 async def test_shutter_flow_errors(hass: HomeAssistant, covers) -> None:
