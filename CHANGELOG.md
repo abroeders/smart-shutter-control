@@ -6,6 +6,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-20
+
+### Added
+
+- Storm: each wind source has its own limit; in a storm shutters with automatic control are only fully open
+  or fully closed, at the end nearest to what the other rules want (locked open by day, closed when the
+  evening starts), always closed when the maximum position is below 100 %. A position in between through
+  the integration's entities goes to the nearest end, a move by a wall switch is put back within seconds,
+  and calibration does not start. The storm ends after a release time (#6).
+- Frost: at or below a limit the controller does not move the shutters (#6).
+- Optional temperature limits to close in heat or cold (#6).
+- Base sensors *Storm* and *Frost*; per shutter the setting *Storm position* (inherited from the base
+  schedule) (#6).
+
+### Changed
+
+- The single storm limit of earlier versions becomes the gust limit (#6).
+
+### Fixed
+
+- Holidays from a calendar whose integration starts after this one (e.g. Google Calendar) are read once the
+  calendar is available, not only the next night (#20).
+- Shutter devices are linked to the base device with `via_device_id` where Home Assistant supports it.
+
+### Changed
+
+- The holidays page has two steps: the calendar first, then its holidays at once, to check the ones to
+  ignore (#20).
+
 ## [0.3.1] - 2026-11-20
 
 ### Added
@@ -120,7 +149,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/abroeders/smart-shutter-control/compare/v0.2.1...v0.2.2

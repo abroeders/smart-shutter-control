@@ -52,19 +52,31 @@
       "init": {
         "title": "Instellingen",
         "menu_options": {
-          "storm": "Storm",
+          "storm": "Storm en vorst",
           "sun": "Zon",
           "schedule": "Schema",
           "holidays": "Feestdagen"
         }
       },
       "storm": {
-        "title": "Storm",
+        "title": "Storm en vorst",
+        "description": "Bij storm staan rolluiken met de automaat aan alleen helemaal open of helemaal dicht; bij vorst bewegen ze niet.",
         "data": {
-          "storm_limit": "Stormgrens"
+          "storm_wind_limit": "Storm: windsnelheid vanaf",
+          "storm_gust_limit": "Storm: windstoten vanaf",
+          "storm_release": "Storm voorbij na",
+          "frost_limit": "Vorst bij of onder",
+          "frost_release": "Vorst voorbij na",
+          "close_above": "Dicht boven",
+          "close_below": "Dicht onder"
         },
         "data_description": {
-          "storm_limit": "Boven deze windsnelheid of windstoot staan rolluiken alleen helemaal open of helemaal dicht."
+          "storm_wind_limit": "Hoogste in de afgelopen 30 dagen: {wind_max} km/h. Leeg: niet gebruiken.",
+          "storm_gust_limit": "Hoogste in de afgelopen 30 dagen: {gust_max} km/h. Leeg: niet gebruiken.",
+          "storm_release": "Minuten na de laatste waarde boven een grens.",
+          "frost_limit": "Bij vorst bewegen de rolluiken niet automatisch (ze kunnen vastgevroren zijn).",
+          "close_above": "Buitentemperatuur; leeg: uit.",
+          "close_below": "Buitentemperatuur; leeg: uit."
         }
       },
       "sun": {
@@ -106,7 +118,8 @@
           "slit_module": "Spleetstand (module-stand, niet gekalibreerd)",
           "sleep_in_until": "Uitslapen tot",
           "manual_mode": "Na handbediening",
-          "manual_duration": "Pauze na handbediening"
+          "manual_duration": "Pauze na handbediening",
+          "storm_position": "Stand bij storm"
         },
         "data_description": {
           "slit_module": "Alleen zonder kalibratie; met kalibratie is de spleetstand het gemeten punt waarop de onderlat loskomt.",
@@ -116,19 +129,27 @@
       },
       "holidays": {
         "title": "Feestdagen",
-        "description": "Op weekenddagen en feestdagen gebruiken de schema's hun weekendtijden.\n\nFeestdagen dit jaar:\n{list}",
+        "description": "Op weekenddagen en feestdagen gebruiken de schema's hun weekendtijden. Kies de agenda met feestdagen; de feestdagen daaruit staan op de volgende pagina.",
         "data": {
           "holiday_calendar": "Agenda met officiële feestdagen",
-          "weekend_days": "Weekenddagen",
-          "holidays_extra": "Extra feestdagen",
-          "holidays_excluded": "Geen feestdag",
-          "holidays_disabled": "Feestdagen uit de agenda negeren"
+          "weekend_days": "Weekenddagen"
         },
         "data_description": {
-          "holiday_calendar": "Een agenda van HA's integratie Holiday (Instellingen → Apparaten en diensten → Integratie toevoegen → Holiday).",
+          "holiday_calendar": "Een agenda van HA's integratie Holiday (Instellingen → Apparaten en diensten → Integratie toevoegen → Holiday)."
+        }
+      },
+      "holiday_days": {
+        "title": "Feestdagen uit de agenda",
+        "description": "{count} dagen uit de agenda gelezen. Vink aan welke als gewone dag moeten tellen (elk jaar).\n\nFeestdagen dit jaar:\n{list}",
+        "data": {
+          "holidays_disabled": "Feestdagen uit de agenda negeren",
+          "holidays_extra": "Extra feestdagen",
+          "holidays_excluded": "Geen feestdag"
+        },
+        "data_description": {
+          "holidays_disabled": "Aangevinkte feestdagen tellen elk jaar als gewone dag. De lijst toont de feestdagen van de gekozen agenda (nadat die één keer is opgeslagen).",
           "holidays_extra": "Eén datum per regel: 2026-12-24 (eenmalig) of 12-31 (elk jaar), eventueel gevolgd door een naam.",
-          "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie.",
-          "holidays_disabled": "Aangevinkte feestdagen tellen elk jaar als gewone dag. De lijst toont de feestdagen van de gekozen agenda (nadat die één keer is opgeslagen)."
+          "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie."
         }
       }
     },
@@ -274,7 +295,8 @@
             "slit_module": "Spleetstand (module-stand, niet gekalibreerd)",
             "sleep_in_until": "Uitslapen tot",
             "manual_mode": "Na handbediening",
-            "manual_duration": "Pauze na handbediening"
+            "manual_duration": "Pauze na handbediening",
+            "storm_position": "Stand bij storm"
           },
           "data_description": {
             "weekday_slit": "Standaardschema: {base_weekday_slit}",
@@ -294,7 +316,8 @@
             "slit_module": "Standaardschema: {base_slit_module}",
             "sleep_in_until": "Standaardschema: {base_sleep_in_until}",
             "manual_mode": "Standaardschema: {base_manual_mode}",
-            "manual_duration": "Standaardschema: {base_manual_duration}"
+            "manual_duration": "Standaardschema: {base_manual_duration}",
+            "storm_position": "Standaardschema: {base_storm_position}"
           }
         }
       },
@@ -305,7 +328,8 @@
       },
       "abort": {
         "reconfigure_successful": "Het rolluik is opgeslagen.",
-        "not_loaded": "De integratie is niet geladen; probeer het opnieuw als hij gestart is."
+        "not_loaded": "De integratie is niet geladen; probeer het opnieuw als hij gestart is.",
+        "storm": "Niet tijdens storm: kalibreren zet het rolluik op tussenstanden."
       },
       "progress": {
         "moving": "Het rolluik gaat naar module-stand {position} %…",
@@ -354,7 +378,11 @@
           "calibrating": "Kalibreren",
           "sun": "Zon",
           "schedule": "Schema",
-          "sleep_in": "Uitslapen"
+          "sleep_in": "Uitslapen",
+          "storm": "Storm",
+          "frost": "Vorst",
+          "heat_limit": "Hittegrens",
+          "cold_limit": "Koudegrens"
         }
       },
       "next_action": {
@@ -401,6 +429,12 @@
       },
       "manual_pause": {
         "name": "Handmatige pauze"
+      },
+      "storm": {
+        "name": "Storm"
+      },
+      "frost": {
+        "name": "Vorst"
       }
     },
     "button": {
@@ -439,6 +473,14 @@
         "fri": "vrijdag",
         "sat": "zaterdag",
         "sun": "zondag"
+      }
+    },
+    "storm_position": {
+      "options": {
+        "inherit": "Overnemen",
+        "nearest": "Dichtstbijzijnde eind",
+        "open": "Helemaal open",
+        "closed": "Helemaal dicht"
       }
     }
   }

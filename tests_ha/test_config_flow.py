@@ -31,7 +31,7 @@ async def test_base_flow_creates_entry_and_device(hass: HomeAssistant, covers) -
     await hass.async_block_till_done()
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.options["storm_limit"] == 60
+    assert entry.options["storm_gust_limit"] == 60 and entry.options["storm_wind_limit"] == 50
     assert device(hass, entry.entry_id).name == "House"
 
 
@@ -40,10 +40,14 @@ async def test_storm_options(hass: HomeAssistant, covers) -> None:
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.MENU
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "storm"})
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {"storm_limit": 75})
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"storm_gust_limit": 70, "storm_release": 15, "frost_limit": 0, "frost_release": 60},
+    )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
-    assert entry.options["storm_limit"] == 75
+    assert entry.options["storm_gust_limit"] == 70 and entry.options["storm_wind_limit"] is None
+    assert entry.runtime_data.storm.gust_limit == 70 and entry.runtime_data.storm.wind_limit is None
 
 
 async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, covers) -> None:
@@ -82,7 +86,7 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
     assert per_shutter == set(shutters.values())
     base = [e for e in entities if not e.config_subentry_id]
     base_keys = sorted(e.unique_id.removeprefix(f"{entry.entry_id}_") for e in base)
-    assert base_keys == ["holiday", "sleep_in_all", "sun_factor", "sunny"]
+    assert base_keys == ["frost", "holiday", "sleep_in_all", "storm", "sun_factor", "sunny"]
 
 
 async def test_shutter_flow_errors(hass: HomeAssistant, covers) -> None:

@@ -17,7 +17,12 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     async_add_entities(
-        [SunnySensor(entry.runtime_data, "sunny"), FreeDaySensor(entry.runtime_data, "holiday")]
+        [
+            SunnySensor(entry.runtime_data, "sunny"),
+            FreeDaySensor(entry.runtime_data, "holiday"),
+            StormSensor(entry.runtime_data, "storm"),
+            FrostSensor(entry.runtime_data, "frost"),
+        ]
     )
     add_per_shutter(
         entry.runtime_data,
@@ -70,3 +75,32 @@ class ManualPauseSensor(ShutterEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return self.controller.pause_info()
+
+
+def _iso(epoch: float | None) -> str | None:
+    return None if epoch is None else dt_util.utc_from_timestamp(epoch).isoformat()
+
+
+class StormSensor(BaseEntity, BinarySensorEntity):
+    """Storm: shutters with automatic control are only fully open or fully closed."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.storm.active
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        s = self.coordinator.storm
+        return {"source": s.source, "value": s.value, "since": _iso(s.since), "until": _iso(s.until)}
+
+
+class FrostSensor(BaseEntity, BinarySensorEntity):
+    """Frost: the controller does not move the shutters."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.frost.active
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"since": _iso(self.coordinator.frost.since)}

@@ -576,3 +576,60 @@ stateDiagram-v2
     Paused --> Automatic: moved by hand to the wanted position
     Automatic --> Automatic: manual action with mode ignore (moves back)
 ```
+
+## 8. Weather and safety (#6)
+
+Design: [`design/2026-11-20-weather-and-safety.md`](design/2026-11-20-weather-and-safety.md).
+
+```mermaid
+classDiagram
+    class StormDetector {
+        +wind_limit float|None
+        +gust_limit float|None
+        +release float
+        +active bool
+        +source str|None
+        +update(wind, gust, now) bool
+    }
+    class FrostDetector {
+        +limit float
+        +release float
+        +active bool
+        +update(outdoor, now) bool
+    }
+    class StormRule {
+        +priority 10
+        +mode_of()
+        +wanted_of(ctx)
+        +propose(ctx) Decision
+    }
+    class FrostRule {
+        +priority 11
+    }
+    class TemperatureLimitRule {
+        +priority 15
+        +close_above
+        +close_below
+    }
+    BaseCoordinator o-- StormDetector
+    BaseCoordinator o-- FrostDetector
+    ShutterController o-- StormRule
+    ShutterController o-- FrostRule
+    ShutterController o-- TemperatureLimitRule
+    StormRule ..> RuleChain : wanted = decide(ctx, skip storm)
+```
+
+```mermaid
+sequenceDiagram
+    participant W as wind sensors
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant S as StormRule
+    W->>C: gust 75 km/h
+    C->>C: StormDetector.update: storm
+    C->>SC: evaluate(inputs.storm)
+    SC->>S: propose
+    S->>SC: wanted by the other rules (day: 100, evening: 0)
+    S-->>SC: final 0 or 100
+    Note over SC: a manual move during the storm → tick in 3 s → back to an end
+```

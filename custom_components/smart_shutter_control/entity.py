@@ -10,6 +10,13 @@ from .controller import ShutterController
 from .coordinator import BaseCoordinator
 
 
+def _via(coordinator: BaseCoordinator, entry_id: str) -> dict:
+    """The link to the base device: by its id where Home Assistant supports that, else by identifier."""
+    if "via_device_id" in DeviceInfo.__annotations__ and coordinator.base_device_id:
+        return {"via_device_id": coordinator.base_device_id}
+    return {"via_device": (DOMAIN, entry_id)}
+
+
 class ShutterEntity(CoordinatorEntity[BaseCoordinator]):
     _attr_has_entity_name = True
 
@@ -24,7 +31,7 @@ class ShutterEntity(CoordinatorEntity[BaseCoordinator]):
             name=controller.title,
             manufacturer="Smart Shutter Control",
             model="Shutter controller",
-            via_device=(DOMAIN, entry_id),
+            **_via(coordinator, entry_id),
         )
 
 
