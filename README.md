@@ -23,9 +23,13 @@ shutter by hand.
 - **Lovelace card:** drag the drawing to a position, up/stop/down, the reason and the next actions; or all
   shutters at a glance. English and Dutch.
 
-| Dragging to a position | All shutters | Dark theme |
-|---|---|---|
-| ![Dragging](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-drag.png) | ![All shutters](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-overview.png) | ![Dark](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-dark.png) |
+| Dragging to a position | Dark theme |
+|---|---|
+| ![Dragging](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-drag.png) | ![Dark](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-dark.png) |
+
+All shutters of a base controller:
+
+![All shutters](https://raw.githubusercontent.com/abroeders/smart-shutter-control/main/docs/images/card-overview.png)
 
 ## Installation
 
