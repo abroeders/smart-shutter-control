@@ -29,7 +29,7 @@ export interface HomeAssistant {
   devices: Record<string, DeviceEntry>;
   locale?: { language: string };
   language?: string;
-  config?: { time_zone?: string };
+  config?: { time_zone?: string; latitude?: number; longitude?: number };
   themes?: { darkMode?: boolean };
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<unknown>;
 }

@@ -61,6 +61,24 @@ describe("card", () => {
     expect([0, 1].map((i) => slats(overview, i).classList.contains("open"))).toEqual([false, true]);
   });
 
+  it("shows the view through the window from the integration's attributes", async () => {
+    const hass = fakeHass(
+      {
+        "sensor.sun_factor": { state: "80", attributes: { sun_azimuth: 180, sun_elevation: 30, weather: "rainy" } },
+        "binary_sensor.living_sun_on_window": { state: "on", attributes: { window_azimuth: 180 } },
+      },
+      { config: { time_zone: "Europe/Amsterdam", latitude: 52, longitude: 5 } },
+    );
+    hass.entities["sensor.sun_factor"] = { entity_id: "sensor.sun_factor", device_id: BASE, platform: "smart_shutter_control", translation_key: "sun_factor" };
+    hass.entities["binary_sensor.living_sun_on_window"] = { entity_id: "binary_sensor.living_sun_on_window", device_id: LIVING, platform: "smart_shutter_control", translation_key: "sun_on_window" };
+    const card = await mount(hass);
+    const view = card.shadowRoot.querySelector("ssc-drawing").shadowRoot.querySelector("g.view");
+    expect(view).not.toBeNull();
+    expect(view.querySelector("g.precip line")).not.toBeNull(); // rain
+    expect(view.querySelector("g.sun")).toBeNull(); // behind the clouds
+    expect(view.querySelectorAll("g.tree").length).toBe(3);
+  });
+
   it("drags the shutter to a position", async () => {
     const hass = fakeHass();
     const card = await mount(hass);

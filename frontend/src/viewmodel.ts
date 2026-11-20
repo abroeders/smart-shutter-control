@@ -2,6 +2,7 @@
 
 import { baseOf, deviceEntities, deviceName } from "./entities";
 import type { Translate } from "./localize";
+import type { SceneInputs } from "./scene";
 import type { HomeAssistant } from "./types";
 
 export interface NextAction {
@@ -31,6 +32,8 @@ export interface ShutterModel {
   storm: boolean;
   frost: boolean;
   language: string | null;
+  /** what the view through the window is made of (#30) */
+  outside: SceneInputs;
 }
 
 const num = (v: unknown): number | null => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
@@ -71,6 +74,26 @@ export function shutterModel(hass: HomeAssistant, deviceId: string): ShutterMode
     storm: on(b.storm),
     frost: on(b.frost),
     language: reason?.attributes.language ?? null,
+    outside: outsideInputs(hass, b, e),
+  };
+}
+
+/** The inputs of the view through the window: sun and weather from the base controller, the window's direction. */
+export function outsideInputs(hass: HomeAssistant, base: Record<string, string>, own: Record<string, string>, now = new Date()): SceneInputs {
+  const attrs = (id?: string) => (id ? hass.states[id]?.attributes ?? {} : {});
+  const sun = attrs(base.sun_factor);
+  const storm = base.storm ? hass.states[base.storm] : undefined;
+  return {
+    now,
+    latitude: hass.config?.latitude ?? 52,
+    longitude: hass.config?.longitude ?? 5,
+    sunAzimuth: num(sun.sun_azimuth),
+    sunElevation: num(sun.sun_elevation),
+    windowAzimuth: num(attrs(own.sun_on_window).window_azimuth),
+    weather: sun.weather ?? null,
+    wind: num(storm?.attributes.wind),
+    gust: num(storm?.attributes.gust),
+    storm: storm?.state === "on",
   };
 }
 

@@ -21,6 +21,15 @@ device_id: <the shutter's device>
   position (bar on the sill, gaps open); only fully closed are they pressed together.
 
   ![The slit position](images/card-slit.png)
+- **The view through the window:** a cartoon landscape behind the shutter with the real light (night with
+  stars, twilight, day), the weather (clouds, rain, snow, fog, lightning), the sun and the moon (with its
+  phase) at their place as seen through this window, the leaves of the season, and trees that sway with the
+  wind (harder in a storm). Fully closed you see nothing; otherwise the view shows through the slots and below
+  the bottom bar. With reduced motion everything stands still.
+
+  | Summer day | Autumn storm | Full moon | Snow |
+  |---|---|---|---|
+  | ![Summer](images/card-view-summer.png) | ![Storm](images/card-view-storm.png) | ![Night](images/card-view-night.png) | ![Snow](images/card-view-snow.png) |
 - **Maximum position:** an orange mark on the left of the window when it is below 100 %.
 - **Buttons:** open, stop, close.
 - **Status:** position, why the shutter is where it is (sun, schedule, sleep-in, manual until …, storm,

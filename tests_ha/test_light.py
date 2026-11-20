@@ -99,6 +99,7 @@ async def test_highest_light_sensor_and_a_facade_sensor(hass: HomeAssistant, cov
     assert hass.states.get(sun_factor).attributes["lux"] == 45000
     window = hass.states.get(eid(hass, entry, "binary_sensor", "sun_on_window"))
     assert window.attributes["lux"] == 5000 and window.attributes["sunny"] is False
+    assert window.attributes["window_azimuth"] == 180 and window.attributes["window_tilt"] == 90
 
 
 async def test_facade_field_only_with_light_sensors(hass: HomeAssistant, covers) -> None:
