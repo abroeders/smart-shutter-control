@@ -157,7 +157,8 @@
             "shading_position": "Schaduwstand",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
-            "motor_power": "Motorvermogensensor"
+            "motor_power": "Motorvermogensensor",
+            "travel_time": "Looptijd"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -170,7 +171,8 @@
             "shading_position": "Stand terwijl de zon op het raam staat.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
-            "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt."
+            "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt.",
+            "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen."
           }
         },
         "settings": {
@@ -188,7 +190,8 @@
             "shading_position": "Schaduwstand",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
-            "motor_power": "Motorvermogensensor"
+            "motor_power": "Motorvermogensensor",
+            "travel_time": "Looptijd"
           },
           "data_description": {
             "cover": "De bestaande cover-entiteit die het rolluik beweegt. Die moet een stand ondersteunen.",
@@ -201,7 +204,8 @@
             "shading_position": "Stand terwijl de zon op het raam staat.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
-            "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt."
+            "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt.",
+            "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen."
           }
         },
         "reconfigure": {
@@ -287,7 +291,8 @@
         "not_loaded": "De integratie is niet geladen; probeer het opnieuw als hij gestart is."
       },
       "progress": {
-        "moving": "Het rolluik gaat naar module-stand {position} %…"
+        "moving": "Het rolluik gaat naar module-stand {position} %…",
+        "timing": "De looptijd wordt gemeten: het rolluik gaat helemaal open en daarna helemaal dicht…"
       }
     }
   },

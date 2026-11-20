@@ -258,7 +258,10 @@ classDiagram
         +slit dict
         +queue list~Action~
         +measuring list~int~
-        +full(controller, height)$
+        +travel_time float|None
+        +full(controller, height, travel_time)$
+        +measure_travel()
+        +updates() dict
         +plan_measuring(lift)
         +one_point(controller, stored, module, direction)$
         +add_point(action, value)
@@ -333,6 +336,10 @@ sequenceDiagram
     participant A as CoverAdapter
     participant M as shutter module
     participant P as motor power sensor
+    opt no power sensor and no travel time (#18)
+        S->>A: async_move(100), then async_move(0)
+        S->>S: travel time = until M reports 0
+    end
     alt end position 0 or 100
         S->>A: async_move(0 or 100), once
         A->>M: set position
@@ -342,7 +349,7 @@ sequenceDiagram
         loop at most 3 attempts
             S->>A: async_move(target)
             A->>M: set position
-            S->>P: wait for the motor to start, then to stop
+            S->>P: wait for the motor to start, then to stop (no sensor: distance × travel time + 5 s)
             S->>M: update_entity (poll)
             S->>S: wait for a report after the stop (max 30 s)
             alt within 1 % of the target

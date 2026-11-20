@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Entities: *Phase*, *Next action* (filled), *Manual pause*, *Resume automatic control*, *Sleep in*,
   *Sleep in (all shutters)*, *Weekend or holiday* (#4, #5).
 
+- Calibration without a motor power sensor: the assistant measures the travel time first and waits for the
+  expected travel of every move; the travel time is a shutter setting that can also be entered by hand (#18).
+
 ### Changed
 
 - The controller moves a shutter only when its target changes, not on every tick (#4).

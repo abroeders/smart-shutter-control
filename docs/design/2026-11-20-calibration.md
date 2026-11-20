@@ -141,8 +141,14 @@ stateDiagram-v2
     (9–20 s), so neither the position nor a short wait is a reliable sign of a stop. If the shutter stopped more than 1 % from the target, the command is sent again (at most twice):
     a command during a limit switch run-on can stop early.
   - **Motor power sensor:** optional per shutter; when empty, a power sensor on the cover's device is used,
-    preferring one that reads (almost) 0 W while the shutter stands still. Without one, a stop is assumed
-    after 12 s without a position change.
+    preferring one that reads (almost) 0 W while the shutter stands still.
+  - **Without a motor power sensor (#18):** the assistant first measures the travel time: fully open, then
+    the time until the module reports fully closed. End positions count when the module reports them
+    unchanged for 15 s, followed by 15 s run-on. Every other move waits the expected time (distance × travel
+    time + 5 s), then polls and waits for a fresh report; it is sent again only when that report is more
+    than 1 % from the target. The travel time is saved as the shutter setting *Travel time* (it can also be
+    entered by hand; the manual-operation detection of #5 uses it too). Without a power sensor and without a
+    travel time, a stop is assumed after 12 s without a position change.
 - **Measuring:** the opening in cm (with the window height), or in % if no height is given. 0 is allowed
   (bar still on the sill).
 - **Lift point first:** from closed the assistant moves up in steps of 2 % module position and asks *"Has
