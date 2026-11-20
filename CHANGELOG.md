@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Holidays: check boxes to ignore holidays from the calendar; a checked holiday counts as a normal day every
+  year, also when its date moves (#20).
+
+### Changed
+
+- The shutter's schedule page is called *Schedule overrides* and shows the base value under each setting,
+  instead of one long list in the description (#20).
+
 ## [0.3.0] - 2026-11-20
 
 ### Added
