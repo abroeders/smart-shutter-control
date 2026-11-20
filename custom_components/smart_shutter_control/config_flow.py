@@ -51,6 +51,7 @@ from .const import (
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
     OPT_HOLIDAY_CALENDAR,
+    OPT_HOLIDAYS_DISABLED,
     OPT_HOLIDAYS_EXCLUDED,
     OPT_HOLIDAYS_EXTRA,
     OPT_MAX_INCIDENCE,
@@ -136,6 +137,52 @@ def schedule_fields(base: bool) -> dict:
     }
 
 
+BASE_WORDS = {
+    "nl": {
+        True: "aan",
+        False: "uit",
+        "until_next_phase": "pauze tot de volgende fase",
+        "for_duration": "een tijd lang pauze",
+        "ignore": "negeren",
+        None: "–",
+    },
+    "en": {
+        True: "on",
+        False: "off",
+        "until_next_phase": "pause until the next phase",
+        "for_duration": "pause for a while",
+        "ignore": "ignore",
+        None: "–",
+    },
+}
+UNITS = {
+    "sunrise_offset": " min",
+    "dusk_offset": " min",
+    "close_offset": " min",
+    "manual_duration": " min",
+    "dusk_position": " %",
+    "open_position": " %",
+    "slit_module": " %",
+}
+
+
+def base_placeholders(base: dict[str, Any], language: str | None) -> dict[str, str]:
+    """`base_<setting>` = the base schedule's value, readable, for the help text under each field."""
+    words = BASE_WORDS.get((language or "en")[:2], BASE_WORDS["en"])
+    out = {}
+    for key, value in base.items():
+        if isinstance(value, bool) or value is None or (isinstance(value, str) and value in words):
+            text = words.get(value, str(value))
+        elif isinstance(value, str) and value.count(":") >= 1:
+            text = value[:5]  # 08:00:00 → 08:00
+        elif isinstance(value, float) and value.is_integer():
+            text = f"{int(value)}{UNITS.get(key, '')}"
+        else:
+            text = f"{value}{UNITS.get(key, '')}"
+        out[f"base_{key}"] = text
+    return out
+
+
 SOURCES = {
     vol.Required(CONF_OUTDOOR): _sensor("temperature"),
     vol.Optional(CONF_WEATHER): selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
@@ -217,6 +264,7 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
                 data = {**current, **user_input}
                 for key in (OPT_HOLIDAY_CALENDAR, OPT_HOLIDAYS_EXTRA, OPT_HOLIDAYS_EXCLUDED):
                     data[key] = user_input.get(key)  # cleared fields stay cleared
+                data[OPT_HOLIDAYS_DISABLED] = list(user_input.get(OPT_HOLIDAYS_DISABLED) or [])
                 return self.async_create_entry(data=data)
         values = {OPT_WEEKEND_DAYS: ["sat", "sun"], **current, **(user_input or {})}
         schema = {
@@ -230,6 +278,7 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
                     translation_key="weekday",
                 )
             ),
+            **self._disable_field(current),
             vol.Optional(OPT_HOLIDAYS_EXTRA): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
@@ -243,6 +292,27 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
             errors=errors,
             description_placeholders={"lines": ", ".join(map(str, bad)) or "–", "list": self._holiday_list()},
         )
+
+    def _calendar(self) -> HolidayCalendar | None:
+        coordinator = getattr(self.config_entry, "runtime_data", None)
+        return getattr(coordinator, "calendar", None)
+
+    def _disable_field(self, current: dict[str, Any]) -> dict:
+        """Check boxes for the holidays of the calendar; a checked one is ignored by the schedules."""
+        calendar = self._calendar()
+        names = calendar.calendar_names() if calendar else []
+        disabled = list(current.get(OPT_HOLIDAYS_DISABLED) or [])
+        options = [{"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names]
+        options += [{"value": n, "label": n} for n in disabled if n not in {o["value"] for o in options}]
+        if not options:
+            return {}
+        return {
+            vol.Optional(OPT_HOLIDAYS_DISABLED, default=disabled): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options, multiple=True, mode=selector.SelectSelectorMode.LIST
+                )
+            )
+        }
 
     def _holiday_list(self) -> str:
         """This year's holidays as the schedules see them now."""
@@ -377,12 +447,10 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
                 self._get_entry(), subentry, data_updates={CONF_SCHEDULE: overrides}
             )
         overrides = dict(subentry.data.get(CONF_SCHEDULE) or {})
-        base = self._base_schedule()
-        summary = ", ".join(f"{k} {v}" for k, v in base.items() if v is not None)
         return self.async_show_form(
             step_id="schedule",
             data_schema=_with_defaults(schedule_fields(base=False), overrides),
-            description_placeholders={"base": summary},
+            description_placeholders=base_placeholders(self._base_schedule(), self.hass.config.language),
         )
 
     async def async_step_schedule_reset(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:

@@ -121,12 +121,14 @@
           "holiday_calendar": "Public holidays calendar",
           "weekend_days": "Weekend days",
           "holidays_extra": "Extra holidays",
-          "holidays_excluded": "Not a holiday"
+          "holidays_excluded": "Not a holiday",
+          "holidays_disabled": "Calendar holidays to ignore"
         },
         "data_description": {
           "holiday_calendar": "A calendar of Home Assistant's Holiday integration (Settings → Devices & services → Add integration → Holiday).",
           "holidays_extra": "One date per line: 2026-12-24 (once) or 12-31 (every year), optionally followed by a name.",
-          "holidays_excluded": "Dates from the calendar that count as normal days, same format."
+          "holidays_excluded": "Dates from the calendar that count as normal days, same format.",
+          "holidays_disabled": "Checked holidays count as normal days, every year. The list shows the holidays of the chosen calendar (after saving it once)."
         }
       }
     },
@@ -214,7 +216,7 @@
             "settings": "Settings",
             "calibrate": "Calibrate",
             "add_point": "Add a calibration point",
-            "schedule": "Schedule",
+            "schedule": "Schedule overrides",
             "schedule_reset": "Reset to the base schedule"
           }
         },
@@ -252,8 +254,8 @@
           "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %. Up to about 2 % the motor is equally fast up and down; more than 5 % usually means it is slower in one direction, and the calibration corrects that.\n\nSave the calibration?"
         },
         "schedule": {
-          "title": "Schedule",
-          "description": "Leave a field empty (or 'Inherit') to use the base schedule. Base schedule: {base}",
+          "title": "Schedule overrides",
+          "description": "Leave a field empty (or 'Inherit') to follow the base schedule; the base value is shown under each field.",
           "data": {
             "weekday_slit": "Slit on weekdays",
             "weekday_open": "Open on weekdays",
@@ -275,9 +277,24 @@
             "manual_duration": "Pause after a manual action"
           },
           "data_description": {
-            "slit_module": "Only used when the shutter is not calibrated; with a calibration the slit is the measured lift point.",
-            "manual_duration": "Only for 'For a while'.",
-            "sunrise_offset": "Only with 'Not before sunrise'."
+            "weekday_slit": "Base schedule: {base_weekday_slit}",
+            "weekday_open": "Base schedule: {base_weekday_open}",
+            "weekend_slit": "Base schedule: {base_weekend_slit}",
+            "weekend_open": "Base schedule: {base_weekend_open}",
+            "slit_phase": "Base schedule: {base_slit_phase}",
+            "not_before_sunrise": "Base schedule: {base_not_before_sunrise}",
+            "sunrise_offset": "Base schedule: {base_sunrise_offset}",
+            "dusk_phase": "Base schedule: {base_dusk_phase}",
+            "dusk_offset": "Base schedule: {base_dusk_offset}",
+            "dusk_position": "Base schedule: {base_dusk_position}",
+            "close_offset": "Base schedule: {base_close_offset}",
+            "close_earliest": "Base schedule: {base_close_earliest}",
+            "close_latest": "Base schedule: {base_close_latest}",
+            "open_position": "Base schedule: {base_open_position}",
+            "slit_module": "Base schedule: {base_slit_module}",
+            "sleep_in_until": "Base schedule: {base_sleep_in_until}",
+            "manual_mode": "Base schedule: {base_manual_mode}",
+            "manual_duration": "Base schedule: {base_manual_duration}"
           }
         }
       },

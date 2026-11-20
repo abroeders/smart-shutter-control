@@ -150,6 +150,24 @@ async def test_holidays_from_a_calendar_and_the_list(hass: HomeAssistant, covers
     await add_shutter(hass, entry, LIVING)
     assert hass.states.get(eid(hass, entry, "binary_sensor", "holiday", shutter=False)).state == "on"
 
+    # disable a calendar holiday: it counts as a normal day from then on
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "holidays"}
+    )
+    assert "holidays_disabled" in result["data_schema"].schema
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "holiday_calendar": "calendar.holidays",
+            "weekend_days": ["sat", "sun"],
+            "holidays_extra": "12-24 Eve",
+            "holidays_disabled": ["Christmas"],
+        },
+    )
+    await hass.async_block_till_done()
+    assert entry.runtime_data.calendar.holiday(date(2026, 12, 25)) is None
+
 
 async def test_manual_pause_and_back_to_automatic_by_hand(hass: HomeAssistant, covers, amsterdam) -> None:
     amsterdam.move_to("2026-11-18 12:00:00+01:00")
