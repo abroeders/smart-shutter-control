@@ -27,7 +27,17 @@ SHOTS = (
     ("card-drag.png", LIVING, "light", 520, "", 0.62),
     ("card-overview.png", BASE, "light", 900, "", None),
     ("card-overview-dark.png", BASE, "dark", 900, "", None),
+    ("card-slit.png", LIVING, "light", 520, "", None),
 )
+# per shot: states that differ from the example (the slit: bar on the sill, gaps open, not closed)
+OVERRIDES = {
+    "card-slit.png": {
+        "cover.living_shutter": ("open", {"current_position": 0}),
+        "sensor.living_stand": ("slit", {}),
+        "sensor.living_reason": ("schedule", {"target_position": 0, "max_position": 80, "language": None}),
+        "sensor.living_phase": ("slit", {}),
+    }
+}
 
 
 def hass_json() -> dict:
@@ -98,6 +108,10 @@ def main() -> None:
         with sync_playwright() as p:
             browser = p.chromium.launch()
             for name, device, theme, width, lang, drag in SHOTS:
+                states = hass_json()
+                for eid, (state, attributes) in OVERRIDES.get(name, {}).items():
+                    states["states"][eid].update(state=state, attributes=attributes)
+                data.write_text(json.dumps(states))
                 page = browser.new_page(
                     viewport={"width": width + 32, "height": 900},
                     device_scale_factor=2,
