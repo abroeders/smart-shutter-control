@@ -47,7 +47,8 @@ stateDiagram-v2
     Commanded --> Idle: arrived and stopped
     Commanded --> Manual: report off the way, or the other direction
     Idle --> Manual: position change or motor running without a command
-    Manual --> Idle: the pause ends (rule below)
+    Manual --> Idle: the pause ends (time, next phase, resume button)
+    Manual --> Idle: moved by hand to the position automatic control wants
 ```
 
 ## 3. What happens after a manual action
@@ -62,6 +63,15 @@ Behaviour per shutter, with a base value in the base controller (inherited, over
 
 - **Pause rule** (priority 20): while paused it decides *leave it where it is*, a final decision, so heat
   protection (#3, a cap) and the schedule do not move it. Only safety (#6, priority 10) still can.
+- **Back to automatic by hand:** when a manual action brings the shutter (at rest) to the position automatic
+  control would want at that moment, the pause ends and automatic control resumes. Example: the schedule
+  wants the shutter fully open, someone set it to 40 % by hand (pause); moving it to 100 % by hand resumes
+  automatic control.
+  - "Would want" is the decision of all rules except the pause, after the limits (maximum position, caps):
+    the same position the controller would send if there were no pause.
+  - Within 2 % counts as equal (whole module percents, #10).
+  - A manual action that ends exactly at that position starts no pause at all.
+  - When no rule wants a position (idle), there is nothing to match and the pause runs its normal course.
 - **Sleep-in ends** on a manual action (#4).
 - **Resume:** a button *Resume automatic control* per shutter ends the pause at once; turning automatic
   control off and on also ends it.
@@ -98,6 +108,7 @@ classDiagram
         +start(now, mode, duration, next_phase)
         +end()
         +active(now, phase_changed) bool
+        +matches(position, wanted) bool
     }
     class ManualPauseRule {
         +priority 20
@@ -121,6 +132,8 @@ classDiagram
   command, a command through the integration's own entities.
 - Without a power sensor: arrival by the report, the travel time limit.
 - Pause modes: until the next phase, for a duration, ignore; resume button; automatic off/on; restart.
+- Resume by hand: a manual move to the wanted position (also within 2 %) ends the pause; one to another
+  position does not; a manual move that ends at the wanted position starts no pause; no match while idle.
 - Priorities: safety still acts during a pause; heat protection and the schedule do not.
 - Sleep-in ends on a manual action.
 
