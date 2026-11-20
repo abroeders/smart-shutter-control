@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smart_shutter_control.const import DOMAIN
 
@@ -143,3 +144,15 @@ async def test_reconfigure_and_remove_a_shutter(hass: HomeAssistant, covers) -> 
     remaining = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
     assert remaining and all(living.subentry_id not in e.unique_id for e in remaining)
     assert len(entry.runtime_data.shutters) == 1
+
+
+async def test_the_unused_pv_forecast_source_is_removed(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="House",
+        data={"outdoor_temperature": "sensor.outdoor", "pv_forecast": "sensor.fc"},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert "pv_forecast" not in entry.data

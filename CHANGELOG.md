@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation: installation, configuration (every setting with its default and effect), calibration,
   entities, how it works, the card, FAQ and troubleshooting; README with screenshots for HACS (#8).
 
+### Removed
+
+- The source *PV forecast sensor*: it had no function. An existing setting is removed at start-up.
+
 ## [0.6.0] - 2026-11-20
 
 ### Added

@@ -41,7 +41,7 @@ Set when adding the integration, changed with *Configure* (options) or *Reconfig
 |---|---|---|---|
 | `pv_power` | PV power sensor(s) (one or more, summed) | no | clouds (#3) |
 | `pv_peak` | PV peak power (kWp) | with `pv_power` | expected clear-sky power (#3) |
-| `pv_forecast` | PV forecast sensor | no | clouds ahead (#3) |
+| ~~`pv_forecast`~~ | ~~PV forecast sensor~~ | – | removed in 0.6.1: never used |
 | `outdoor_temperature` | Outdoor temperature | yes | heat protection, frost (#3, #6, #7) |
 | `weather` | Weather | no | clouds fallback (#3) |
 | `wind_speed` | Wind speed sensor | no | storm (#6) |

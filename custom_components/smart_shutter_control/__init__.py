@@ -41,6 +41,10 @@ async def async_register_card(hass: HomeAssistant) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ShutterConfigEntry) -> bool:
     """Set up the base controller, its device and one device per shutter."""
+    if "pv_forecast" in entry.data:  # a source without a function, removed in 0.6.1
+        hass.config_entries.async_update_entry(
+            entry, data={k: v for k, v in entry.data.items() if k != "pv_forecast"}
+        )
     base = dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},

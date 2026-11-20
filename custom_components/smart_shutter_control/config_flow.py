@@ -32,7 +32,6 @@ from .const import (
     CONF_MIN_ELEVATION,
     CONF_MOTOR_POWER,
     CONF_OUTDOOR,
-    CONF_PV_FORECAST,
     CONF_PV_PEAK,
     CONF_PV_POWER,
     CONF_ROOM_TEMPERATURE,
@@ -241,7 +240,6 @@ SOURCES = {
     vol.Optional(CONF_WEATHER): selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
     vol.Optional(CONF_PV_POWER): _sensor("power", multiple=True),
     vol.Optional(CONF_PV_PEAK): _number(0.1, 100, 0.1, "kWp"),
-    vol.Optional(CONF_PV_FORECAST): _sensor("power"),
     vol.Optional(CONF_WIND_SPEED): _sensor("wind_speed"),
     vol.Optional(CONF_WIND_GUST): _sensor("wind_speed"),
 }

@@ -15,7 +15,6 @@
           "weather": "Weer",
           "pv_power": "Pv-vermogensensoren",
           "pv_peak": "Piekvermogen pv",
-          "pv_forecast": "Pv-verwachting",
           "wind_speed": "Windsnelheidsensor",
           "wind_gust": "Windstootsensor"
         },
@@ -32,7 +31,6 @@
           "weather": "Weer",
           "pv_power": "Pv-vermogensensoren",
           "pv_peak": "Piekvermogen pv",
-          "pv_forecast": "Pv-verwachting",
           "wind_speed": "Windsnelheidsensor",
           "wind_gust": "Windstootsensor"
         },

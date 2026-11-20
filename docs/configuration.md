@@ -17,7 +17,6 @@ override any setting of the base schedule.
 | Weather | – | fallback for "is it sunny?" while the PV reference is still being learned |
 | PV power sensors | – | one or more, added up; the measure of clouds (see [How it works](how-it-works.md#is-it-sunny)) |
 | PV peak power (kWp) | – | a rough clear-sky curve while the PV reference is young |
-| PV forecast sensor | – | not used yet |
 | Wind speed sensor | – | storm detection |
 | Wind gust sensor | – | storm detection |
 
