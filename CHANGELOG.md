@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.0] - 2026-11-20
+
 ### Added
 
 - Light sensors (lux) as the sun source, instead of PV power: a select *Sun source* (PV, light sensors,
@@ -199,7 +201,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.0...HEAD
+[2026.11.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.1...2026.11.0
 [0.6.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.4.0...v0.5.0
