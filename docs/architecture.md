@@ -31,7 +31,8 @@ flowchart LR
 | Single responsibility | one module per concern; one class per rule |
 | Dependency inversion | `core/` depends on its own protocols, not on Home Assistant |
 | **Chain of responsibility** | `RuleChain` asks the `Rule`s by priority; the first decision wins (#2) |
-| **Strategy** | `Calibration`: `IdentityCalibration` now, a roller model with #10 |
+| **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
+| **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
 | **Observer** | the entities listen to `BaseCoordinator` |
 | **Repository** | `RuntimeStore` keeps automatic on/off and the maximum position per shutter |
@@ -195,3 +196,123 @@ sequenceDiagram
     Note over SC: no maximum position for manual operation
     SC->>A: async_move(to_module(80), automatic=False)
 ```
+
+## 5. Calibrated positions (#10)
+
+Design: [`design/2026-11-20-calibration.md`](design/2026-11-20-calibration.md).
+
+### 5.1 Classes
+
+```mermaid
+classDiagram
+    direction TB
+    class Calibration {
+        <<protocol>>
+        +calibrated bool
+        +to_module(position, direction) int
+        +from_module(position, direction) int
+        +slit(direction) int|None
+    }
+    class IdentityCalibration
+    class RollerCalibration {
+        +curves dict~Direction, Curve~
+        +slits dict~Direction, float~
+        +curve(direction) Curve
+        +summary() dict
+        +from_data(data)$ Calibration
+    }
+    class Curve {
+        <<protocol>>
+        +residual float
+        +opening(m) float
+        +module(o) float
+    }
+    class QuadraticCurve {
+        +a float
+        +b float
+        +c float
+        +lift float
+        +increasing() bool
+        +fit(points)$ QuadraticCurve|None
+    }
+    class MonotoneCurve {
+        +xs, ys, slopes
+        +fit(points)$ MonotoneCurve|None
+    }
+    class DirectionTracker {
+        +direction Direction|None
+        +expect(direction)
+        +observe(module_position)
+        +current(module_position) Direction
+    }
+    class CalibrationSession {
+        +controller ShutterController
+        +height_cm float|None
+        +points dict
+        +slit dict
+        +queue list~Action~
+        +full(controller, height)$
+        +one_point(controller, stored, module, direction)$
+        +add_point(action, value)
+        +lifted(yes) bool
+        +async move(module)
+        +data() dict
+    }
+    class ShutterSubentryFlow {
+        <<ConfigSubentryFlow>>
+        +reconfigure: menu settings / calibrate / add_point
+        +cal_move (progress)
+        +cal_measure
+        +cal_lift
+        +cal_review
+    }
+    Calibration <|.. IdentityCalibration
+    Calibration <|.. RollerCalibration
+    RollerCalibration o-- Curve
+    Curve <|.. QuadraticCurve
+    Curve <|.. MonotoneCurve
+    ShutterController o-- Calibration
+    ShutterController o-- DirectionTracker
+    ShutterSubentryFlow o-- CalibrationSession
+    CalibrationSession ..> ShutterController : pauses, moves through its adapter
+```
+
+### 5.2 Moving to a real position
+
+```mermaid
+sequenceDiagram
+    participant SC as ShutterController
+    participant K as RollerCalibration
+    participant D as DirectionTracker
+    participant A as CoverAdapter
+    SC->>SC: target real position, current real position
+    SC->>K: to_module(target, up or down)
+    K-->>SC: module position
+    SC->>D: expect(direction)
+    SC->>A: async_move(module position)
+    A-->>D: reports while moving (observe)
+    SC->>K: from_module(reported, D.current) for the entities
+```
+
+### 5.3 The assistant
+
+```mermaid
+stateDiagram-v2
+    [*] --> Menu
+    Menu --> Settings
+    Menu --> Height: calibrate
+    Menu --> OnePoint: add a point
+    Height --> Move: queue goto 0, measure 25/50/75 up, goto 100, measure 75/50/25 down, lift
+    OnePoint --> Move: queue goto 0 or 100, measure
+    Move --> Measure: measure action
+    Move --> Lift: lift action
+    Move --> Move: goto action
+    Measure --> Move: next action
+    Lift --> Move: not lifted (2 % higher)
+    Lift --> Review: lifted
+    Measure --> Review: queue empty
+    Review --> [*]: save in the subentry, reload
+    Settings --> [*]
+```
+
+During the assistant the controller is paused (`Reason.CALIBRATING`); ending the flow in any way resumes it.

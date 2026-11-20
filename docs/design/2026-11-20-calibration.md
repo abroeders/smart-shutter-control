@@ -1,7 +1,7 @@
 # Calibrated positions
 
 - Issue: #10
-- Status: draft
+- Status: **approved** (2026-11-20)
 - Date: 2026-11-20
 - Depends on: #2 (the `Calibration` strategy and the shutter cover entity)
 
@@ -48,11 +48,16 @@ o_dir(m) = clamp(a_dir·m + b_dir·m² − c_dir, 0, 1)
 - `a`, `b` (≥ 0) follow from r₀, d and the speed in that direction; `c` from the gap zone.
 - The point where the bottom bar starts to lift is `m_lift,dir`, the root of `a·m + b·m² = c`.
 - The curve must be increasing on [m_lift, 1]: `a + 2b·m > 0` there.
-- **Fit** per direction: least squares through the measured points of that direction plus the fixed end
-  `o(1) = 1`. Three measured points per direction are enough; more improve it.
-- **Fallback:** if the quadratic leaves a residual above 3 % of the window height, or the points are not
-  increasing, the calibration uses monotone cubic interpolation (PCHIP) through the points. The assistant then
-  asks for one more point.
+- **Fit** per direction: least squares through the measured points of that direction above the sill. With
+  three or more points `a`, `b` and `c` are free: the slower direction may not be fully open at the end of
+  the module's travel time (the module runs on to its limit switch), so `o(1)` can be below 1 and the curve is
+  clipped at 1. With two points the end is fixed at `o(1) = 1`. A negative `b` (a shrinking roller) falls back
+  to a straight line.
+- **Fallback:** if the quadratic leaves a residual above 3 % of the window height, or the curve is not
+  increasing, the calibration uses a monotone cubic (Fritsch–Carlson, like PCHIP) through the points and the
+  ends (0, 0) and (1, 1). Adding a point (§5) improves either.
+- At least two measured points between the ends are needed per direction; a direction without enough points
+  uses the other direction's curve.
 - **Not calibrated:** `IdentityCalibration` (as in #2).
 
 ### 3.1 Conversions

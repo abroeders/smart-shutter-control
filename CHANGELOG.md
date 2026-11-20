@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Calibrated positions: per shutter and per direction a roller model (or a monotone curve) from measured
+  points, so 50 % is half way down the window from closed and from open. The shutter entity shows the
+  calibrated position; attributes `module_position`, `direction`, `calibrated` and `slit` (#10).
+- Calibration assistant under *Reconfigure → Calibrate*: moves the shutter, asks for the measured opening,
+  finds the point where the bottom bar lifts, shows the result per direction. *Add a calibration point*
+  improves a calibration later (#10).
+- Diagnostic sensor *Calibration* per shutter (#10).
+
+### Changed
+
+- *Reconfigure* of a shutter is now a menu: *Settings*, *Calibrate*, *Add a calibration point* (#10).
+
 ## [0.1.0] - 2026-11-20
 
 ### Added
