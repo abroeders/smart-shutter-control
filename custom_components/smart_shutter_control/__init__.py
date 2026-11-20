@@ -14,7 +14,7 @@ type ShutterConfigEntry = ConfigEntry[BaseCoordinator]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ShutterConfigEntry) -> bool:
     """Set up the base controller, its device and one device per shutter."""
-    dr.async_get(hass).async_get_or_create(
+    base = dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
         name=entry.title,
@@ -22,6 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShutterConfigEntry) -> b
         model="Base controller",
     )
     coordinator = BaseCoordinator(hass, entry)
+    coordinator.base_device_id = base.id
     await coordinator.async_start()
     entry.runtime_data = coordinator
     try:

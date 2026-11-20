@@ -18,6 +18,10 @@ class Reason(StrEnum):
     SUN = "sun"  # heat protection (#3)
     SCHEDULE = "schedule"  # the phase of the day (#4)
     SLEEP_IN = "sleep_in"  # sleeping in (#4)
+    STORM = "storm"  # (#6)
+    FROST = "frost"
+    HEAT_LIMIT = "heat_limit"
+    COLD_LIMIT = "cold_limit"
 
 
 class Kind(StrEnum):
@@ -54,6 +58,8 @@ class Inputs:
     sun: SunPosition | None = None
     sunny: bool = False
     sun_factor: float | None = None
+    storm: bool = False
+    frost: bool = False
     extra: dict = field(default_factory=dict)
 
 

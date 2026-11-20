@@ -129,16 +129,17 @@ async def test_holidays_from_a_calendar_and_the_list(hass: HomeAssistant, covers
         result["flow_id"], {"next_step_id": "holidays"}
     )
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"weekend_days": ["sat", "sun"], "holidays_extra": "12-24 Eve\nnot a date"}
+        result["flow_id"], {"holiday_calendar": "calendar.holidays", "weekend_days": ["sat", "sun"]}
+    )
+    # the chosen calendar's holidays at once, on the next page
+    assert result["step_id"] == "holiday_days" and "holidays_disabled" in result["data_schema"].schema
+    assert "Christmas" in result["description_placeholders"]["list"]
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"holidays_extra": "12-24 Eve\nnot a date"}
     )
     assert result["errors"] == {"holidays_extra": "bad_dates"}
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            "holiday_calendar": "calendar.holidays",
-            "weekend_days": ["sat", "sun"],
-            "holidays_extra": "12-24 Eve",
-        },
+        result["flow_id"], {"holidays_extra": "12-24 Eve"}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
@@ -155,15 +156,11 @@ async def test_holidays_from_a_calendar_and_the_list(hass: HomeAssistant, covers
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"next_step_id": "holidays"}
     )
-    assert "holidays_disabled" in result["data_schema"].schema
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            "holiday_calendar": "calendar.holidays",
-            "weekend_days": ["sat", "sun"],
-            "holidays_extra": "12-24 Eve",
-            "holidays_disabled": ["Christmas"],
-        },
+        result["flow_id"], {"holiday_calendar": "calendar.holidays", "weekend_days": ["sat", "sun"]}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"holidays_extra": "12-24 Eve", "holidays_disabled": ["Christmas"]}
     )
     await hass.async_block_till_done()
     assert entry.runtime_data.calendar.holiday(date(2026, 12, 25)) is None
@@ -239,3 +236,35 @@ async def test_sleep_in(hass: HomeAssistant, covers, amsterdam) -> None:
     await hass.async_block_till_done()
     assert hass.states.get(eid(hass, entry, "switch", "sleep_in")).state == "off"
     async_fire_time_changed(hass)
+
+
+async def test_holidays_are_read_once_the_calendar_appears(hass: HomeAssistant, covers, amsterdam) -> None:
+    from datetime import date
+
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.smart_shutter_control.const import DEFAULT_OPTIONS, DOMAIN
+
+    amsterdam.move_to("2026-12-20 12:00:00+01:00")
+    answers: dict = {}
+
+    async def get_events(call: ServiceCall):
+        return answers
+
+    hass.services.async_register(
+        "calendar", "get_events", get_events, supports_response=SupportsResponse.ONLY
+    )
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="House",
+        data={"outdoor_temperature": "sensor.outdoor_temperature"},
+        options={**DEFAULT_OPTIONS, "holiday_calendar": "calendar.holidays"},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.calendar.from_calendar == {}  # the calendar was not there yet
+    answers["calendar.holidays"] = {"events": [{"start": "2026-12-25", "summary": "Christmas"}]}
+    hass.states.async_set("calendar.holidays", "off")  # the Holiday integration has started
+    await hass.async_block_till_done()
+    assert entry.runtime_data.calendar.holiday(date(2026, 12, 25)) == "Christmas"

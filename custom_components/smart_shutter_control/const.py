@@ -25,7 +25,14 @@ CONF_WIND_SPEED = "wind_speed"
 CONF_WIND_GUST = "wind_gust"
 
 # base controller: options (Configure)
-OPT_STORM_LIMIT = "storm_limit"  # km/h
+OPT_STORM_LIMIT = "storm_limit"  # km/h; before 0.4: one limit, now the gust limit
+OPT_STORM_WIND_LIMIT = "storm_wind_limit"  # km/h
+OPT_STORM_GUST_LIMIT = "storm_gust_limit"  # km/h
+OPT_STORM_RELEASE = "storm_release"  # min
+OPT_FROST_LIMIT = "frost_limit"  # °C
+OPT_FROST_RELEASE = "frost_release"  # min
+OPT_CLOSE_ABOVE = "close_above"  # °C, optional
+OPT_CLOSE_BELOW = "close_below"  # °C, optional
 OPT_SUNNY_THRESHOLD = "sunny_threshold"  # % of the clear-sky PV power
 OPT_MAX_INCIDENCE = "max_incidence"  # degrees
 OPT_HEAT_OUTDOOR = "heat_outdoor"  # °C
@@ -39,7 +46,11 @@ OPT_HOLIDAYS_EXCLUDED = "holidays_excluded"
 OPT_HOLIDAYS_DISABLED = "holidays_disabled"  # names of calendar holidays to ignore
 OPT_WEEKEND_DAYS = "weekend_days"
 DEFAULT_OPTIONS = {
-    OPT_STORM_LIMIT: 60,
+    OPT_STORM_WIND_LIMIT: 50,
+    OPT_STORM_GUST_LIMIT: 60,
+    OPT_STORM_RELEASE: 15,
+    OPT_FROST_LIMIT: 0,
+    OPT_FROST_RELEASE: 60,
     OPT_SUNNY_THRESHOLD: 60,
     OPT_MAX_INCIDENCE: 85,
     OPT_HEAT_OUTDOOR: 22,
