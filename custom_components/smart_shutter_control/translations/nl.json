@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Smart Shutter Control",
+        "description": "De basiscontroller bevat de instellingen voor alle rolluiken.",
+        "data": {
+          "name": "Naam"
+        }
+      }
+    }
+  }
+}
