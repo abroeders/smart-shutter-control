@@ -47,7 +47,6 @@ export class ShutterDrawing extends LitElement {
       --ssc-slat-1: #eceff1;
       --ssc-slat-2: #b0bec5;
       --ssc-slat-line: #90a4ae;
-      --ssc-gap: #fff8e1;
       --ssc-bar: #546e7a;
       --ssc-accent: var(--primary-color, #1e88e5);
       --ssc-max: var(--warning-color, #ef6c00);
@@ -58,7 +57,6 @@ export class ShutterDrawing extends LitElement {
       --ssc-slat-1: #607d8b;
       --ssc-slat-2: #455a64;
       --ssc-slat-line: #37474f;
-      --ssc-gap: #b7c9d8;
       --ssc-bar: #b0bec5;
     }
     svg {
@@ -177,8 +175,11 @@ export class ShutterDrawing extends LitElement {
         <pattern id="slats" width="10" height="13" patternUnits="userSpaceOnUse" y="-3">
           <rect width="10" height="13" fill="url(#slat)"></rect><line x1="0" y1="12" x2="10" y2="12" stroke="var(--ssc-slat-line)" stroke-width="1.5"></line>
         </pattern>
-        <pattern id="slats-open" width="10" height="13" patternUnits="userSpaceOnUse" y="-3">
-          <rect width="10" height="10.5" fill="url(#slat)"></rect><rect y="10.5" width="10" height="2.5" fill="var(--ssc-gap)"></rect>
+        <!-- open slats: between two slats a row of separate slots with bridges; the slots are transparent,
+             so the window (and what is outside) shows through -->
+        <pattern id="slats-open" width="12" height="13" patternUnits="userSpaceOnUse" x="2" y="-3">
+          <rect width="12" height="10.5" fill="url(#slat)"></rect>
+          <rect y="10.5" width="3" height="2.5" fill="var(--ssc-slat-line)"></rect>
         </pattern>
         <clipPath id="opening"><rect x="58" y="40" width="168" height="208"></rect></clipPath>
       </defs>
