@@ -1,7 +1,7 @@
 # Weather and safety: storm, frost, temperature
 
 - Issue: #6
-- Status: draft
+- Status: **approved** (2026-11-20)
 - Date: 2026-11-20
 - Depends on: #2 (limiter, final decisions), #5 (pauses)
 
@@ -35,7 +35,7 @@ Only fully open or fully closed (module ends, #10):
 
 | `storm_position` (per shutter, base value inherited) | In a storm |
 |---|---|
-| `nearest` (default) | 50 % or higher → fully open; below → fully closed |
+| `nearest` (default) | the end nearest to the position the other rules want now (by day open → fully open; when the evening starts → fully closed; dusk 35 % or the slit → fully closed); when no rule wants a position (e.g. during a manual pause), the end nearest to the current position |
 | `open` | fully open |
 | `closed` | fully closed |
 
@@ -43,8 +43,15 @@ Only fully open or fully closed (module ends, #10):
   never be opened above its maximum automatically).
 - The decision is **final** (priority 10): it overrides the manual pause (#5), sleep-in, heat protection and
   the schedule. A manual move during a storm is moved back at the next evaluation.
-- The shutter keeps its storm position until the storm has ended; then the normal rules decide again (and
-  the shutter moves at once to their position).
+- The shutter keeps its storm position until the storm has ended, except that the end follows the other
+  rules: a shutter locked open by day closes when the evening starts. When the storm ends, the normal rules
+  decide again (and the shutter moves at once to their position).
+- **Never a position in between during a storm:**
+  - automatic decisions are only 0 or 100 (the module's ends);
+  - a position entered through the integration's own entities (shutter, *Opening*) goes to the nearest end;
+  - a move by a wall switch or another system is detected (#5) and put back to an end within seconds, not
+    at the next minute;
+  - the calibration assistant does not start during a storm.
 
 ## 3. Frost
 
@@ -135,7 +142,9 @@ read them from there, like the sun state of #3.
 - Temperature limits with hysteresis.
 - Home Assistant: options page with the 30-day maxima, the base entities, a simulated storm.
 
-## 9. Open questions
+## 9. Decisions
 
-- During frost, should storm still move shutters (current proposal: yes)?
-- Default `storm_position`: nearest end (proposal), or always closed?
+- Storm still moves shutters during frost (wind damage is the larger risk).
+- Default `storm_position`: the nearest end.
+- Which source and limit an installation uses is configuration; the defaults stay 50 km/h (wind) and
+  60 km/h (gusts). An existing `storm_limit` option of earlier versions becomes the gust limit.
