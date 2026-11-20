@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -36,6 +37,7 @@ from .core.manual import ManualDetector, ManualPause, ManualPauseRule, matches
 from .core.model import Decision, Direction, Inputs, Reason, ShutterConfig, ShutterContext
 from .core.rules import RuleChain
 from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, merged, overridden
+from .core.weather import FrostRule, StormRule, TemperatureLimitRule
 from .storage import RuntimeStore
 
 KEY_AUTOMATIC = "automatic"
@@ -70,6 +72,7 @@ class ShutterController:
         sun: SunSettings | None = None,
         base_schedule: dict | None = None,
         calendar: HolidayCalendar | None = None,
+        safety: dict | None = None,
     ) -> None:
         self.hass = hass
         self.id = subentry.subentry_id
@@ -121,9 +124,23 @@ class ShutterController:
         self.pause = ManualPause.from_dict(store.get(self.id, KEY_PAUSE))
         self.pause_rule = ManualPauseRule(self.pause, lambda now: str(self.schedule_rule.phase(now)))
         self.heat_rule = HeatProtectionRule(sun)
-        self.chain = chain or RuleChain(
-            [self.pause_rule, SleepInRule(self.sleep_in, self.schedule), self.heat_rule, self.schedule_rule]
+        safety = safety or {}
+        self.storm_rule = StormRule(
+            lambda: str(self.schedule_values["storm_position"]), self._wanted_without_storm
         )
+        self.chain = chain or RuleChain(
+            [
+                self.storm_rule,
+                FrostRule(),
+                TemperatureLimitRule(safety.get("close_above"), safety.get("close_below")),
+                self.pause_rule,
+                SleepInRule(self.sleep_in, self.schedule),
+                self.heat_rule,
+                self.schedule_rule,
+            ]
+        )
+        self.on_manual: Callable[[], None] | None = None
+        self.storm = False  # the last evaluation was in a storm
         self.last_target: tuple[str, int] | None = None  # what was last sent: ("real" | "module", value)
 
     # --- settings that are entities --------------------------------------------------------------
@@ -202,6 +219,13 @@ class ShutterController:
         if not automatic:
             self._manual(time.time(), "entity")
 
+    def _wanted_without_storm(self, ctx: ShutterContext) -> int | None:
+        """The real position the other rules want now (the slit counts as closed), for the storm's end."""
+        decision = self.chain.decide(ctx, skip=self.storm_rule)
+        if decision.module is not None:
+            return 0
+        return decision.position
+
     def _manual(self, now: float, source: str) -> None:
         """Someone moved the shutter: end sleep-in, pause automatic control (unless the mode is ignore)."""
         if self.sleep_in.armed:
@@ -211,6 +235,8 @@ class ShutterController:
         self.pause.start(now, mode, duration, str(self.schedule_rule.phase(now)), source)
         self.last_target = None  # whatever ends the pause sends the wanted position again
         self._save_pause()
+        if self.on_manual is not None:
+            self.on_manual()
 
     def resume(self) -> None:
         """End a manual pause; the next evaluation moves the shutter to the wanted position."""
@@ -279,6 +305,7 @@ class ShutterController:
 
     async def async_evaluate(self, inputs: Inputs, storm: bool = False) -> Decision:
         self.observe()  # a report not handled yet must not count as manual after this decision
+        self.storm = inputs.storm
         if not self.automatic or self.paused:
             self.decision = Decision(None, Reason.OFF if not self.automatic else Reason.CALIBRATING)
             return self.decision
@@ -289,6 +316,7 @@ class ShutterController:
             if wanted is not None and self._there(wanted):
                 self.resume()
                 self.last_target = wanted
+        storm = storm or inputs.storm
         decision = self.chain.decide(ctx)
         target = self._limited(decision, storm)
         if target is None:
@@ -306,8 +334,13 @@ class ShutterController:
         return decision
 
     async def async_manual(self, position: int) -> None:
-        """A user moves the shutter through our entities: no limits, calibrated; counts as manual."""
-        await self._move(max(0, min(100, int(position))), automatic=False)
+        """A user moves the shutter through our entities: no limits, calibrated; counts as manual.
+
+        In a storm only the ends exist: a position in between goes to the nearest end."""
+        position = max(0, min(100, int(position)))
+        if self.storm and 0 < position < 100:
+            position = 100 if position >= 50 and self.max_position >= 100 else 0
+        await self._move(position, automatic=False)
 
     async def async_stop(self) -> None:
         self._manual(time.time(), "entity")

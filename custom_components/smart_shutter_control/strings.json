@@ -52,19 +52,31 @@
       "init": {
         "title": "Settings",
         "menu_options": {
-          "storm": "Storm",
+          "storm": "Storm and frost",
           "sun": "Sun",
           "schedule": "Schedule",
           "holidays": "Holidays"
         }
       },
       "storm": {
-        "title": "Storm",
+        "title": "Storm and frost",
+        "description": "In a storm shutters with automatic control are only fully open or fully closed; during frost they do not move.",
         "data": {
-          "storm_limit": "Storm limit"
+          "storm_wind_limit": "Storm: wind speed from",
+          "storm_gust_limit": "Storm: gusts from",
+          "storm_release": "Storm ends after",
+          "frost_limit": "Frost at or below",
+          "frost_release": "Frost ends after",
+          "close_above": "Close above",
+          "close_below": "Close below"
         },
         "data_description": {
-          "storm_limit": "Above this wind speed or gust shutters are only fully open or fully closed."
+          "storm_wind_limit": "Highest in the last 30 days: {wind_max} km/h. Empty: not used.",
+          "storm_gust_limit": "Highest in the last 30 days: {gust_max} km/h. Empty: not used.",
+          "storm_release": "Minutes after the last value above a limit.",
+          "frost_limit": "During frost the shutters do not move automatically (they may be frozen).",
+          "close_above": "Outdoor temperature; empty: off.",
+          "close_below": "Outdoor temperature; empty: off."
         }
       },
       "sun": {
@@ -106,7 +118,8 @@
           "slit_module": "Slit (module position, uncalibrated)",
           "sleep_in_until": "Sleep in until",
           "manual_mode": "After a manual action",
-          "manual_duration": "Pause after a manual action"
+          "manual_duration": "Pause after a manual action",
+          "storm_position": "Storm position"
         },
         "data_description": {
           "slit_module": "Only used when the shutter is not calibrated; with a calibration the slit is the measured lift point.",
@@ -282,7 +295,8 @@
             "slit_module": "Slit (module position, uncalibrated)",
             "sleep_in_until": "Sleep in until",
             "manual_mode": "After a manual action",
-            "manual_duration": "Pause after a manual action"
+            "manual_duration": "Pause after a manual action",
+            "storm_position": "Storm position"
           },
           "data_description": {
             "weekday_slit": "Base schedule: {base_weekday_slit}",
@@ -302,7 +316,8 @@
             "slit_module": "Base schedule: {base_slit_module}",
             "sleep_in_until": "Base schedule: {base_sleep_in_until}",
             "manual_mode": "Base schedule: {base_manual_mode}",
-            "manual_duration": "Base schedule: {base_manual_duration}"
+            "manual_duration": "Base schedule: {base_manual_duration}",
+            "storm_position": "Base schedule: {base_storm_position}"
           }
         }
       },
@@ -313,7 +328,8 @@
       },
       "abort": {
         "reconfigure_successful": "The shutter was saved.",
-        "not_loaded": "The integration is not loaded; try again after it has started."
+        "not_loaded": "The integration is not loaded; try again after it has started.",
+        "storm": "Not during a storm: calibrating moves the shutter to positions in between."
       },
       "progress": {
         "moving": "The shutter moves to module position {position} %…",
@@ -362,7 +378,11 @@
           "calibrating": "Calibrating",
           "sun": "Sun",
           "schedule": "Schedule",
-          "sleep_in": "Sleep in"
+          "sleep_in": "Sleep in",
+          "storm": "Storm",
+          "frost": "Frost",
+          "heat_limit": "Heat limit",
+          "cold_limit": "Cold limit"
         }
       },
       "next_action": {
@@ -409,6 +429,12 @@
       },
       "manual_pause": {
         "name": "Manual pause"
+      },
+      "storm": {
+        "name": "Storm"
+      },
+      "frost": {
+        "name": "Frost"
       }
     },
     "button": {
@@ -447,6 +473,14 @@
         "fri": "Friday",
         "sat": "Saturday",
         "sun": "Sunday"
+      }
+    },
+    "storm_position": {
+      "options": {
+        "inherit": "Inherit",
+        "nearest": "Nearest end",
+        "open": "Fully open",
+        "closed": "Fully closed"
       }
     }
   }

@@ -47,7 +47,11 @@ from .const import (
     DEFAULT_OPTIONS,
     DEFAULT_SHUTTER,
     DOMAIN,
+    OPT_CLOSE_ABOVE,
+    OPT_CLOSE_BELOW,
     OPT_CLOSE_DELAY,
+    OPT_FROST_LIMIT,
+    OPT_FROST_RELEASE,
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
     OPT_HOLIDAY_CALENDAR,
@@ -57,7 +61,10 @@ from .const import (
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
     OPT_SCHEDULE,
+    OPT_STORM_GUST_LIMIT,
     OPT_STORM_LIMIT,
+    OPT_STORM_RELEASE,
+    OPT_STORM_WIND_LIMIT,
     OPT_SUNNY_THRESHOLD,
     OPT_WEEKEND_DAYS,
     SUBENTRY_SHUTTER,
@@ -109,6 +116,27 @@ def _phase_switch(base: bool) -> selector.Selector:
     )
 
 
+async def _max_30_days(hass, entity_id: str | None) -> str:
+    """The highest value of a sensor in the last 30 days (long-term statistics), as text; – when unknown."""
+    if not entity_id:
+        return "–"
+    try:
+        from datetime import timedelta
+
+        from homeassistant.components.recorder import get_instance
+        from homeassistant.components.recorder.statistics import statistics_during_period
+        from homeassistant.util import dt as dt_util
+
+        start = dt_util.utcnow() - timedelta(days=30)
+        stats = await get_instance(hass).async_add_executor_job(
+            statistics_during_period, hass, start, None, {entity_id}, "day", None, {"max"}
+        )
+        values = [row["max"] for row in stats.get(entity_id, []) if row.get("max") is not None]
+        return f"{max(values):.0f}" if values else "–"
+    except Exception:  # noqa: BLE001 - no recorder or no statistics: just do not show it
+        return "–"
+
+
 def schedule_fields(base: bool) -> dict:
     """The schedule settings; for a shutter every field is optional (empty = the base value)."""
     key = vol.Required if base else vol.Optional
@@ -135,6 +163,12 @@ def schedule_fields(base: bool) -> dict:
             )
         ),
         key("manual_duration"): _number(5, 1440, 5, "min"),
+        key("storm_position"): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=(["nearest", "open", "closed"] if base else ["inherit", "nearest", "open", "closed"]),
+                translation_key="storm_position",
+            )
+        ),
     }
 
 
@@ -364,10 +398,32 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
 
     async def async_step_storm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        if OPT_STORM_LIMIT in current and OPT_STORM_GUST_LIMIT not in self.config_entry.options:
+            current[OPT_STORM_GUST_LIMIT] = current[OPT_STORM_LIMIT]
         if user_input is not None:
-            return self.async_create_entry(data={**current, **user_input})
-        schema = {vol.Required(OPT_STORM_LIMIT): _number(10, 200, 1, "km/h")}
-        return self.async_show_form(step_id="storm", data_schema=_with_defaults(schema, current))
+            data = {**current, **user_input}
+            for key in (OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT, OPT_CLOSE_ABOVE, OPT_CLOSE_BELOW):
+                data[key] = user_input.get(key)  # empty = off
+            data.pop(OPT_STORM_LIMIT, None)
+            return self.async_create_entry(data=data)
+        schema = {
+            vol.Optional(OPT_STORM_WIND_LIMIT): _number(10, 200, 1, "km/h"),
+            vol.Optional(OPT_STORM_GUST_LIMIT): _number(10, 250, 1, "km/h"),
+            vol.Required(OPT_STORM_RELEASE): _number(1, 180, 1, "min"),
+            vol.Required(OPT_FROST_LIMIT): _number(-20, 10, 0.5, "°C"),
+            vol.Required(OPT_FROST_RELEASE): _number(0, 720, 5, "min"),
+            vol.Optional(OPT_CLOSE_ABOVE): _number(15, 50, 0.5, "°C"),
+            vol.Optional(OPT_CLOSE_BELOW): _number(-30, 10, 0.5, "°C"),
+        }
+        sources = self.config_entry.data
+        return self.async_show_form(
+            step_id="storm",
+            data_schema=_with_defaults(schema, current),
+            description_placeholders={
+                "wind_max": await _max_30_days(self.hass, sources.get(CONF_WIND_SPEED)),
+                "gust_max": await _max_30_days(self.hass, sources.get(CONF_WIND_GUST)),
+            },
+        )
 
 
 SHUTTER = {
@@ -499,6 +555,8 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         controller = self._controller()
         if controller is None:
             return self.async_abort(reason="not_loaded")
+        if controller.storm:
+            return self.async_abort(reason="storm")  # calibrating moves to intermediate positions
         if user_input is not None:
             height = user_input.get("window_height_cm") or None
             travel = self._get_reconfigure_subentry().data.get(CONF_TRAVEL_TIME)
@@ -511,6 +569,8 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         controller = self._controller()
         if controller is None:
             return self.async_abort(reason="not_loaded")
+        if controller.storm:
+            return self.async_abort(reason="storm")
         if user_input is not None:
             stored = dict(self._get_reconfigure_subentry().data.get(CONF_CALIBRATION) or {})
             direction = Direction(user_input["direction"])

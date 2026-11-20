@@ -30,7 +30,11 @@ from .const import (
     DEFAULT_OPTIONS,
     DOMAIN,
     INPUT_DEBOUNCE,
+    OPT_CLOSE_ABOVE,
+    OPT_CLOSE_BELOW,
     OPT_CLOSE_DELAY,
+    OPT_FROST_LIMIT,
+    OPT_FROST_RELEASE,
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
     OPT_HOLIDAY_CALENDAR,
@@ -40,6 +44,10 @@ from .const import (
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
     OPT_SCHEDULE,
+    OPT_STORM_GUST_LIMIT,
+    OPT_STORM_LIMIT,
+    OPT_STORM_RELEASE,
+    OPT_STORM_WIND_LIMIT,
     OPT_SUNNY_THRESHOLD,
     OPT_WEEKEND_DAYS,
     SUBENTRY_SHUTTER,
@@ -51,6 +59,7 @@ from .core.model import Inputs
 from .core.schedule import HolidayCalendar, parse_holidays, weekend_set
 from .core.sun import SunPosition
 from .core.sunny import ClearSkyReference, SunnyDetector
+from .core.weather import FrostDetector, StormDetector
 from .storage import RuntimeStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,6 +91,10 @@ async def read_calendar(hass: HomeAssistant, entity_id: str) -> dict | None:
     return days
 
 
+def _num(value) -> float | None:
+    return None if value in (None, "") else float(value)
+
+
 class BaseCoordinator(DataUpdateCoordinator[None]):
     """Observer for the entities: they refresh when a tick or a cover change is done."""
 
@@ -90,6 +103,20 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.entry = entry
         self.sources = dict(entry.data)
         self.options = {**DEFAULT_OPTIONS, **entry.options}
+        if OPT_STORM_LIMIT in entry.options and OPT_STORM_GUST_LIMIT not in entry.options:
+            self.options[OPT_STORM_GUST_LIMIT] = entry.options[OPT_STORM_LIMIT]  # the one limit of 0.1–0.3
+        o = self.options
+        self.storm = StormDetector(
+            _num(o.get(OPT_STORM_WIND_LIMIT)),
+            _num(o.get(OPT_STORM_GUST_LIMIT)),
+            float(o[OPT_STORM_RELEASE]) * 60,
+        )
+        self.frost = FrostDetector(float(o[OPT_FROST_LIMIT]), float(o[OPT_FROST_RELEASE]) * 60)
+        self.safety = {
+            "close_above": _num(o.get(OPT_CLOSE_ABOVE)),
+            "close_below": _num(o.get(OPT_CLOSE_BELOW)),
+        }
+        self._quick = None
         self.store = RuntimeStore(hass, entry.entry_id)
         self.shutters: dict[str, ShutterController] = {}
         self.inputs = Inputs(now=time.time())
@@ -120,14 +147,17 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         base_schedule = dict(self.options.get(OPT_SCHEDULE) or {})
         for subentry in self.entry.subentries.values():
             if subentry.subentry_type == SUBENTRY_SHUTTER:
-                self.shutters[subentry.subentry_id] = ShutterController(
+                controller = ShutterController(
                     self.hass,
                     subentry,
                     self.store,
                     sun=sun,
                     base_schedule=base_schedule,
                     calendar=self.calendar,
+                    safety=self.safety,
                 )
+                controller.on_manual = self._on_manual
+                self.shutters[subentry.subentry_id] = controller
         self.store.forget(set(self.shutters))
         watched = [s.config.cover for s in self.shutters.values()]
         watched += [s.adapter.power_entity for s in self.shutters.values() if s.adapter.power_entity]
@@ -155,6 +185,9 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         if self._pending:
             self._pending()
             self._pending = None
+        if self._quick:
+            self._quick()
+            self._quick = None
 
     def _input_entities(self) -> list[str | None]:
         pv = self.sources.get(CONF_PV_POWER) or []
@@ -184,8 +217,17 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         sunny = self.sunny.update(sun, pv, weather.state if weather else None, now)
         if pv is not None:
             self.store.set_global("clear_sky", self.sunny.reference.to_dict())
+        outdoor = self._number(self.sources.get(CONF_OUTDOOR))
+        storm = self.storm.update(
+            self._number(self.sources.get(CONF_WIND_SPEED)),
+            self._number(self.sources.get(CONF_WIND_GUST)),
+            now,
+        )
+        frost = self.frost.update(outdoor, now)
         return Inputs(
             now=now,
+            storm=storm,
+            frost=frost,
             sun=sun,
             sunny=sunny,
             sun_factor=self.sunny.factor,
@@ -223,6 +265,18 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         days = await read_calendar(self.hass, entity_id)
         if days is not None:
             self.calendar.from_calendar = days
+
+    @callback
+    def _on_manual(self) -> None:
+        """A manual move during a storm is put back at once, not at the next minute."""
+        if not self.storm.active or self._quick:
+            return
+
+        async def _run(_now: datetime) -> None:
+            self._quick = None
+            await self.async_tick()
+
+        self._quick = async_call_later(self.hass, 3, _run)
 
     async def _on_midnight(self, _now: datetime) -> None:
         await self.async_refresh_holidays()
