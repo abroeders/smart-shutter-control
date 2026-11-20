@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from .sun import SunPosition
+
 
 class Reason(StrEnum):
     """Why a shutter is where it is. Rules add their own values (#3–#7)."""
@@ -13,6 +15,12 @@ class Reason(StrEnum):
     OFF = "off"  # automatic control switched off
     MANUAL = "manual"
     CALIBRATING = "calibrating"  # the calibration assistant is moving the shutter
+    SUN = "sun"  # heat protection (#3)
+
+
+class Kind(StrEnum):
+    TARGET = "target"  # the position a rule wants; the first target by priority wins
+    CAP = "cap"  # the shutter may not be higher than this; all caps apply
 
 
 class Direction(StrEnum):
@@ -41,6 +49,9 @@ class Inputs:
     pv_power: float | None = None
     wind: float | None = None
     gust: float | None = None
+    sun: SunPosition | None = None
+    sunny: bool = False
+    sun_factor: float | None = None
     extra: dict = field(default_factory=dict)
 
 
@@ -52,11 +63,20 @@ class ShutterContext:
     inputs: Inputs
     position: int | None  # current position, 0 closed … 100 open
     max_position: int
+    room: float | None = None  # room temperature
+    heat_protection: bool = True
+    shading_position: int = 30
 
 
 @dataclass(frozen=True)
 class Decision:
-    """What the controller wants: a position (or None: leave it), and why."""
+    """What the controller wants: a position (or None: leave it), and why.
+
+    `kind` says whether a rule wants this position (target) or allows at most this position (cap);
+    a final target (safety) is not lowered by caps.
+    """
 
     position: int | None
     reason: str
+    kind: Kind = Kind.TARGET
+    final: bool = False
