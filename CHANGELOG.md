@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-20
+
 ### Added
 
 - Lovelace card *Smart Shutter*, served by the integration: a drawing of the shutter at its real position
@@ -173,7 +175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.3.0...v0.3.1
