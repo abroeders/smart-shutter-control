@@ -2,6 +2,8 @@
   "domain": "smart_shutter_control",
   "name": "Smart Shutter Control",
   "after_dependencies": [
+    "calendar",
+    "holiday",
     "sun",
     "weather"
   ],
