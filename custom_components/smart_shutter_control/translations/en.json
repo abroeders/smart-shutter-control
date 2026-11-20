@@ -116,19 +116,27 @@
       },
       "holidays": {
         "title": "Holidays",
-        "description": "On weekend days and holidays the schedules use their weekend times.\n\nHolidays this year:\n{list}",
+        "description": "On weekend days and holidays the schedules use their weekend times. Choose the calendar with the holidays; its holidays are shown on the next page.",
         "data": {
           "holiday_calendar": "Public holidays calendar",
-          "weekend_days": "Weekend days",
-          "holidays_extra": "Extra holidays",
-          "holidays_excluded": "Not a holiday",
-          "holidays_disabled": "Calendar holidays to ignore"
+          "weekend_days": "Weekend days"
         },
         "data_description": {
-          "holiday_calendar": "A calendar of Home Assistant's Holiday integration (Settings → Devices & services → Add integration → Holiday).",
+          "holiday_calendar": "A calendar of Home Assistant's Holiday integration (Settings → Devices & services → Add integration → Holiday)."
+        }
+      },
+      "holiday_days": {
+        "title": "Holidays of the calendar",
+        "description": "{count} days read from the calendar. Check the ones that should count as normal days (every year).\n\nHolidays this year:\n{list}",
+        "data": {
+          "holidays_disabled": "Calendar holidays to ignore",
+          "holidays_extra": "Extra holidays",
+          "holidays_excluded": "Not a holiday"
+        },
+        "data_description": {
+          "holidays_disabled": "Checked holidays count as normal days, every year. The list shows the holidays of the chosen calendar (after saving it once).",
           "holidays_extra": "One date per line: 2026-12-24 (once) or 12-31 (every year), optionally followed by a name.",
-          "holidays_excluded": "Dates from the calendar that count as normal days, same format.",
-          "holidays_disabled": "Checked holidays count as normal days, every year. The list shows the holidays of the chosen calendar (after saving it once)."
+          "holidays_excluded": "Dates from the calendar that count as normal days, same format."
         }
       }
     },

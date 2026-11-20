@@ -62,6 +62,7 @@ from .const import (
     OPT_WEEKEND_DAYS,
     SUBENTRY_SHUTTER,
 )
+from .coordinator import read_calendar
 from .core.model import Direction
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
 
@@ -251,22 +252,17 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
         )
 
     async def async_step_holidays(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Step 1: the calendar and the weekend days. The holidays of that calendar follow on step 2."""
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
-        errors: dict[str, str] = {}
-        bad: list[int] = []
         if user_input is not None:
-            for key in (OPT_HOLIDAYS_EXTRA, OPT_HOLIDAYS_EXCLUDED):
-                _, wrong = parse_holidays(user_input.get(key))
-                if wrong:
-                    errors[key] = "bad_dates"
-                    bad += wrong
-            if not errors:
-                data = {**current, **user_input}
-                for key in (OPT_HOLIDAY_CALENDAR, OPT_HOLIDAYS_EXTRA, OPT_HOLIDAYS_EXCLUDED):
-                    data[key] = user_input.get(key)  # cleared fields stay cleared
-                data[OPT_HOLIDAYS_DISABLED] = list(user_input.get(OPT_HOLIDAYS_DISABLED) or [])
-                return self.async_create_entry(data=data)
-        values = {OPT_WEEKEND_DAYS: ["sat", "sun"], **current, **(user_input or {})}
+            self._holiday_choice = {
+                OPT_HOLIDAY_CALENDAR: user_input.get(OPT_HOLIDAY_CALENDAR),
+                OPT_WEEKEND_DAYS: user_input.get(OPT_WEEKEND_DAYS) or ["sat", "sun"],
+            }
+            entity_id = user_input.get(OPT_HOLIDAY_CALENDAR)
+            self._calendar_days = (await read_calendar(self.hass, entity_id) or {}) if entity_id else {}
+            return await self.async_step_holiday_days()
+        values = {OPT_WEEKEND_DAYS: ["sat", "sun"], **current}
         schema = {
             vol.Optional(OPT_HOLIDAY_CALENDAR): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="calendar")
@@ -278,7 +274,37 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
                     translation_key="weekday",
                 )
             ),
-            **self._disable_field(current),
+        }
+        return self.async_show_form(step_id="holidays", data_schema=_with_defaults(schema, values))
+
+    async def async_step_holiday_days(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Step 2: the holidays of the chosen calendar (to switch off), extra and excluded dates."""
+        current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        errors: dict[str, str] = {}
+        bad: list[int] = []
+        if user_input is not None and self._shown_days:
+            for key in (OPT_HOLIDAYS_EXTRA, OPT_HOLIDAYS_EXCLUDED):
+                _, wrong = parse_holidays(user_input.get(key))
+                if wrong:
+                    errors[key] = "bad_dates"
+                    bad += wrong
+            if not errors:
+                data = {**current, **self._holiday_choice}
+                for key in (OPT_HOLIDAYS_EXTRA, OPT_HOLIDAYS_EXCLUDED):
+                    data[key] = user_input.get(key)  # cleared fields stay cleared
+                data[OPT_HOLIDAYS_DISABLED] = list(user_input.get(OPT_HOLIDAYS_DISABLED) or [])
+                return self.async_create_entry(data=data)
+        self._shown_days = True
+        values = {**current, **(user_input or {})}
+        calendar = HolidayCalendar(
+            weekend_set(self._holiday_choice.get(OPT_WEEKEND_DAYS)),
+            parse_holidays(values.get(OPT_HOLIDAYS_EXTRA))[0],
+            parse_holidays(values.get(OPT_HOLIDAYS_EXCLUDED))[0],
+            from_calendar=self._calendar_days,
+            disabled=frozenset(values.get(OPT_HOLIDAYS_DISABLED) or []),
+        )
+        schema = {
+            **self._disable_field(calendar, values),
             vol.Optional(OPT_HOLIDAYS_EXTRA): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
@@ -286,21 +312,29 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
                 selector.TextSelectorConfig(multiline=True)
             ),
         }
+        from homeassistant.util import dt as dt_util
+
+        year = dt_util.now().year
+        listing = "\n".join(f"{d.strftime('%d-%m-%Y')} {name}".strip() for d, name in calendar.listing(year))
         return self.async_show_form(
-            step_id="holidays",
+            step_id="holiday_days",
             data_schema=_with_defaults(schema, values),
             errors=errors,
-            description_placeholders={"lines": ", ".join(map(str, bad)) or "–", "list": self._holiday_list()},
+            description_placeholders={
+                "lines": ", ".join(map(str, bad)) or "–",
+                "list": listing or "–",
+                "count": str(len(self._calendar_days)),
+            },
         )
 
-    def _calendar(self) -> HolidayCalendar | None:
-        coordinator = getattr(self.config_entry, "runtime_data", None)
-        return getattr(coordinator, "calendar", None)
+    _holiday_choice: dict[str, Any] = {}
+    _calendar_days: dict = {}
+    _shown_days = False
 
-    def _disable_field(self, current: dict[str, Any]) -> dict:
+    @staticmethod
+    def _disable_field(calendar: HolidayCalendar, current: dict[str, Any]) -> dict:
         """Check boxes for the holidays of the calendar; a checked one is ignored by the schedules."""
-        calendar = self._calendar()
-        names = calendar.calendar_names() if calendar else []
+        names = calendar.calendar_names()
         disabled = list(current.get(OPT_HOLIDAYS_DISABLED) or [])
         options = [{"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names]
         options += [{"value": n, "label": n} for n in disabled if n not in {o["value"] for o in options}]
@@ -313,22 +347,6 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
                 )
             )
         }
-
-    def _holiday_list(self) -> str:
-        """This year's holidays as the schedules see them now."""
-        coordinator = getattr(self.config_entry, "runtime_data", None)
-        calendar: HolidayCalendar | None = getattr(coordinator, "calendar", None)
-        if calendar is None:
-            opts = self.config_entry.options
-            calendar = HolidayCalendar(
-                weekend_set(opts.get(OPT_WEEKEND_DAYS)),
-                parse_holidays(opts.get(OPT_HOLIDAYS_EXTRA))[0],
-                parse_holidays(opts.get(OPT_HOLIDAYS_EXCLUDED))[0],
-            )
-        from homeassistant.util import dt as dt_util
-
-        days = calendar.listing(dt_util.now().year)
-        return "\n".join(f"{d.isoformat()} {name}".strip() for d, name in days) or "–"
 
     async def async_step_sun(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}

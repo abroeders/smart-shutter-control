@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Holidays from a calendar whose integration starts after this one (e.g. Google Calendar) are read once the
+  calendar is available, not only the next night (#20).
+- Shutter devices are linked to the base device with `via_device_id` where Home Assistant supports it.
+
+### Changed
+
+- The holidays page has two steps: the calendar first, then its holidays at once, to check the ones to
+  ignore (#20).
+
 ## [0.3.1] - 2026-11-20
 
 ### Added

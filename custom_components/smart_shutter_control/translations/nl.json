@@ -116,19 +116,27 @@
       },
       "holidays": {
         "title": "Feestdagen",
-        "description": "Op weekenddagen en feestdagen gebruiken de schema's hun weekendtijden.\n\nFeestdagen dit jaar:\n{list}",
+        "description": "Op weekenddagen en feestdagen gebruiken de schema's hun weekendtijden. Kies de agenda met feestdagen; de feestdagen daaruit staan op de volgende pagina.",
         "data": {
           "holiday_calendar": "Agenda met officiële feestdagen",
-          "weekend_days": "Weekenddagen",
-          "holidays_extra": "Extra feestdagen",
-          "holidays_excluded": "Geen feestdag",
-          "holidays_disabled": "Feestdagen uit de agenda negeren"
+          "weekend_days": "Weekenddagen"
         },
         "data_description": {
-          "holiday_calendar": "Een agenda van HA's integratie Holiday (Instellingen → Apparaten en diensten → Integratie toevoegen → Holiday).",
+          "holiday_calendar": "Een agenda van HA's integratie Holiday (Instellingen → Apparaten en diensten → Integratie toevoegen → Holiday)."
+        }
+      },
+      "holiday_days": {
+        "title": "Feestdagen uit de agenda",
+        "description": "{count} dagen uit de agenda gelezen. Vink aan welke als gewone dag moeten tellen (elk jaar).\n\nFeestdagen dit jaar:\n{list}",
+        "data": {
+          "holidays_disabled": "Feestdagen uit de agenda negeren",
+          "holidays_extra": "Extra feestdagen",
+          "holidays_excluded": "Geen feestdag"
+        },
+        "data_description": {
+          "holidays_disabled": "Aangevinkte feestdagen tellen elk jaar als gewone dag. De lijst toont de feestdagen van de gekozen agenda (nadat die één keer is opgeslagen).",
           "holidays_extra": "Eén datum per regel: 2026-12-24 (eenmalig) of 12-31 (elk jaar), eventueel gevolgd door een naam.",
-          "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie.",
-          "holidays_disabled": "Aangevinkte feestdagen tellen elk jaar als gewone dag. De lijst toont de feestdagen van de gekozen agenda (nadat die één keer is opgeslagen)."
+          "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie."
         }
       }
     },

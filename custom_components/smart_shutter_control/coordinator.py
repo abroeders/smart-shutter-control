@@ -16,6 +16,7 @@ from homeassistant.helpers.event import (
     async_track_time_change,
     async_track_time_interval,
 )
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -55,6 +56,32 @@ from .storage import RuntimeStore
 _LOGGER = logging.getLogger(__name__)
 
 
+async def read_calendar(hass: HomeAssistant, entity_id: str) -> dict | None:
+    """Holidays (date → name) of the coming 400 days from a calendar entity; None when it cannot be read."""
+    start = dt_util.now()
+    try:
+        response = await hass.services.async_call(
+            "calendar",
+            "get_events",
+            {
+                "entity_id": entity_id,
+                "start_date_time": start.isoformat(),
+                "end_date_time": (start + timedelta(days=400)).isoformat(),
+            },
+            blocking=True,
+            return_response=True,
+        )
+    except (HomeAssistantError, ValueError) as err:
+        _LOGGER.warning("Could not read holidays from %s: %s", entity_id, err)
+        return None
+    days = {}
+    for event in (response or {}).get(entity_id, {}).get("events", []):
+        day = dt_util.parse_date(str(event.get("start", ""))[:10])
+        if day is not None:
+            days[day] = str(event.get("summary") or "")
+    return days
+
+
 class BaseCoordinator(DataUpdateCoordinator[None]):
     """Observer for the entities: they refresh when a tick or a cover change is done."""
 
@@ -68,6 +95,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.inputs = Inputs(now=time.time())
         self.sunny = SunnyDetector()
         self.calendar = self._holiday_calendar()
+        self.base_device_id: str | None = None
         self._unsubs: list = []
         self._pending = None
 
@@ -111,6 +139,13 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             async_track_state_change_event(self.hass, inputs, self._on_input),
             async_track_time_change(self.hass, self._on_midnight, hour=0, minute=5, second=0),
         ]
+        calendar_entity = self.options.get(OPT_HOLIDAY_CALENDAR)
+        if calendar_entity:
+            # the calendar's integration may start after this one: read it once it is there
+            self._unsubs.append(
+                async_track_state_change_event(self.hass, [calendar_entity], self._on_calendar)
+            )
+            self._unsubs.append(async_at_started(self.hass, self._on_started))
         self.data = None
 
     async def async_stop(self) -> None:
@@ -185,31 +220,21 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         if not entity_id:
             self.calendar.from_calendar = {}
             return
-        start = dt_util.now()
-        try:
-            response = await self.hass.services.async_call(
-                "calendar",
-                "get_events",
-                {
-                    "entity_id": entity_id,
-                    "start_date_time": start.isoformat(),
-                    "end_date_time": (start + timedelta(days=400)).isoformat(),
-                },
-                blocking=True,
-                return_response=True,
-            )
-        except (HomeAssistantError, ValueError) as err:
-            _LOGGER.warning("Could not read holidays from %s: %s", entity_id, err)
-            return
-        days = {}
-        for event in (response or {}).get(entity_id, {}).get("events", []):
-            day = dt_util.parse_date(str(event.get("start", ""))[:10])
-            if day is not None:
-                days[day] = str(event.get("summary") or "")
-        self.calendar.from_calendar = days
+        days = await read_calendar(self.hass, entity_id)
+        if days is not None:
+            self.calendar.from_calendar = days
 
     async def _on_midnight(self, _now: datetime) -> None:
         await self.async_refresh_holidays()
+
+    async def _on_started(self, _hass: HomeAssistant) -> None:
+        await self.async_refresh_holidays()
+
+    async def _on_calendar(self, event: Event[EventStateChangedData]) -> None:
+        old = event.data.get("old_state")
+        if old is None or old.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) or not self.calendar.from_calendar:
+            await self.async_refresh_holidays()
+            self.async_update_listeners()
 
     def set_sleep_in_all(self, on: bool) -> None:
         for controller in self.shutters.values():
