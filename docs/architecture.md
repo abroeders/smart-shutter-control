@@ -23,6 +23,22 @@ flowchart LR
 
 - `core/` holds the logic (sun geometry, rules, calibration) as plain Python, tested with pytest.
 - The Home Assistant layer reads inputs, calls `core/` and moves the shutters.
+- `frontend/` holds the Lovelace card (TypeScript, Lit), built into the integration (§10).
+
+### 1.1 The rule chain today
+
+| Priority | Rule | Module | Kind |
+|---|---|---|---|
+| 10 | `StormRule` | `core/weather.py` | final: 0 or 100 |
+| 11 | `FrostRule` | `core/weather.py` | final: no move |
+| 15 | `TemperatureLimitRule` | `core/weather.py` | final: closed |
+| 20 | `ManualPauseRule` | `core/manual.py` | final: no move |
+| 30 | `SleepInRule` | `core/daily.py` | target |
+| 40 | `HeatProtectionRule` | `core/heat.py` | cap |
+| 50 | `WinterRule` | `core/winter.py` | target or cap |
+| 60 | `ScheduleRule` | `core/daily.py` | target |
+
+The chain is built in `ShutterController.__init__`; `PositionLimiter` applies the maximum position after it.
 
 ## 2. Design principles
 
@@ -37,7 +53,7 @@ flowchart LR
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
 | **Observer** | the entities listen to `BaseCoordinator` |
-| **Repository** | `RuntimeStore` keeps automatic on/off and the maximum position per shutter |
+| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned PV reference) |
 
 ## 3. Scaffold (#1)
 

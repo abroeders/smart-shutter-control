@@ -15,7 +15,6 @@
           "weather": "Weather",
           "pv_power": "PV power sensors",
           "pv_peak": "PV peak power",
-          "pv_forecast": "PV forecast sensor",
           "wind_speed": "Wind speed sensor",
           "wind_gust": "Wind gust sensor"
         },
@@ -32,7 +31,6 @@
           "weather": "Weather",
           "pv_power": "PV power sensors",
           "pv_peak": "PV peak power",
-          "pv_forecast": "PV forecast sensor",
           "wind_speed": "Wind speed sensor",
           "wind_gust": "Wind gust sensor"
         },

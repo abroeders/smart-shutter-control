@@ -21,7 +21,6 @@ CONF_OUTDOOR = "outdoor_temperature"
 CONF_WEATHER = "weather"
 CONF_PV_POWER = "pv_power"  # list of sensors, summed
 CONF_PV_PEAK = "pv_peak"  # kWp
-CONF_PV_FORECAST = "pv_forecast"
 CONF_WIND_SPEED = "wind_speed"
 CONF_WIND_GUST = "wind_gust"
 
