@@ -50,7 +50,14 @@ class ShutterCover(ShutterEntity, CoverEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"physical_cover": self.controller.config.cover}
+        c = self.controller
+        return {
+            "physical_cover": c.config.cover,
+            "module_position": c.adapter.module_position(),
+            "direction": str(c.direction()),
+            "calibrated": c.calibration.calibrated,
+            "slit": c.calibration.slit(c.direction()),
+        }
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         await self.controller.async_manual(kwargs[ATTR_POSITION])
