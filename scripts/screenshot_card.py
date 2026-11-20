@@ -112,7 +112,8 @@ def hass_json() -> dict:
             "automatic": ("switch", s("on")),
         }),
         BASE: ("House", {
-            "sun_factor": ("sensor", s(70, sun_azimuth=190, sun_elevation=17, weather="partlycloudy")),
+            # a November midday sun between the trees, as seen through a south window
+            "sun_factor": ("sensor", s(70, sun_azimuth=163, sun_elevation=16, weather="partlycloudy")),
             "storm": ("binary_sensor", s("off", wind=18, gust=30)),
             "frost": ("binary_sensor", s("off")),
             "sleep_in_all": ("switch", s("off")),
@@ -149,6 +150,9 @@ def main() -> None:
             browser = p.chromium.launch()
             for name, device, theme, width, lang, drag in SHOTS:
                 states = hass_json()
+                if lang == "nl":  # the example in Dutch: Dutch names too
+                    for dev, dutch in ((LIVING, "Woonkamer"), (KITCHEN, "Keuken"), (BEDROOM, "Slaapkamer")):
+                        states["devices"][dev]["name"] = dutch
                 for eid, (state, attributes) in OVERRIDES.get(name, {}).items():
                     states["states"][eid].update(state=state, attributes=attributes)
                 data.write_text(json.dumps(states))
