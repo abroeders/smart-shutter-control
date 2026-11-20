@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- Card: the drawing shows the gaps between the slats whenever the shutter is not fully closed, also in the
+  slit position; fully closed it shows them pressed together (#28).
+
 ## [2026.11.0] - 2026-11-20
 
 ### Added
