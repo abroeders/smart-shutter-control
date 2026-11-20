@@ -121,12 +121,14 @@
           "holiday_calendar": "Agenda met officiële feestdagen",
           "weekend_days": "Weekenddagen",
           "holidays_extra": "Extra feestdagen",
-          "holidays_excluded": "Geen feestdag"
+          "holidays_excluded": "Geen feestdag",
+          "holidays_disabled": "Feestdagen uit de agenda negeren"
         },
         "data_description": {
           "holiday_calendar": "Een agenda van HA's integratie Holiday (Instellingen → Apparaten en diensten → Integratie toevoegen → Holiday).",
           "holidays_extra": "Eén datum per regel: 2026-12-24 (eenmalig) of 12-31 (elk jaar), eventueel gevolgd door een naam.",
-          "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie."
+          "holidays_excluded": "Datums uit de agenda die als gewone dag tellen, zelfde notatie.",
+          "holidays_disabled": "Aangevinkte feestdagen tellen elk jaar als gewone dag. De lijst toont de feestdagen van de gekozen agenda (nadat die één keer is opgeslagen)."
         }
       }
     },
@@ -214,7 +216,7 @@
             "settings": "Instellingen",
             "calibrate": "Kalibreren",
             "add_point": "Kalibratiepunt toevoegen",
-            "schedule": "Schema",
+            "schedule": "Schema-overrides",
             "schedule_reset": "Terug naar het standaardschema"
           }
         },
@@ -252,8 +254,8 @@
           "description": "Module-stand voor 50 % open: {summary}\n\nVerschil tussen de richtingen: {difference} %. Tot ongeveer 2 % is de motor op en neer even snel; meer dan 5 % betekent meestal dat hij in één richting langzamer is, en de kalibratie corrigeert dat.\n\nKalibratie opslaan?"
         },
         "schedule": {
-          "title": "Schema",
-          "description": "Laat een veld leeg (of 'Overnemen') voor de waarde uit het standaardschema. Standaardschema: {base}",
+          "title": "Schema-overrides",
+          "description": "Laat een veld leeg (of 'Overnemen') om het standaardschema te volgen; de standaardwaarde staat onder elk veld.",
           "data": {
             "weekday_slit": "Spleetstand doordeweeks",
             "weekday_open": "Open doordeweeks",
@@ -275,9 +277,24 @@
             "manual_duration": "Pauze na handbediening"
           },
           "data_description": {
-            "slit_module": "Alleen zonder kalibratie; met kalibratie is de spleetstand het gemeten punt waarop de onderlat loskomt.",
-            "manual_duration": "Alleen bij 'Een tijd lang'.",
-            "sunrise_offset": "Alleen bij 'Niet vóór zonsopkomst'."
+            "weekday_slit": "Standaardschema: {base_weekday_slit}",
+            "weekday_open": "Standaardschema: {base_weekday_open}",
+            "weekend_slit": "Standaardschema: {base_weekend_slit}",
+            "weekend_open": "Standaardschema: {base_weekend_open}",
+            "slit_phase": "Standaardschema: {base_slit_phase}",
+            "not_before_sunrise": "Standaardschema: {base_not_before_sunrise}",
+            "sunrise_offset": "Standaardschema: {base_sunrise_offset}",
+            "dusk_phase": "Standaardschema: {base_dusk_phase}",
+            "dusk_offset": "Standaardschema: {base_dusk_offset}",
+            "dusk_position": "Standaardschema: {base_dusk_position}",
+            "close_offset": "Standaardschema: {base_close_offset}",
+            "close_earliest": "Standaardschema: {base_close_earliest}",
+            "close_latest": "Standaardschema: {base_close_latest}",
+            "open_position": "Standaardschema: {base_open_position}",
+            "slit_module": "Standaardschema: {base_slit_module}",
+            "sleep_in_until": "Standaardschema: {base_sleep_in_until}",
+            "manual_mode": "Standaardschema: {base_manual_mode}",
+            "manual_duration": "Standaardschema: {base_manual_duration}"
           }
         }
       },

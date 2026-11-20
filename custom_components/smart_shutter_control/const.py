@@ -36,6 +36,7 @@ OPT_SCHEDULE = "schedule"  # the base schedule (#4), a dict
 OPT_HOLIDAY_CALENDAR = "holiday_calendar"
 OPT_HOLIDAYS_EXTRA = "holidays_extra"
 OPT_HOLIDAYS_EXCLUDED = "holidays_excluded"
+OPT_HOLIDAYS_DISABLED = "holidays_disabled"  # names of calendar holidays to ignore
 OPT_WEEKEND_DAYS = "weekend_days"
 DEFAULT_OPTIONS = {
     OPT_STORM_LIMIT: 60,

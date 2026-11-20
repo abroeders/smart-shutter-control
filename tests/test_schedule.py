@@ -185,3 +185,17 @@ def test_manual_pause_modes_and_rule():
     safety = type("S", (), {"priority": 10, "propose": lambda self, c: Decision(100, "storm", final=True)})()
     p.start(0, "until_next_phase", 0, "day", "switch")
     assert RuleChain([rule, safety]).decide(ctx(1)) == Decision(100, "storm", final=True)
+
+
+def test_disabled_calendar_holidays_count_as_normal_days_every_year():
+    cal = HolidayCalendar(
+        from_calendar={
+            date(2026, 4, 6): "Easter Monday",
+            date(2027, 3, 29): "Easter Monday",
+            date(2026, 12, 25): "Christmas",
+        },
+        disabled=frozenset({"Easter Monday"}),
+    )
+    assert cal.holiday(date(2026, 4, 6)) is None and cal.holiday(date(2027, 3, 29)) is None
+    assert cal.holiday(date(2026, 12, 25)) == "Christmas"
+    assert cal.calendar_names() == [("Easter Monday", date(2026, 4, 6)), ("Christmas", date(2026, 12, 25))]
