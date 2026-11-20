@@ -97,7 +97,8 @@ Both run on `main`, `develop`, feature branches and pull requests. The card job 
 
 - Semantic versioning; `manifest.json` `version` is updated on release.
 - `CHANGELOG.md` in *Keep a Changelog* format.
-- GitHub releases with tag `vX.Y.Z` on `main`; HACS offers the releases to users.
+- GitHub releases with a version tag on `main`; HACS offers the releases to users. Since 2026.11.0 versions
+  follow Home Assistant's scheme `YEAR.MONTH.N` (tag without `v`); before that `v0.1.0`–`v0.6.1`.
 
 ## 7. Issue templates
 
