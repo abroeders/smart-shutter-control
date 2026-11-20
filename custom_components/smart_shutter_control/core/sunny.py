@@ -58,39 +58,84 @@ class ClearSkyReference:
 
 
 SUNNY_WEATHER = ("sunny", "partlycloudy")
+LUX_LIMIT = 30000.0  # lux: sunny from this while the learned reference is young
+LUX_HYSTERESIS = 0.2  # share of the limit
+
+
+@dataclass
+class PvBaseline:
+    """PV power: while young, a rough clear-sky curve from the panels' peak power (if known)."""
+
+    pv_peak_kw: float | None = None
+    learned = "learned"
+    young = "pv_peak"
+
+    def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
+        if not self.pv_peak_kw:
+            return None
+        return 0.8 * self.pv_peak_kw * 1000 * math.sin(math.radians(sun.elevation))
+
+    def hysteresis(self, threshold: float, young: bool) -> float:
+        return HYSTERESIS
+
+
+@dataclass
+class LuxBaseline:
+    """Light sensors (lux): while young, a fixed limit. The factor is scaled so that the limit is the
+    threshold, so the sun factor means the same before and after the reference is learned."""
+
+    limit_lux: float = LUX_LIMIT
+    learned = "lux_learned"
+    young = "lux_limit"
+
+    def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
+        return self.limit_lux / threshold if threshold > 0 else None
+
+    def hysteresis(self, threshold: float, young: bool) -> float:
+        return threshold * LUX_HYSTERESIS if young else HYSTERESIS
 
 
 @dataclass
 class SunnyDetector:
-    """Sun factor and sunny state with hysteresis; falls back while the reference is still young."""
+    """Sun factor and sunny state with hysteresis, from PV power or lux; falls back while the reference
+    is still young (strategy per source), then to the weather, then to geometry only."""
 
     reference: ClearSkyReference = field(default_factory=ClearSkyReference)
     threshold: float = 0.6
     pv_peak_kw: float | None = None
+    baseline: PvBaseline | LuxBaseline | None = None
     sunny: bool = False
     factor: float | None = None
     source: str = "geometry"
+    value: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.baseline is None:
+            self.baseline = PvBaseline(self.pv_peak_kw)
 
     def update(
-        self, sun: SunPosition, pv_power: float | None, weather: str | None = None, now: float | None = None
+        self, sun: SunPosition, value: float | None, weather: str | None = None, now: float | None = None
     ) -> bool:
+        """`value`: PV power in W or illuminance in lux, depending on the baseline."""
         now = time.time() if now is None else now
-        if pv_power is not None:
-            self.reference.observe(sun, pv_power, now)
+        self.value = value
+        if value is not None:
+            self.reference.observe(sun, value, now)
         if sun.elevation <= 0:
             self.factor, self.source, self.sunny = 0.0, "night", False
             return self.sunny
-        ref = self.reference.reference(sun) if pv_power is not None else None
+        base = self.baseline
+        ref = self.reference.reference(sun) if value is not None else None
+        young = False
         if ref is not None and ref > 0:
-            self.source = "learned"
-        elif pv_power is not None and self.pv_peak_kw:
-            ref = 0.8 * self.pv_peak_kw * 1000 * math.sin(math.radians(sun.elevation))
-            self.source = "pv_peak"
+            self.source = base.learned
+        elif value is not None and (ref := base.young_reference(sun, self.threshold)):
+            self.source, young = base.young, True
         else:
             ref = None
         if ref:
-            self.factor = max(0.0, min(1.0, pv_power / ref))
-            limit = self.threshold - HYSTERESIS if self.sunny else self.threshold
+            self.factor = max(0.0, min(1.0, value / ref))
+            limit = self.threshold - base.hysteresis(self.threshold, young) if self.sunny else self.threshold
             self.sunny = self.factor >= limit
         elif weather is not None:
             self.factor, self.source = None, "weather"

@@ -64,13 +64,26 @@ window** when it is above the horizon, between the lowest and highest sun elevat
 
 ## Is it sunny?
 
-PV power is a direct measure of sunshine, but its clear-sky value depends on the panels. The integration
-**learns** it: the sky is divided in cells of sun position (10° × 5°), and for each cell it keeps the high
-(95th percentile) PV power of the last 30 days. The **sun factor** is the current power as a share of that
-reference. Sunny from 60 %, no longer sunny below 45 %.
+The base controller uses **one** sun source: PV power or light sensors (lux), never both.
 
-Until a cell has enough history it uses the PV peak power (a rough clear-sky curve), then the weather
-entity's condition, and otherwise geometry only.
+Both are a direct measure of sunshine, but their clear-sky value depends on the panels or on where the
+sensor is. The integration **learns** it: the sky is divided in cells of sun position (10° × 5°), and for
+each cell it keeps the high (95th percentile) daily value of the last 30 days. The **sun factor** is the
+current value as a share of that reference. Sunny from 60 %, no longer sunny below 45 %.
+
+Until a cell has 7 days of history:
+
+| Sun source | Then |
+|---|---|
+| PV power | a rough clear-sky curve from the PV peak power, if set |
+| Light sensors | sunny from a fixed limit (30 000 lx), not sunny below 80 % of it |
+
+Without values (or without a sun source) it uses the weather entity's condition, and otherwise geometry only.
+
+**Light sensors:** the highest of the base controller's sensors counts. A shutter can have its own
+**facade light sensor**; that sensor then decides for that shutter, with its own learned reference. Many
+motion sensors measure only up to a few thousand lux and cannot tell sun from bright cloud: the sources page
+shows each sensor's highest value of the last 30 days.
 
 ## Heat protection
 

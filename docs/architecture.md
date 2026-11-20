@@ -733,3 +733,41 @@ classDiagram
 The card finds entities by translation key on the device, so renamed entities keep working. The language is
 the card option, else the `language` attribute of the shutter's *Reason* sensor (the integration's setting),
 else the user's profile language.
+
+## 11. Light sensors as the sun source (#26)
+
+Design: [`design/2026-11-20-light-sensor.md`](design/2026-11-20-light-sensor.md).
+
+```mermaid
+classDiagram
+    class SunnyDetector {
+        +reference ClearSkyReference
+        +threshold float
+        +baseline PvBaseline|LuxBaseline
+        +update(sun, value, weather, now) bool
+        +factor float|None
+        +source str
+        +value float|None
+    }
+    class PvBaseline {
+        <<strategy>>
+        +pv_peak_kw
+        +young_reference(sun, threshold)
+        +hysteresis(threshold, young)
+    }
+    class LuxBaseline {
+        <<strategy>>
+        +limit_lux
+        +young_reference(sun, threshold)
+        +hysteresis(threshold, young)
+    }
+    SunnyDetector o-- ClearSkyReference
+    SunnyDetector o-- PvBaseline
+    SunnyDetector o-- LuxBaseline
+    BaseCoordinator o-- SunnyDetector : sun source (PV or light)
+    ShutterController o-- SunnyDetector : facade light sensor
+```
+
+`BaseCoordinator.sun_value()` gives the PV sum or the highest lux, by the sun source. The learned references
+are stored under `clear_sky` (PV) and `clear_sky_lux` (light), a facade sensor's with its shutter. A shutter
+with a facade sensor replaces `sunny` and `sun_factor` in its copy of the inputs before the rules run.

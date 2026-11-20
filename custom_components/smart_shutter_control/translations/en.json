@@ -13,15 +13,13 @@
         "data": {
           "outdoor_temperature": "Outdoor temperature",
           "weather": "Weather",
-          "pv_power": "PV power sensors",
-          "pv_peak": "PV peak power",
           "wind_speed": "Wind speed sensor",
-          "wind_gust": "Wind gust sensor"
+          "wind_gust": "Wind gust sensor",
+          "sun_source": "Sun source"
         },
         "data_description": {
-          "pv_power": "One or more sensors; they are added up. Used as a measure of clouds.",
-          "pv_peak": "Peak power of the panels, for the expected power in clear sky.",
-          "wind_gust": "Optional; the storm limit applies to the wind speed and the gusts."
+          "wind_gust": "Optional; the storm limit applies to the wind speed and the gusts.",
+          "sun_source": "Is it sunny? From PV power or from light sensors, never both. None: the weather entity, else the sun's position only."
         }
       },
       "reconfigure": {
@@ -29,20 +27,45 @@
         "data": {
           "outdoor_temperature": "Outdoor temperature",
           "weather": "Weather",
-          "pv_power": "PV power sensors",
-          "pv_peak": "PV peak power",
           "wind_speed": "Wind speed sensor",
-          "wind_gust": "Wind gust sensor"
+          "wind_gust": "Wind gust sensor",
+          "sun_source": "Sun source"
+        },
+        "data_description": {
+          "wind_gust": "Optional; the storm limit applies to the wind speed and the gusts.",
+          "sun_source": "Is it sunny? From PV power or from light sensors, never both. None: the weather entity, else the sun's position only."
+        }
+      },
+      "pv": {
+        "title": "PV power",
+        "description": "The PV power tells how much the sun shines: the integration learns the clear-sky power for each position of the sun.",
+        "data": {
+          "pv_power": "PV power sensors",
+          "pv_peak": "PV peak power"
         },
         "data_description": {
           "pv_power": "One or more sensors; they are added up. Used as a measure of clouds.",
-          "pv_peak": "Peak power of the panels, for the expected power in clear sky.",
-          "wind_gust": "Optional; the storm limit applies to the wind speed and the gusts."
+          "pv_peak": "Peak power of the panels, for the expected power in clear sky."
+        }
+      },
+      "light": {
+        "title": "Light sensors",
+        "description": "The highest light sensor counts. The integration learns the clear-sky value for each position of the sun; until then it is sunny from the limit below.\n\nHighest in the last 30 days:\n{maxima}\n\nDirect sun gives 50 000–100 000 lx. A sensor that never comes above about 10 000 lx probably saturates and cannot tell sun from bright cloud.",
+        "data": {
+          "light_sensors": "Light sensors",
+          "lux_limit": "Sunny from (until learned)"
+        },
+        "data_description": {
+          "light_sensors": "Sensors with device class illuminance; the highest value counts.",
+          "lux_limit": "Used during the first days, until the integration has learned the clear-sky value."
         }
       }
     },
     "abort": {
       "reconfigure_successful": "The settings were saved."
+    },
+    "error": {
+      "saturates": "A sensor stays below 10 000 lx in the last 30 days and probably saturates. Choose another sensor, or submit again to use it anyway."
     }
   },
   "options": {
@@ -198,7 +221,8 @@
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
             "motor_power": "Motor power sensor",
-            "travel_time": "Travel time"
+            "travel_time": "Travel time",
+            "light_sensor": "Facade light sensor"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -212,7 +236,8 @@
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
-            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand."
+            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand.",
+            "light_sensor": "Optional. A light sensor at this window: it then decides for this shutter whether it is sunny."
           }
         },
         "settings": {
@@ -231,7 +256,8 @@
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
             "motor_power": "Motor power sensor",
-            "travel_time": "Travel time"
+            "travel_time": "Travel time",
+            "light_sensor": "Facade light sensor"
           },
           "data_description": {
             "cover": "The existing cover entity that moves the shutter. It must support a position.",
@@ -245,7 +271,8 @@
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
-            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand."
+            "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand.",
+            "light_sensor": "Optional. A light sensor at this window: it then decides for this shutter whether it is sunny."
           }
         },
         "reconfigure": {
@@ -524,6 +551,13 @@
         "system": "System language",
         "en": "English",
         "nl": "Nederlands"
+      }
+    },
+    "sun_source": {
+      "options": {
+        "pv": "PV power",
+        "light": "Light sensors (lux)",
+        "none": "None"
       }
     }
   }

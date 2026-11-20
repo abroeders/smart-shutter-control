@@ -24,9 +24,12 @@ from .const import (
     CONF_AZIMUTH,
     CONF_CALIBRATION,
     CONF_COVER,
+    CONF_FACADE_LIGHT,
     CONF_HEAT_OUTDOOR,
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
+    CONF_LIGHT,
+    CONF_LUX_LIMIT,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
     CONF_MIN_ELEVATION,
@@ -37,16 +40,19 @@ from .const import (
     CONF_ROOM_TEMPERATURE,
     CONF_SCHEDULE,
     CONF_SHADING_POSITION,
+    CONF_SUN_SOURCE,
     CONF_TILT,
     CONF_TRAVEL_TIME,
     CONF_WEATHER,
     CONF_WIND_GUST,
     CONF_WIND_SPEED,
+    DEFAULT_LUX_LIMIT,
     DEFAULT_NAME,
     DEFAULT_OPTIONS,
     DEFAULT_SHUTTER,
     DOMAIN,
     LANGUAGES,
+    LUX_SATURATES_BELOW,
     OPT_CLOSE_ABOVE,
     OPT_CLOSE_BELOW,
     OPT_CLOSE_DELAY,
@@ -70,6 +76,7 @@ from .const import (
     OPT_WEEKEND_DAYS,
     OPT_WINTER_LIMIT,
     SUBENTRY_SHUTTER,
+    SUN_SOURCES,
 )
 from .coordinator import read_calendar
 from .core.model import Direction
@@ -238,11 +245,37 @@ def base_placeholders(base: dict[str, Any], language: str | None) -> dict[str, s
 SOURCES = {
     vol.Required(CONF_OUTDOOR): _sensor("temperature"),
     vol.Optional(CONF_WEATHER): selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
-    vol.Optional(CONF_PV_POWER): _sensor("power", multiple=True),
-    vol.Optional(CONF_PV_PEAK): _number(0.1, 100, 0.1, "kWp"),
+    vol.Required(CONF_SUN_SOURCE, default="pv"): selector.SelectSelector(
+        selector.SelectSelectorConfig(options=SUN_SOURCES, translation_key="sun_source")
+    ),
     vol.Optional(CONF_WIND_SPEED): _sensor("wind_speed"),
     vol.Optional(CONF_WIND_GUST): _sensor("wind_speed"),
 }
+# the second step: only the fields of the chosen sun source, so PV and light sensors are never both set
+SUN_FIELDS = {
+    "pv": {
+        vol.Required(CONF_PV_POWER): _sensor("power", multiple=True),
+        vol.Optional(CONF_PV_PEAK): _number(0.1, 100, 0.1, "kWp"),
+    },
+    "light": {
+        vol.Required(CONF_LIGHT): _sensor("illuminance", multiple=True),
+        vol.Required(CONF_LUX_LIMIT, default=DEFAULT_LUX_LIMIT): _number(1000, 150000, 1000, "lx"),
+    },
+}
+SUN_KEYS = (CONF_PV_POWER, CONF_PV_PEAK, CONF_LIGHT, CONF_LUX_LIMIT)
+
+
+async def lux_maxima(hass, sensors: list[str]) -> tuple[str, bool]:
+    """Each light sensor's highest value of the last 30 days, and whether one probably saturates."""
+    lines, saturates = [], False
+    for entity_id in sensors:
+        top = await _max_30_days(hass, entity_id)
+        state = hass.states.get(entity_id)
+        name = state.name if state else entity_id
+        lines.append(f"- {name}: {top} lx")
+        if top != "–" and float(top) < LUX_SATURATES_BELOW:
+            saturates = True
+    return ("\n".join(lines) or "–"), saturates
 
 
 class SmartShutterControlConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -259,17 +292,65 @@ class SmartShutterControlConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=vol.Schema({vol.Required(CONF_NAME, default=DEFAULT_NAME): str})
         )
 
+    _sources: dict[str, Any] | None = None
+    _reconfiguring = False
+    _warned: tuple[str, ...] | None = None
+
     async def async_step_sources(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
-            return self.async_create_entry(title=self._name, data=user_input, options=dict(DEFAULT_OPTIONS))
+            return await self._next_sun_step(user_input)
         return self.async_show_form(step_id="sources", data_schema=vol.Schema(SOURCES))
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         entry = self._get_reconfigure_entry()
         if user_input is not None:
-            return self.async_update_reload_and_abort(entry, data=user_input)
+            self._reconfiguring = True
+            return await self._next_sun_step(user_input)
+        current = {CONF_SUN_SOURCE: "pv" if entry.data.get(CONF_PV_POWER) else "none", **entry.data}
+        return self.async_show_form(step_id="reconfigure", data_schema=_with_defaults(SOURCES, current))
+
+    async def _next_sun_step(self, sources: dict[str, Any]) -> ConfigFlowResult:
+        self._sources = sources
+        source = sources[CONF_SUN_SOURCE]
+        if source == "pv":
+            return await self.async_step_pv()
+        if source == "light":
+            return await self.async_step_light()
+        return self._finish({})
+
+    def _finish(self, sun_fields: dict[str, Any]) -> ConfigFlowResult:
+        data = {**(self._sources or {}), **sun_fields}  # the other source's fields are left out
+        if self._reconfiguring:
+            return self.async_update_reload_and_abort(self._get_reconfigure_entry(), data=data)
+        return self.async_create_entry(title=self._name, data=data, options=dict(DEFAULT_OPTIONS))
+
+    def _current(self) -> dict[str, Any]:
+        return dict(self._get_reconfigure_entry().data) if self._reconfiguring else {}
+
+    async def async_step_pv(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self._finish(user_input)
         return self.async_show_form(
-            step_id="reconfigure", data_schema=_with_defaults(SOURCES, dict(entry.data))
+            step_id="pv", data_schema=_with_defaults(SUN_FIELDS["pv"], self._current())
+        )
+
+    async def async_step_light(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        current = self._current()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            sensors = tuple(sorted(user_input[CONF_LIGHT]))
+            maxima, saturates = await lux_maxima(self.hass, list(sensors))
+            # a sensor that probably saturates: say so once; submitting again saves anyway
+            if not saturates or self._warned == sensors:
+                return self._finish(user_input)
+            self._warned, current, errors = sensors, user_input, {"base": "saturates"}
+        else:
+            maxima, _ = await lux_maxima(self.hass, list(current.get(CONF_LIGHT) or []))
+        return self.async_show_form(
+            step_id="light",
+            data_schema=_with_defaults(SUN_FIELDS["light"], {CONF_LUX_LIMIT: DEFAULT_LUX_LIMIT, **current}),
+            description_placeholders={"maxima": maxima},
+            errors=errors,
         )
 
     @staticmethod
@@ -480,6 +561,11 @@ SHUTTER = {
 }
 
 
+def _without_fields(data: dict[str, Any], schema: dict) -> dict[str, Any]:
+    keys = {str(k) for k in schema}
+    return {k: v for k, v in data.items() if k not in keys}
+
+
 class ShutterSubentryFlow(ConfigSubentryFlow):
     """Add or change one shutter."""
 
@@ -502,6 +588,12 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         state = self.hass.states.get(user_input[CONF_COVER])
         return state.name if state else user_input[CONF_COVER]
 
+    def _schema(self) -> dict:
+        """The shutter's fields; a facade light sensor only when the sun source is light sensors."""
+        if self._get_entry().data.get(CONF_SUN_SOURCE) == "light":
+            return {**SHUTTER, vol.Optional(CONF_FACADE_LIGHT): _sensor("illuminance")}
+        return SHUTTER
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -512,7 +604,7 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
                 )
         values = {**DEFAULT_SHUTTER, **(user_input or {})}
         return self.async_show_form(
-            step_id="user", data_schema=_with_defaults(SHUTTER, values), errors=errors
+            step_id="user", data_schema=_with_defaults(self._schema(), values), errors=errors
         )
 
     # --- reconfigure: a menu ------------------------------------------------------------------------
@@ -537,12 +629,13 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
                     self._get_entry(),
                     subentry,
                     title=self._title(user_input),
-                    data_updates=user_input,
+                    # a cleared optional field must be removed, not kept: replace the form's fields
+                    data={**_without_fields(dict(subentry.data), self._schema()), **user_input},
                     unique_id=user_input[CONF_COVER],
                 )
         values = {**DEFAULT_SHUTTER, **dict(subentry.data), **(user_input or {})}
         return self.async_show_form(
-            step_id="settings", data_schema=_with_defaults(SHUTTER, values), errors=errors
+            step_id="settings", data_schema=_with_defaults(self._schema(), values), errors=errors
         )
 
     # --- schedule overrides -----------------------------------------------------------------------
