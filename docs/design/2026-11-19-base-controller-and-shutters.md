@@ -1,7 +1,7 @@
 # Base controller and a device per shutter
 
 - Issue: #2
-- Status: draft
+- Status: **approved** (2026-11-20)
 - Date: 2026-11-19
 - Depends on: #1
 
@@ -115,7 +115,7 @@ sequenceDiagram
 
 - **Inputs** are read once per tick for all shutters (sun, PV, wind) and passed in: no rule reads Home
   Assistant itself.
-- **Rules** (one class per rule, added by #3–#7) each return a proposal (`position`, `reason`) or nothing.
+- **Rules** (one class per rule, added by #3–#7) each return a decision (`position`, `reason`) or nothing.
   The chain asks them in priority order and takes the first proposal: safety (#6) > manual pause (#5) >
   sleep-in (#4) > sun (#3) > winter (#7) > schedule (#4). In this issue the chain is empty, so the reason
   is `idle` and nothing moves.
@@ -143,12 +143,12 @@ classDiagram
     }
     class RuleChain {
         +rules list~Rule~
-        +decide(ctx) Proposal
+        +decide(ctx) Decision
     }
     class Rule {
         <<interface>>
         +priority int
-        +propose(ctx) Proposal|None
+        +propose(ctx) Decision|None
     }
     class PositionLimiter {
         +limit(target, ctx) int
@@ -187,7 +187,7 @@ classDiagram
 | Observer | coordinator → entities | entities update from the coordinator |
 | Repository | `Store` for runtime state | pause, sleep-in and last command survive a restart |
 
-`core/` holds `ShutterConfig`, `Inputs`, `Proposal`, `Decision`, `RuleChain`, `Rule`, `PositionLimiter`,
+`core/` holds `ShutterConfig`, `Inputs`, `ShutterContext`, `Decision`, `RuleChain`, `Rule`, `PositionLimiter`,
 `Calibration` and the sun geometry (#3), without Home Assistant imports.
 
 ## 8. Runtime state
