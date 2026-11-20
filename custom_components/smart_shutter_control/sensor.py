@@ -26,6 +26,7 @@ async def async_setup_entry(
             ReasonSensor(c, s, "reason"),
             NextActionSensor(c, s, "next_action"),
             CalibrationSensor(c, s, "calibration"),
+            StandSensor(c, s, "stand"),
         ],
     )
 
@@ -91,4 +92,30 @@ class SunFactorSensor(BaseEntity, SensorEntity):
             "source": self.coordinator.sunny.source,
             "sun_azimuth": None if sun is None else round(sun.azimuth, 1),
             "sun_elevation": None if sun is None else round(sun.elevation, 1),
+        }
+
+
+class StandSensor(ShutterEntity, SensorEntity):
+    """Closed, slit (gaps open, bottom bar on the sill), partly open or open."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["closed", "slit", "partly_open", "open"]
+
+    @property
+    def native_value(self) -> str | None:
+        module = self.controller.adapter.module_position()
+        position = self.controller.position()
+        if module is None or position is None:
+            return None
+        if module == 0:
+            return "closed"
+        if position == 0:
+            return "slit"
+        return "open" if position >= 100 else "partly_open"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "opening": self.controller.position(),
+            "module_position": self.controller.adapter.module_position(),
         }

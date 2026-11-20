@@ -161,7 +161,7 @@
         },
         "calibrate": {
           "title": "Calibrate",
-          "description": "The assistant moves the shutter from closed to 25, 50 and 75 %, then from open to 75, 50 and 25 %, and each time asks how far the window is open below the bottom bar. Finally it looks for the point where the bottom bar leaves the sill. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm, or leave it empty to estimate in % of the window.",
+          "description": "First the assistant looks for the point where the bottom bar leaves the sill: from closed it moves up in small steps and asks whether the bar has lifted. Then it measures four points spread over the travel above that point, from closed and from open, and asks each time how far the window is open below the bottom bar. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm, or leave it empty to estimate in % of the window.",
           "data": {
             "window_height_cm": "Window height"
           }
@@ -190,7 +190,7 @@
         },
         "cal_review": {
           "title": "Result",
-          "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %. More than 5 % usually means the motor is slower in one direction; the calibration corrects that.\n\nSave the calibration?"
+          "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %. Up to about 2 % the motor is equally fast up and down; more than 5 % usually means it is slower in one direction, and the calibration corrects that.\n\nSave the calibration?"
         }
       },
       "error": {
@@ -227,6 +227,9 @@
       },
       "shading_position": {
         "name": "Shading position"
+      },
+      "opening": {
+        "name": "Opening"
       }
     },
     "sensor": {
@@ -252,6 +255,15 @@
       },
       "sun_factor": {
         "name": "Sun factor"
+      },
+      "stand": {
+        "name": "State",
+        "state": {
+          "closed": "Closed",
+          "slit": "Slit",
+          "partly_open": "Partly open",
+          "open": "Open"
+        }
       }
     },
     "binary_sensor": {

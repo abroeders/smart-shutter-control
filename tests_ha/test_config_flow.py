@@ -67,9 +67,11 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
         "heat_protection",
         "max_position",
         "next_action",
+        "opening",
         "reason",
         "shading_position",
         "shutter",
+        "stand",
         "sun_on_window",
     ]
     per_shutter = {e.config_subentry_id for e in entities if e.config_subentry_id}

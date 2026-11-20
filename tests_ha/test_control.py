@@ -72,3 +72,39 @@ async def test_cover_entity_forwards_without_limits(hass: HomeAssistant, covers)
     assert controller.adapter.last_command.automatic is False
     await cover.async_close_cover()
     assert calls[-1].data["position"] == 0
+
+
+async def test_opening_number_moves_to_the_real_position(hass: HomeAssistant, covers) -> None:
+    from custom_components.smart_shutter_control.core.calibration import RollerCalibration
+
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    controller = next(iter(entry.runtime_data.shutters.values()))
+    controller.calibration = RollerCalibration.from_data(
+        {
+            "points": {"up": [[0.5, 0.25], [0.75, 0.58]], "down": [[0.5, 0.25], [0.75, 0.58]]},
+            "slit": {"up": 0.2},
+        }
+    )
+    calls = async_mock_service(hass, "cover", "set_cover_position")
+    number = entity(hass, entry, "number", "opening")
+    await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 50}, blocking=True)
+    module = calls[-1].data["position"]
+    assert module > 50  # half open needs more than half the travel time
+    # one module percent is about two real percents here: the closest whole position is within 1 %
+    assert abs(controller.calibration.from_module(module, controller.direction()) - 50) <= 1
+
+    # fully open and fully closed are the module's own end positions (limit switches)
+    await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 100}, blocking=True)
+    assert calls[-1].data["position"] == 100
+    await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 0}, blocking=True)
+    assert calls[-1].data["position"] == 0
+
+    # in the slit the opening is 0 %, but the shutter is not closed
+    hass.states.async_set(LIVING, "open", {"current_position": 18, "supported_features": 15})
+    await hass.async_block_till_done()
+    entry.runtime_data.async_update_listeners()
+    await hass.async_block_till_done()
+    assert float(hass.states.get(number).state) == 0
+    assert hass.states.get(entity(hass, entry, "cover", "shutter")).state == "open"
+    assert hass.states.get(entity(hass, entry, "sensor", "stand")).state == "slit"

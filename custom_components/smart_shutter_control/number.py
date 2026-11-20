@@ -18,6 +18,7 @@ async def async_setup_entry(
         entry.runtime_data,
         async_add_entities,
         lambda c, s: [
+            OpeningNumber(c, s, "opening"),
             MaxPositionNumber(c, s, "max_position"),
             ShadingPositionNumber(c, s, "shading_position"),
         ],
@@ -51,3 +52,27 @@ class ShadingPositionNumber(MaxPositionNumber):
     async def async_set_native_value(self, value: float) -> None:
         self.controller.set_shading_position(int(value))
         await self.coordinator.async_tick()
+
+
+class OpeningNumber(ShutterEntity, NumberEntity):
+    """The real opening of the window in %: shows the calibrated position, and moves the shutter there.
+
+    Like operating the shutter by hand: no maximum position applies.
+    """
+
+    _attr_native_min_value = 0
+    _attr_native_max_value = 100
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_mode = NumberMode.BOX
+
+    @property
+    def available(self) -> bool:
+        return self.controller.position() is not None
+
+    @property
+    def native_value(self) -> float | None:
+        return self.controller.position()
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.controller.async_manual(int(round(value)))
