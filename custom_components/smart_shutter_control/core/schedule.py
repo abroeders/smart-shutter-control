@@ -47,6 +47,7 @@ DEFAULT_SCHEDULE: dict[str, Any] = {
     "sleep_in_until": "12:00",
     "manual_mode": "until_next_phase",  # until_next_phase, for_duration, ignore
     "manual_duration": 120,  # min
+    "storm_position": "nearest",  # nearest, open, closed (#6)
 }
 
 
