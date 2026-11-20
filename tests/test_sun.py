@@ -127,3 +127,30 @@ def test_heat_rule_opens_when_the_sun_leaves_the_window_and_needs_warmth():
     assert cool.propose(sun_ctx(0, outdoor=15.0)) is None
     off = HeatProtectionRule(SunSettings(close_delay=0))
     assert off.propose(sun_ctx(0, heat=False)) is None
+
+
+def test_lux_start_limit_with_hysteresis_then_learned():
+    from core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
+
+    sun = SunPosition(180, 30)
+    d = SunnyDetector(threshold=0.6, baseline=LuxBaseline(30000))
+    assert not d.update(sun, 20000, None, 0) and d.source == "lux_limit"
+    assert d.factor == pytest.approx(20000 / 50000)
+    assert d.update(sun, 30000, None, 0) and d.factor == pytest.approx(0.6)
+    assert d.update(sun, 25000, None, 0)  # above 80 % of the limit: still sunny
+    assert not d.update(sun, 23000, None, 0)
+    # a week of clear days at 80 000 lux: the learned reference takes over
+    ref = ClearSkyReference()
+    for day in range(8):
+        ref.observe(sun, 80000, day * 86400)
+    learned = SunnyDetector(reference=ref, threshold=0.6, baseline=LuxBaseline())
+    assert learned.update(sun, 60000, None, 8 * 86400) and learned.source == "lux_learned"
+    assert learned.factor == pytest.approx(0.75)
+    assert not learned.update(sun, 30000, None, 8 * 86400)  # 30 000 lux is cloudy against 80 000
+
+
+def test_lux_without_value_falls_back_to_the_weather():
+    from core.sunny import LuxBaseline, SunnyDetector
+
+    d = SunnyDetector(baseline=LuxBaseline())
+    assert d.update(SunPosition(180, 30), None, "sunny", 0) and d.source == "weather"
