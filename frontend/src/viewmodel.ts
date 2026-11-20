@@ -16,6 +16,8 @@ export interface ShutterModel {
   entities: Record<string, string>;
   position: number | null;
   moving: "opening" | "closing" | null;
+  /** fully closed (module at its end): only then are the slats pressed together */
+  closed: boolean;
   stand: string | null;
   reason: string | null;
   target: number | null;
@@ -55,6 +57,7 @@ export function shutterModel(hass: HomeAssistant, deviceId: string): ShutterMode
     entities: e,
     position: num(cover?.attributes.current_position),
     moving: state === "opening" || state === "closing" ? state : null,
+    closed: state === "closed",
     stand: st("stand")?.state ?? null,
     reason: reason?.state ?? null,
     target: num(reason?.attributes.target_position),

@@ -17,6 +17,10 @@ device_id: <the shutter's device>
   (see *Manual operation*). During a storm the target snaps to fully open or fully closed.
 - **Keyboard:** focus the drawing; ↑/↓ 5 %, Page Up/Down 25 %, Home open, End closed, Enter to move,
   Escape to cancel.
+- **Slats:** light shows between the slats whenever the shutter is not fully closed, also in the slit
+  position (bar on the sill, gaps open); only fully closed are they pressed together.
+
+  ![The slit position](images/card-slit.png)
 - **Maximum position:** an orange mark on the left of the window when it is below 100 %.
 - **Buttons:** open, stop, close.
 - **Status:** position, why the shutter is where it is (sun, schedule, sleep-in, manual until …, storm,

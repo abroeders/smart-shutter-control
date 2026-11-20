@@ -14,6 +14,7 @@ export class ShutterDrawing extends LitElement {
     position: { type: Number },
     max: { type: Number },
     moving: { type: String },
+    gaps: { type: Boolean },
     storm: { type: Boolean },
     compact: { type: Boolean },
     interactive: { type: Boolean },
@@ -25,6 +26,8 @@ export class ShutterDrawing extends LitElement {
   position: number | null = null;
   max = 100;
   moving: string | null = null;
+  /** light between the slats: whenever the shutter is not fully closed (only then are they pressed together) */
+  gaps = false;
   storm = false;
   compact = false;
   interactive = false;
@@ -172,6 +175,12 @@ export class ShutterDrawing extends LitElement {
         <pattern id="slats" width="10" height="13" patternUnits="userSpaceOnUse" y="-3">
           <rect width="10" height="13" fill="url(#slat)"></rect><line x1="0" y1="12" x2="10" y2="12" stroke="var(--ssc-slat-line)" stroke-width="1.5"></line>
         </pattern>
+        <!-- open slats: between two slats a row of separate slots with bridges; the slots are transparent,
+             so the window (and what is outside) shows through -->
+        <pattern id="slats-open" width="12" height="13" patternUnits="userSpaceOnUse" x="2" y="-3">
+          <rect width="12" height="10.5" fill="url(#slat)"></rect>
+          <rect y="10.5" width="3" height="2.5" fill="var(--ssc-slat-line)"></rect>
+        </pattern>
         <clipPath id="opening"><rect x="58" y="40" width="168" height="208"></rect></clipPath>
       </defs>
       <rect class="frame" x="52" y="24" width="180" height="230" rx="6" fill="none" stroke="var(--ssc-frame)" stroke-width="4"></rect>
@@ -180,7 +189,7 @@ export class ShutterDrawing extends LitElement {
       <rect x="220" y="40" width="6" height="206" fill="var(--ssc-slat-2)"></rect>
       <g clip-path="url(#opening)">
         <g class="curtain" style=${`transform: translateY(${shift}px)`}>
-          <rect x="64" y="-170" width="156" height="406" fill="url(#slats)"></rect>
+          <rect class="slats ${this.gaps ? "open" : "closed"}" x="64" y="-170" width="156" height="406" fill=${this.gaps ? "url(#slats-open)" : "url(#slats)"}></rect>
           <rect class="bar" x="60" y="236" width="164" height="10" rx="3" fill="var(--ssc-bar)"></rect>
           ${handle
             ? svg`<rect x="124" y="230" width="36" height="22" rx="11" fill="var(--ssc-accent)" stroke="#fff" stroke-width="2"></rect>

@@ -45,6 +45,22 @@ describe("card", () => {
     expect(card.getGridOptions()).toEqual({ columns: 12, min_columns: 6, rows: "auto" });
   });
 
+  it("shows gaps between the slats unless fully closed, also in the slit position", async () => {
+    const slats = (card: any, i = 0) => card.shadowRoot.querySelectorAll("ssc-drawing")[i].shadowRoot.querySelector("rect.slats");
+    const open = await mount();
+    expect(slats(open).classList.contains("open")).toBe(true);
+    document.body.innerHTML = "";
+    const slit = await mount(fakeHass({ "cover.living": { state: "open", attributes: { current_position: 0 } } }));
+    expect(slats(slit).getAttribute("fill")).toBe("url(#slats-open)"); // bar on the sill, gaps open
+    document.body.innerHTML = "";
+    const closed = await mount(fakeHass({ "cover.living": { state: "closed", attributes: { current_position: 0 } } }));
+    expect(slats(closed).getAttribute("fill")).toBe("url(#slats)");
+    document.body.innerHTML = "";
+    const overview = await mount(fakeHass(), { device_id: BASE }); // kitchen closed, living room open
+    for (const d of overview.shadowRoot.querySelectorAll("ssc-drawing")) await d.updateComplete;
+    expect([0, 1].map((i) => slats(overview, i).classList.contains("open"))).toEqual([false, true]);
+  });
+
   it("drags the shutter to a position", async () => {
     const hass = fakeHass();
     const card = await mount(hass);
