@@ -2,11 +2,15 @@
 
 import { LitElement, css, html, svg } from "lit";
 import { type Box, positionForY, snap, yForPosition } from "./geometry";
+import type { Scene } from "./scene";
+import { renderView, viewStyles } from "./view";
 
 export const DRAWING_TAG = "ssc-drawing";
 export const VIEW_H = 262;
 /** centre of the bottom bar: fully open at the top of the glass, closed on the sill */
 export const BAR: Box = { top: 40, bottom: 241 };
+/** the window glass: where the view through the window is drawn */
+export const GLASS = { x: 64, y: 40, w: 156, h: 206 };
 const MIN_DRAG_PX = 4;
 
 export class ShutterDrawing extends LitElement {
@@ -15,6 +19,8 @@ export class ShutterDrawing extends LitElement {
     max: { type: Number },
     moving: { type: String },
     gaps: { type: Boolean },
+    scene: { attribute: false },
+    animated: { type: Boolean },
     storm: { type: Boolean },
     compact: { type: Boolean },
     interactive: { type: Boolean },
@@ -28,6 +34,9 @@ export class ShutterDrawing extends LitElement {
   moving: string | null = null;
   /** light between the slats: whenever the shutter is not fully closed (only then are they pressed together) */
   gaps = false;
+  /** the view through the window (#30); null: just the glass */
+  scene: Scene | null = null;
+  animated = false;
   storm = false;
   compact = false;
   interactive = false;
@@ -37,7 +46,7 @@ export class ShutterDrawing extends LitElement {
   private startY: number | null = null;
   private moved = false;
 
-  static styles = css`
+  static styles = [viewStyles, css`
     :host {
       display: block;
       --ssc-frame: var(--secondary-text-color, #90a4ae);
@@ -83,7 +92,7 @@ export class ShutterDrawing extends LitElement {
     text {
       font-family: var(--paper-font-body1_-_font-family, inherit);
     }
-  `;
+  `];
 
   private viewY(ev: MouseEvent): number | null {
     const r = this.renderRoot.querySelector("svg")?.getBoundingClientRect();
@@ -181,10 +190,12 @@ export class ShutterDrawing extends LitElement {
           <rect width="12" height="10.5" fill="url(#slat)"></rect>
           <rect y="10.5" width="3" height="2.5" fill="var(--ssc-slat-line)"></rect>
         </pattern>
+        <clipPath id="glass-clip"><rect x="64" y="40" width="156" height="206"></rect></clipPath>
         <clipPath id="opening"><rect x="58" y="40" width="168" height="208"></rect></clipPath>
       </defs>
       <rect class="frame" x="52" y="24" width="180" height="230" rx="6" fill="none" stroke="var(--ssc-frame)" stroke-width="4"></rect>
       <rect x="64" y="40" width="156" height="206" fill="url(#glass)"></rect>
+      ${this.scene ? svg`<g class="view" clip-path="url(#glass-clip)">${renderView(this.scene, GLASS, this.animated && !this.compact)}</g>` : ""}
       <rect x="58" y="40" width="6" height="206" fill="var(--ssc-slat-2)"></rect>
       <rect x="220" y="40" width="6" height="206" fill="var(--ssc-slat-2)"></rect>
       <g clip-path="url(#opening)">

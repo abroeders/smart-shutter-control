@@ -771,3 +771,20 @@ classDiagram
 `BaseCoordinator.sun_value()` gives the PV sum or the highest lux, by the sun source. The learned references
 are stored under `clear_sky` (PV) and `clear_sky_lux` (light), a facade sensor's with its shutter. A shutter
 with a facade sensor replaces `sunny` and `sun_factor` in its copy of the inputs before the rules run.
+
+## 12. The view through the window (#30)
+
+Design: [`design/2026-11-20-window-view.md`](design/2026-11-20-window-view.md).
+
+```mermaid
+flowchart LR
+  A["attributes: sun azimuth/elevation, weather (Sun factor), wind/gust (Storm), window direction (Sun on the window)"] --> I["viewmodel.outsideInputs"]
+  T["time, location (hass.config)"] --> I
+  I --> S["scene.sceneFor → Scene (pure)"]
+  M["moon.moonPhase / moonPosition (pure)"] --> S
+  S --> V["view.renderView: SVG layers under the slats"]
+```
+
+`scene.ts` decides what is visible (light, sun and moon place, weather, season, sway); `view.ts` only draws
+it, in the glass area of `ssc-drawing`, under the curtain. The closed slat pattern is opaque; the open
+pattern's slots are transparent, so the view shows through them.

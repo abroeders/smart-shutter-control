@@ -51,6 +51,9 @@ class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):
         attributes = {
             "incidence": None if incidence is None else round(incidence, 1),
             "phase": str(self.controller.heat_rule.phase),
+            # for the view through the window in the card (#30)
+            "window_azimuth": self.controller.config.azimuth,
+            "window_tilt": self.controller.config.tilt,
         }
         facade = self.controller.facade
         if facade is not None:  # this shutter's own light sensor decides "sunny"
@@ -101,7 +104,15 @@ class StormSensor(BaseEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         s = self.coordinator.storm
-        return {"source": s.source, "value": s.value, "since": _iso(s.since), "until": _iso(s.until)}
+        inputs = self.coordinator.inputs
+        return {
+            "source": s.source,
+            "value": s.value,
+            "since": _iso(s.since),
+            "until": _iso(s.until),
+            "wind": inputs.wind,  # km/h, for the trees in the card (#30)
+            "gust": inputs.gust,
+        }
 
 
 class FrostSensor(BaseEntity, BinarySensorEntity):

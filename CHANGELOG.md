@@ -6,6 +6,17 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.2] - 2026-11-20
+
+### Added
+
+- Card: the view through the window. A cartoon landscape with the real light, weather (clouds, rain, snow,
+  fog, lightning), the sun and the moon with its phase at their place as seen through the window, leaves by
+  season, and trees that sway with the wind, harder in a storm. Fully closed nothing shows; otherwise through
+  the slots and below the bottom bar (#30).
+- Attributes for the card: `window_azimuth` and `window_tilt` on *Sun on the window*, `weather` on *Sun
+  factor*, `wind` and `gust` on *Storm* (#30).
+
 ## [2026.11.1] - 2026-11-20
 
 ### Fixed
@@ -208,7 +219,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.1...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.2...HEAD
+[2026.11.2]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.1...2026.11.2
 [2026.11.1]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.0...2026.11.1
 [2026.11.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.1...2026.11.0
 [0.6.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.0...v0.6.1

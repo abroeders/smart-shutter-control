@@ -71,7 +71,8 @@ async def test_storm_only_ends_and_the_evening(hass: HomeAssistant, covers, amst
     await add_shutter(hass, entry, LIVING)
     gust(hass, 75)  # storm
     await tick(hass, entry)
-    assert hass.states.get(eid(hass, entry, "binary_sensor", "storm", shutter=False)).state == "on"
+    storm = hass.states.get(eid(hass, entry, "binary_sensor", "storm", shutter=False))
+    assert storm.state == "on" and storm.attributes["gust"] == 75  # also for the trees in the card
     assert hass.states.get(eid(hass, entry, "sensor", "reason")).state == "storm"
     assert not calls  # open by day: already at the open end
 
