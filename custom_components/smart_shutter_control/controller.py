@@ -16,6 +16,7 @@ from .const import (
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
     CONF_MIN_ELEVATION,
+    CONF_MOTOR_POWER,
     CONF_ROOM_TEMPERATURE,
     CONF_SHADING_POSITION,
     CONF_TILT,
@@ -81,7 +82,7 @@ class ShutterController:
         self.calibration: Calibration = calibration or RollerCalibration.from_data(
             subentry.data.get(CONF_CALIBRATION)
         )
-        self.adapter = CoverAdapter(hass, self.config.cover)
+        self.adapter = CoverAdapter(hass, self.config.cover, subentry.data.get(CONF_MOTOR_POWER))
         self.tracker = DirectionTracker()
         self.tracker.observe(self.adapter.module_position())
         self.decision = Decision(None, Reason.IDLE)
