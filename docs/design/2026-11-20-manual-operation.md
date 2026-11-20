@@ -1,7 +1,7 @@
 # Respect manual operation
 
 - Issue: #5
-- Status: draft
+- Status: **approved** (2026-11-20)
 - Date: 2026-11-20
 - Depends on: #2 (adapter remembers its commands), #4 (phases end a pause); uses the motor power of #16
 

@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Schedules: per shutter a day of phases (night, slit, day, dusk) with weekday and weekend/holiday times,
+  sun-relative dusk and closing times with earliest/latest limits, and an optional "not before sunrise". A
+  base schedule in the base controller is inherited by every shutter, which can override each setting or
+  reset to the base (#4).
+- Holidays: public holidays from a calendar entity of Home Assistant's *Holiday* integration, extra dates
+  (once or yearly) and excluded dates, edited in the base controller; weekend days are configurable (#4).
+- Sleep-in: a switch per shutter and one for all; the shutter stays closed next morning until it is
+  operated by hand or the sleep-in end time (#4).
+- Manual operation: a move that the controller did not cause pauses automatic control (until the next
+  phase, for a while, or not at all). Moving the shutter by hand to the position automatic control wants,
+  the *Resume automatic control* button or switching automatic control on resumes it; the button and the
+  switch move the shutter at once (#5).
+- Entities: *Phase*, *Next action* (filled), *Manual pause*, *Resume automatic control*, *Sleep in*,
+  *Sleep in (all shutters)*, *Weekend or holiday* (#4, #5).
+
+### Changed
+
+- The controller moves a shutter only when its target changes, not on every tick (#4).
+
 ## [0.2.2] - 2026-11-20
 
 ### Fixed
