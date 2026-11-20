@@ -114,6 +114,7 @@ class SunFactorSensor(BaseEntity, SensorEntity):
         return {
             "source": self.coordinator.sunny.source,
             "sun_source": self.coordinator.sun_source,
+            "weather": self.coordinator.weather_state,  # for the view through the window in the card (#30)
             "lux": self.coordinator.sunny.value if self.coordinator.sun_source == "light" else None,
             "sun_azimuth": None if sun is None else round(sun.azimuth, 1),
             "sun_elevation": None if sun is None else round(sun.elevation, 1),
