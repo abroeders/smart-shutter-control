@@ -7,8 +7,13 @@ No. It moves your existing cover entities. Wall switches and remotes keep workin
 and pauses (see [manual operation](how-it-works.md#manual-operation)).
 
 **Do I need PV panels?**
-No. Without PV power the integration uses the weather entity, and otherwise the geometry only (heat
-protection then acts whenever the sun is on the window and it is warm).
+No. Choose light sensors (lux) as the sun source instead, or none: then the integration uses the weather
+entity, and otherwise the geometry only (heat protection then acts whenever the sun is on the window and it
+is warm).
+
+**Which light sensor works?**
+One that measures direct sun: 50 000–100 000 lx. Many motion sensors stop at a few thousand lux; the sources
+page shows each sensor's highest value of the last 30 days and warns when it probably saturates.
 
 **Do I have to calibrate?**
 No, but without calibration 50 % means half of the travel time, which is usually well below half way, and

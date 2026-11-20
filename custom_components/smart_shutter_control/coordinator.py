@@ -23,12 +23,16 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_LIGHT,
+    CONF_LUX_LIMIT,
     CONF_OUTDOOR,
     CONF_PV_PEAK,
     CONF_PV_POWER,
+    CONF_SUN_SOURCE,
     CONF_WEATHER,
     CONF_WIND_GUST,
     CONF_WIND_SPEED,
+    DEFAULT_LUX_LIMIT,
     DEFAULT_OPTIONS,
     DOMAIN,
     INPUT_DEBOUNCE,
@@ -62,7 +66,7 @@ from .core.heat import SunSettings
 from .core.model import Inputs
 from .core.schedule import HolidayCalendar, parse_holidays, weekend_set
 from .core.sun import SunPosition
-from .core.sunny import ClearSkyReference, SunnyDetector
+from .core.sunny import ClearSkyReference, LuxBaseline, PvBaseline, SunnyDetector
 from .core.weather import FrostDetector, StormDetector
 from .core.winter import OutdoorMean, WinterDetector
 from .storage import RuntimeStore
@@ -130,10 +134,43 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.shutters: dict[str, ShutterController] = {}
         self.inputs = Inputs(now=time.time())
         self.sunny = SunnyDetector()
+        self.weather_state: str | None = None
         self.calendar = self._holiday_calendar()
         self.base_device_id: str | None = None
         self._unsubs: list = []
         self._pending = None
+
+    @property
+    def sun_source(self) -> str:
+        return str(self.sources.get(CONF_SUN_SOURCE) or ("pv" if self.sources.get(CONF_PV_POWER) else "none"))
+
+    @property
+    def reference_key(self) -> str:
+        """PV and lux keep their own learned reference, so switching back does not start from zero."""
+        return "clear_sky_lux" if self.sun_source == "light" else "clear_sky"
+
+    @property
+    def sunny_threshold(self) -> float:
+        return float(self.options[OPT_SUNNY_THRESHOLD]) / 100
+
+    def baseline(self) -> PvBaseline | LuxBaseline:
+        if self.sun_source == "light":
+            return LuxBaseline(float(self.sources.get(CONF_LUX_LIMIT) or DEFAULT_LUX_LIMIT))
+        return PvBaseline(self.sources.get(CONF_PV_PEAK))
+
+    def sun_value(self) -> float | None:
+        """PV power (sum) or illuminance (highest sensor), by the sun source; None without one."""
+        if self.sun_source == "pv":
+            known = [
+                v for v in (self._number(e) for e in self.sources.get(CONF_PV_POWER) or []) if v is not None
+            ]
+            return sum(known) if known else None
+        if self.sun_source == "light":
+            known = [
+                v for v in (self._number(e) for e in self.sources.get(CONF_LIGHT) or []) if v is not None
+            ]
+            return max(known) if known else None
+        return None
 
     def sun_settings(self) -> SunSettings:
         o = self.options
@@ -152,9 +189,9 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.outdoor_mean = OutdoorMean.from_dict(self.store.globals.get("outdoor_mean"))
         self.winter.mode = str(self.store.globals.get("winter_mode", "auto"))
         self.sunny = SunnyDetector(
-            reference=ClearSkyReference.from_dict(self.store.globals.get("clear_sky")),
-            threshold=float(self.options[OPT_SUNNY_THRESHOLD]) / 100,
-            pv_peak_kw=self.sources.get(CONF_PV_PEAK),
+            reference=ClearSkyReference.from_dict(self.store.globals.get(self.reference_key)),
+            threshold=self.sunny_threshold,
+            baseline=self.baseline(),
         )
         sun = self.sun_settings()
         base_schedule = dict(self.options.get(OPT_SCHEDULE) or {})
@@ -170,6 +207,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
                     safety=self.safety,
                 )
                 controller.on_manual = self._on_manual
+                if self.sun_source == "light":
+                    controller.use_facade(self.sunny_threshold, self.baseline())
                 self.shutters[subentry.subentry_id] = controller
         self.store.forget(set(self.shutters))
         watched = [s.config.cover for s in self.shutters.values()]
@@ -203,12 +242,15 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             self._quick = None
 
     def _input_entities(self) -> list[str | None]:
-        pv = self.sources.get(CONF_PV_POWER) or []
+        source = {"pv": CONF_PV_POWER, "light": CONF_LIGHT}.get(self.sun_source)
+        sensors = (self.sources.get(source) or []) if source else []
+        facades = [s.facade_light for s in self.shutters.values() if s.facade_light]
         return [
             self.sources.get(CONF_OUTDOOR),
             self.sources.get(CONF_WIND_SPEED),
             self.sources.get(CONF_WIND_GUST),
-            *pv,
+            *sensors,
+            *facades,
         ]
 
     def _number(self, entity_id: str | None) -> float | None:
@@ -221,15 +263,14 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             return None
 
     def read_inputs(self) -> Inputs:
-        pv_values = [self._number(e) for e in self.sources.get(CONF_PV_POWER) or []]
-        known = [v for v in pv_values if v is not None]
         now = time.time()
         sun = SunPosition.at(self.hass.config.latitude, self.hass.config.longitude, now)
         weather = self.hass.states.get(self.sources[CONF_WEATHER]) if self.sources.get(CONF_WEATHER) else None
-        pv = sum(known) if known else None
-        sunny = self.sunny.update(sun, pv, weather.state if weather else None, now)
-        if pv is not None:
-            self.store.set_global("clear_sky", self.sunny.reference.to_dict())
+        value = self.sun_value()
+        self.weather_state = weather.state if weather else None
+        sunny = self.sunny.update(sun, value, self.weather_state, now)
+        if value is not None:
+            self.store.set_global(self.reference_key, self.sunny.reference.to_dict())
         outdoor = self._number(self.sources.get(CONF_OUTDOOR))
         storm = self.storm.update(
             self._number(self.sources.get(CONF_WIND_SPEED)),
@@ -251,7 +292,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             sunny=sunny,
             sun_factor=self.sunny.factor,
             outdoor=self._number(self.sources.get(CONF_OUTDOOR)),
-            pv_power=sum(known) if known else None,
+            pv_power=value if self.sun_source == "pv" else None,
             wind=self._number(self.sources.get(CONF_WIND_SPEED)),
             gust=self._number(self.sources.get(CONF_WIND_GUST)),
         )
@@ -259,7 +300,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     async def async_tick(self) -> None:
         self.inputs = self.read_inputs()
         for controller in self.shutters.values():
-            await controller.async_evaluate(self.inputs)
+            await controller.async_evaluate(self.inputs, weather=self.weather_state)
         self.async_set_updated_data(None)
 
     async def _on_tick(self, _now: datetime) -> None:

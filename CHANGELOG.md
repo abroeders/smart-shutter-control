@@ -2,9 +2,24 @@
 
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (before that: 0.1.0–0.6.1).
 
 ## [Unreleased]
+
+## [2026.11.0] - 2026-11-20
+
+### Added
+
+- Light sensors (lux) as the sun source, instead of PV power: a select *Sun source* (PV, light sensors,
+  none) with a second page for the chosen source only, so both are never set. The highest light sensor
+  counts; a learned clear-sky reference per position of the sun, with a fixed limit (30 000 lx) while it is
+  young. The page shows each sensor's 30-day maximum and warns when it probably saturates. Optional facade
+  light sensor per shutter (#26).
+
+### Changed
+
+- Versions follow Home Assistant's scheme from now on: `2026.11.0`.
+- Clearing an optional field in a shutter's settings now removes it.
 
 ## [0.6.1] - 2026-11-20
 
@@ -186,7 +201,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.0...HEAD
+[2026.11.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.1...2026.11.0
 [0.6.1]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.4.0...v0.5.0

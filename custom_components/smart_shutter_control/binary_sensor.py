@@ -48,10 +48,19 @@ class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         incidence = self.controller.heat_rule.incidence
-        return {
+        attributes = {
             "incidence": None if incidence is None else round(incidence, 1),
             "phase": str(self.controller.heat_rule.phase),
         }
+        facade = self.controller.facade
+        if facade is not None:  # this shutter's own light sensor decides "sunny"
+            attributes |= {
+                "sunny": facade.sunny,
+                "sun_factor": None if facade.factor is None else round(facade.factor * 100),
+                "lux": facade.value,
+                "source": facade.source,
+            }
+        return attributes
 
 
 class FreeDaySensor(BaseEntity, BinarySensorEntity):

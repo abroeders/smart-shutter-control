@@ -21,6 +21,12 @@ CONF_OUTDOOR = "outdoor_temperature"
 CONF_WEATHER = "weather"
 CONF_PV_POWER = "pv_power"  # list of sensors, summed
 CONF_PV_PEAK = "pv_peak"  # kWp
+CONF_SUN_SOURCE = "sun_source"  # pv, light or none: never PV and light sensors together
+SUN_SOURCES = ["pv", "light", "none"]
+CONF_LIGHT = "light_sensors"  # list of illuminance sensors, the highest counts
+CONF_LUX_LIMIT = "lux_limit"  # lux: sunny from this while the learned reference is young
+DEFAULT_LUX_LIMIT = 30000
+LUX_SATURATES_BELOW = 10000  # lux: a sensor that never reads more probably saturates
 CONF_WIND_SPEED = "wind_speed"
 CONF_WIND_GUST = "wind_gust"
 
@@ -80,6 +86,7 @@ CONF_HEAT_PROTECTION = "heat_protection"
 CONF_SHADING_POSITION = "shading_position"
 CONF_HEAT_OUTDOOR = "heat_outdoor"  # optional override of the base controller's value
 CONF_HEAT_ROOM = "heat_room"
+CONF_FACADE_LIGHT = "light_sensor"  # optional facade light sensor (sun source light only)
 DEFAULT_SHUTTER = {
     CONF_TILT: 90,
     CONF_MIN_ELEVATION: 0,

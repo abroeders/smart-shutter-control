@@ -113,6 +113,8 @@ class SunFactorSensor(BaseEntity, SensorEntity):
         sun = self.coordinator.inputs.sun
         return {
             "source": self.coordinator.sunny.source,
+            "sun_source": self.coordinator.sun_source,
+            "lux": self.coordinator.sunny.value if self.coordinator.sun_source == "light" else None,
             "sun_azimuth": None if sun is None else round(sun.azimuth, 1),
             "sun_elevation": None if sun is None else round(sun.elevation, 1),
         }

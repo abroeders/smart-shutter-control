@@ -14,11 +14,24 @@ override any setting of the base schedule.
 | Setting | Default | Effect |
 |---|---|---|
 | Outdoor temperature | required | frost, heat protection, temperature limits, winter mode |
-| Weather | – | fallback for "is it sunny?" while the PV reference is still being learned |
-| PV power sensors | – | one or more, added up; the measure of clouds (see [How it works](how-it-works.md#is-it-sunny)) |
-| PV peak power (kWp) | – | a rough clear-sky curve while the PV reference is young |
+| Weather | – | fallback for "is it sunny?" without a sun source, or without its values |
+| Sun source | PV power | *PV power*, *Light sensors (lux)* or *None*: what tells whether the sun shines (see [How it works](how-it-works.md#is-it-sunny)). Never both; a second page shows only the fields of the chosen source |
 | Wind speed sensor | – | storm detection |
 | Wind gust sensor | – | storm detection |
+
+Sun source *PV power*:
+
+| Setting | Default | Effect |
+|---|---|---|
+| PV power sensors | required | one or more, added up |
+| PV peak power (kWp) | – | a rough clear-sky curve while the learned reference is young |
+
+Sun source *Light sensors (lux)*:
+
+| Setting | Default | Effect |
+|---|---|---|
+| Light sensors | required | one or more illuminance sensors; the highest value counts. The page shows each sensor's highest value of the last 30 days, and warns once when one stays below 10 000 lx (it probably saturates) |
+| Sunny from (until learned) | 30 000 lx | sunny from this while the learned reference is young (20 % hysteresis) |
 
 ## Base settings (*Configure*)
 
@@ -123,6 +136,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Shading position | 30 % | position during heat protection |
 | Heat protection from (outdoor) | the base value | override for this shutter |
 | Heat protection from (room) | the base value | override for this shutter |
+| Facade light sensor | – | only with the sun source *Light sensors*: a light sensor at this window that decides for this shutter whether it is sunny |
 
 ### Schedule overrides
 

@@ -11,7 +11,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
-from .const import CARD_FILE, CARD_URL, DOMAIN, PLATFORMS
+from .const import CARD_FILE, CARD_URL, CONF_PV_POWER, CONF_SUN_SOURCE, DOMAIN, PLATFORMS
 from .coordinator import BaseCoordinator
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -41,10 +41,10 @@ async def async_register_card(hass: HomeAssistant) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ShutterConfigEntry) -> bool:
     """Set up the base controller, its device and one device per shutter."""
-    if "pv_forecast" in entry.data:  # a source without a function, removed in 0.6.1
-        hass.config_entries.async_update_entry(
-            entry, data={k: v for k, v in entry.data.items() if k != "pv_forecast"}
-        )
+    if "pv_forecast" in entry.data or CONF_SUN_SOURCE not in entry.data:
+        data = {k: v for k, v in entry.data.items() if k != "pv_forecast"}  # pv_forecast: removed in 0.6.1
+        data.setdefault(CONF_SUN_SOURCE, "pv" if data.get(CONF_PV_POWER) else "none")
+        hass.config_entries.async_update_entry(entry, data=data)
     base = dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
