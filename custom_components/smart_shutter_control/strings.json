@@ -3,10 +3,159 @@
     "step": {
       "user": {
         "title": "Smart Shutter Control",
-        "description": "The base controller holds the settings for all shutters.",
+        "description": "The base controller holds the settings for all shutters. Add the shutters afterwards on the integration page.",
         "data": {
           "name": "Name"
         }
+      },
+      "sources": {
+        "title": "Sources",
+        "data": {
+          "outdoor_temperature": "Outdoor temperature",
+          "weather": "Weather",
+          "pv_power": "PV power sensors",
+          "pv_peak": "PV peak power",
+          "pv_forecast": "PV forecast sensor",
+          "wind_speed": "Wind speed sensor",
+          "wind_gust": "Wind gust sensor"
+        },
+        "data_description": {
+          "pv_power": "One or more sensors; they are added up. Used as a measure of clouds.",
+          "pv_peak": "Peak power of the panels, for the expected power in clear sky.",
+          "wind_gust": "Optional; the storm limit applies to the wind speed and the gusts."
+        }
+      },
+      "reconfigure": {
+        "title": "Sources",
+        "data": {
+          "outdoor_temperature": "Outdoor temperature",
+          "weather": "Weather",
+          "pv_power": "PV power sensors",
+          "pv_peak": "PV peak power",
+          "pv_forecast": "PV forecast sensor",
+          "wind_speed": "Wind speed sensor",
+          "wind_gust": "Wind gust sensor"
+        },
+        "data_description": {
+          "pv_power": "One or more sensors; they are added up. Used as a measure of clouds.",
+          "pv_peak": "Peak power of the panels, for the expected power in clear sky.",
+          "wind_gust": "Optional; the storm limit applies to the wind speed and the gusts."
+        }
+      }
+    },
+    "abort": {
+      "reconfigure_successful": "The settings were saved."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Settings",
+        "menu_options": {
+          "storm": "Storm"
+        }
+      },
+      "storm": {
+        "title": "Storm",
+        "data": {
+          "storm_limit": "Storm limit"
+        },
+        "data_description": {
+          "storm_limit": "Above this wind speed or gust shutters are only fully open or fully closed."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "shutter": {
+      "entry_type": "Shutter",
+      "initiate_flow": {
+        "user": "Add shutter",
+        "reconfigure": "Change shutter"
+      },
+      "step": {
+        "user": {
+          "title": "Shutter",
+          "data": {
+            "cover": "Shutter",
+            "name": "Name",
+            "azimuth": "Window direction",
+            "tilt": "Window tilt",
+            "min_elevation": "Lowest sun elevation",
+            "max_elevation": "Highest sun elevation",
+            "room_temperature": "Room temperature sensor",
+            "max_position": "Maximum position"
+          },
+          "data_description": {
+            "cover": "The existing cover entity that moves the shutter. It must support a position.",
+            "name": "Leave empty to use the shutter's name.",
+            "azimuth": "Degrees: 0 = north, 90 = east, 180 = south, 270 = west.",
+            "tilt": "90 = vertical window; less for a roof window.",
+            "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
+            "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
+            "max_position": "Automatic control never opens the shutter further; by hand it can."
+          }
+        },
+        "reconfigure": {
+          "title": "Shutter",
+          "data": {
+            "cover": "Shutter",
+            "name": "Name",
+            "azimuth": "Window direction",
+            "tilt": "Window tilt",
+            "min_elevation": "Lowest sun elevation",
+            "max_elevation": "Highest sun elevation",
+            "room_temperature": "Room temperature sensor",
+            "max_position": "Maximum position"
+          },
+          "data_description": {
+            "cover": "The existing cover entity that moves the shutter. It must support a position.",
+            "name": "Leave empty to use the shutter's name.",
+            "azimuth": "Degrees: 0 = north, 90 = east, 180 = south, 270 = west.",
+            "tilt": "90 = vertical window; less for a roof window.",
+            "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
+            "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
+            "max_position": "Automatic control never opens the shutter further; by hand it can."
+          }
+        }
+      },
+      "error": {
+        "no_position": "This cover cannot be set to a position.",
+        "already_configured": "This cover already has a shutter controller.",
+        "elevation_order": "The highest sun elevation must be above the lowest."
+      },
+      "abort": {
+        "reconfigure_successful": "The shutter was saved."
+      }
+    }
+  },
+  "entity": {
+    "cover": {
+      "shutter": {
+        "name": "Shutter"
+      }
+    },
+    "switch": {
+      "automatic": {
+        "name": "Automatic control"
+      }
+    },
+    "number": {
+      "max_position": {
+        "name": "Maximum position"
+      }
+    },
+    "sensor": {
+      "reason": {
+        "name": "Reason",
+        "state": {
+          "idle": "Idle",
+          "off": "Automatic control off",
+          "manual": "Manual"
+        }
+      },
+      "next_action": {
+        "name": "Next action"
       }
     }
   }
