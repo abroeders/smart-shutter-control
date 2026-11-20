@@ -56,7 +56,8 @@
           "sun": "Sun",
           "schedule": "Schedule",
           "holidays": "Holidays",
-          "winter": "Winter"
+          "winter": "Winter",
+          "language": "Language"
         }
       },
       "storm": {
@@ -161,6 +162,13 @@
         "description": "Winter mode is on while the mean outdoor temperature of the last 24 hours is below the limit (with the select Winter mode on auto).",
         "data": {
           "winter_limit": "Winter below (24-hour mean)"
+        }
+      },
+      "language": {
+        "title": "Language",
+        "description": "Language of the card and the entity names. Settings screens and state values in Home Assistant's own cards follow your profile language.",
+        "data": {
+          "language": "Language"
         }
       }
     },
@@ -511,6 +519,13 @@
         "nearest": "Nearest end",
         "open": "Fully open",
         "closed": "Fully closed"
+      }
+    },
+    "language": {
+      "options": {
+        "system": "System language",
+        "en": "English",
+        "nl": "Nederlands"
       }
     }
   }

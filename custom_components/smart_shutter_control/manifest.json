@@ -3,7 +3,9 @@
   "name": "Smart Shutter Control",
   "after_dependencies": [
     "calendar",
+    "frontend",
     "holiday",
+    "http",
     "recorder",
     "sun",
     "weather"
@@ -18,5 +20,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/abroeders/smart-shutter-control/issues",
   "requirements": [],
-  "version": "0.5.0"
+  "version": "0.6.0"
 }

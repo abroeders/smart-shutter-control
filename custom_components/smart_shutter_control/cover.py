@@ -44,6 +44,14 @@ class ShutterCover(ShutterEntity, CoverEntity):
         return self.controller.position()
 
     @property
+    def is_opening(self) -> bool:
+        return self.controller.moving() == "opening"
+
+    @property
+    def is_closing(self) -> bool:
+        return self.controller.moving() == "closing"
+
+    @property
     def is_closed(self) -> bool | None:
         """Closed only when fully down; with open slat gaps (slit) the opening is 0 % but it is not closed."""
         module = self.controller.adapter.module_position()

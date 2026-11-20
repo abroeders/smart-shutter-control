@@ -667,3 +667,53 @@ classDiagram
 `WinterRule` gives a target *closed* on a very cold day (below the manual pause, so a manual action
 overrides it) and, in the dusk phase, a cap at the current position so the dusk position never raises a
 closed shutter.
+
+## 10. Lovelace card (#9)
+
+Design: [`design/2026-11-20-card.md`](design/2026-11-20-card.md). TypeScript and Lit in `frontend/`, built
+into `custom_components/smart_shutter_control/frontend/smart-shutter-card.js`, served by the integration.
+
+```mermaid
+classDiagram
+    class SmartShutterCard {
+        <<LitElement smart-shutter-card>>
+        +setConfig(config)
+        +hass
+        +getGridOptions()
+    }
+    class ShutterDrawing {
+        <<LitElement ssc-drawing>>
+        +position
+        +max
+        +storm
+        +set-position event
+    }
+    class viewmodel {
+        <<module>>
+        +shutterModel(hass, deviceId) ShutterModel
+        +statusLines(model, t, time) StatusLines
+        +cardLanguage(hass, configured, model)
+    }
+    class geometry {
+        <<module>>
+        +yForPosition(position, box)
+        +positionForY(y, box)
+        +snap(position, storm)
+    }
+    class entities {
+        <<module>>
+        +deviceEntities(hass, deviceId)
+        +shuttersOf(hass, baseId)
+    }
+    class SmartShutterCardEditor {
+        <<LitElement, ha-form>>
+    }
+    SmartShutterCard o-- ShutterDrawing
+    SmartShutterCard ..> viewmodel
+    ShutterDrawing ..> geometry
+    viewmodel ..> entities
+```
+
+The card finds entities by translation key on the device, so renamed entities keep working. The language is
+the card option, else the `language` attribute of the shutter's *Reason* sensor (the integration's setting),
+else the user's profile language.
