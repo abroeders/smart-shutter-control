@@ -142,6 +142,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.base_device_id: str | None = None
         self._unsubs: list = []
         self._pending = None
+        self._release = None  # the evaluation when a closed contact's hold ends (#49)
 
     @property
     def sun_source(self) -> str:
@@ -218,11 +219,13 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         watched = [s.config.cover for s in self.shutters.values()]
         watched += [s.adapter.power_entity for s in self.shutters.values() if s.adapter.power_entity]
         inputs = [e for e in self._input_entities() if e]
+        contacts = [e for s in self.shutters.values() for e in s.contacts if e]
         await self.async_refresh_holidays()
         self._unsubs += [
             async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=TICK_SECONDS)),
             async_track_state_change_event(self.hass, watched, self._on_cover),
             async_track_state_change_event(self.hass, inputs, self._on_input),
+            async_track_state_change_event(self.hass, contacts, self._on_contact),
             async_track_time_change(self.hass, self._on_midnight, hour=0, minute=5, second=0),
         ]
         calendar_entity = self.options.get(OPT_HOLIDAY_CALENDAR)
@@ -245,6 +248,9 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         if self._quick:
             self._quick()
             self._quick = None
+        if self._release:
+            self._release()
+            self._release = None
 
     def _input_entities(self) -> list[str | None]:
         source = {"pv": CONF_PV_POWER, "light": CONF_LIGHT}.get(self.sun_source)
@@ -328,7 +334,23 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
                 self.inputs, weather=self.weather_state, paused=not self.automatic_all
             )
             await controller.async_check_arrival()
+        self._schedule_release()
         self.async_set_updated_data(None)
+
+    def _schedule_release(self) -> None:
+        """One more evaluation when the hold of a closed contact ends (#49)."""
+        times = [t for c in self.shutters.values() if (t := c.guard.release_at()) is not None]
+        if self._release:
+            self._release()
+            self._release = None
+        if not times:
+            return
+
+        async def _run(_now: datetime) -> None:
+            self._release = None
+            await self.async_tick()
+
+        self._release = async_call_later(self.hass, max(0.0, min(times) - time.time()) + 0.5, _run)
 
     async def _on_tick(self, _now: datetime) -> None:
         await self.async_tick()
@@ -406,6 +428,11 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
                 if controller.arrival.active:  # the motor stopped or the module reported (#48)
                     self.hass.async_create_task(controller.async_check_arrival())
         self.async_update_listeners()  # positions shown by our entities
+
+    @callback
+    def _on_contact(self, _event: Event[EventStateChangedData]) -> None:
+        """A door or window opened or closed: decide at once, a locked-out person cannot wait (#49)."""
+        self.hass.async_create_task(self.async_tick())
 
     @callback
     def _on_input(self, _event: Event[EventStateChangedData]) -> None:

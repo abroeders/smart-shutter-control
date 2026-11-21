@@ -117,7 +117,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 *Reconfigure* opens a menu: **Settings**, **Schedule overrides**, **Reset to the base schedule**,
 **Calibrate** (the assistant, or a table of the measured points; see [Calibration](calibration.md)),
-**Add a calibration point** and **Horizon**.
+**Add a calibration point**, **Horizon** and **Contacts**.
 
 ### Settings
 
@@ -144,6 +144,17 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Glare position | 40 % | position during glare protection; with the room fields the lowest it uses |
 | Glare from | 70 % | sun factor from which the sun counts as bright |
 | Facade light sensor | – | only with the sun source *Light sensors*: a light sensor at this window that decides for this shutter whether it is sunny |
+
+### Contacts
+
+All fields are optional. The contacts keep the shutter clear of an open door or give a tilted window a gap.
+
+| Setting | Default | Effect |
+|---|---|---|
+| Opened contact | – | binary sensor; on means the door or window is open |
+| Tilted contact | – | binary sensor; on means the window is tilted |
+| Lockout position | 100 % | while opened, automatic control keeps the shutter at least this high |
+| Ventilation position | the slit | while tilted, automatic control keeps the shutter at least this high (%) |
 
 ### Horizon
 

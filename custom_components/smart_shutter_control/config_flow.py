@@ -33,11 +33,13 @@ from .const import (
     CONF_HEAT_ROOM,
     CONF_HORIZON,
     CONF_LIGHT,
+    CONF_LOCKOUT_POSITION,
     CONF_LUX_LIMIT,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
     CONF_MIN_ELEVATION,
     CONF_MOTOR_POWER,
+    CONF_OPENED_CONTACT,
     CONF_OUTDOOR,
     CONF_PV_PEAK,
     CONF_PV_POWER,
@@ -47,7 +49,9 @@ from .const import (
     CONF_SUN_DEPTH,
     CONF_SUN_SOURCE,
     CONF_TILT,
+    CONF_TILTED_CONTACT,
     CONF_TRAVEL_TIME,
+    CONF_VENTILATION_POSITION,
     CONF_WEATHER,
     CONF_WIND_GUST,
     CONF_WIND_SPEED,
@@ -577,6 +581,14 @@ SHUTTER = {
     vol.Required(CONF_GLARE_FROM): _number(10, 100, 5, "%"),
 }
 
+_CONTACT = selector.EntitySelector(selector.EntitySelectorConfig(domain="binary_sensor"))
+CONTACTS = {  # (#49)
+    vol.Optional(CONF_OPENED_CONTACT): _CONTACT,
+    vol.Optional(CONF_TILTED_CONTACT): _CONTACT,
+    vol.Required(CONF_LOCKOUT_POSITION): _number(0, 100, 5, "%"),
+    vol.Optional(CONF_VENTILATION_POSITION): _number(0, 100, 5, "%"),
+}
+
 
 # labels of the calibration table's columns (the object selector's fields have no translation keys)
 TABLE_LABELS = {
@@ -658,7 +670,15 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         return self.async_show_menu(
             step_id="reconfigure",
-            menu_options=["settings", "schedule", "schedule_reset", "calibrate", "add_point", "horizon"],
+            menu_options=[
+                "settings",
+                "schedule",
+                "schedule_reset",
+                "calibrate",
+                "add_point",
+                "horizon",
+                "contacts",
+            ],
         )
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
@@ -879,6 +899,17 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         return self.async_show_form(
             step_id="horizon", data_schema=_with_defaults(self._horizon_schema(), values), errors=errors
         )
+
+    async def async_step_contacts(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            return self.async_update_and_abort(
+                self._get_entry(),
+                subentry,
+                data={**_without_fields(dict(subentry.data), CONTACTS), **user_input},
+            )
+        values = {**DEFAULT_SHUTTER, **dict(subentry.data)}
+        return self.async_show_form(step_id="contacts", data_schema=_with_defaults(CONTACTS, values))
 
     async def async_step_cal_next(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         session = self._session

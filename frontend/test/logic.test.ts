@@ -110,4 +110,18 @@ describe("view model", () => {
       { rule: "Handbediening", text: "start over 3 min", applied: false },
     ]);
   });
+
+  it("formats the floor of the window and door contacts", () => {
+    const decisions = [
+      { rule: "contacts", priority: 0, result: "floor" as const, position: 100, applied: true, why: "opened" },
+      { rule: "contacts", priority: 0, result: "floor" as const, position: null, applied: false, why: "tilted_hold" },
+      { rule: "contacts", priority: 0, result: "none" as const, why: "contacts_closed" },
+    ];
+    expect(decisionLines(decisions, localizer("en"), "en")).toEqual([
+      { rule: "Window and door contacts", text: "at least 100 % (open)", applied: true },
+      { rule: "Window and door contacts", text: "at least the slit (closed less than a minute ago)", applied: false },
+      { rule: "Window and door contacts", text: "closed", applied: false },
+    ]);
+    expect(decisionLines(decisions, localizer("nl"), "nl")[1].text).toBe("minstens de spleet (minder dan een minuut dicht)");
+  });
 });
