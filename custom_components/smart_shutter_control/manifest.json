@@ -10,6 +10,10 @@
     "sun",
     "weather"
   ],
+  "categories": [
+    "blinds_curtains",
+    "climate"
+  ],
   "codeowners": [
     "@abroeders"
   ],
