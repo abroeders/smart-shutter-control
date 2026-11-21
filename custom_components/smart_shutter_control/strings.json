@@ -454,6 +454,12 @@
       }
     }
   },
+  "issues": {
+    "stuck": {
+      "title": "{name} did not reach its position",
+      "description": "{name} did not reach {target} % (it is at {position} %), also not after a second try. Check the shutter and its module. This message disappears at the next move that arrives."
+    }
+  },
   "entity": {
     "cover": {
       "shutter": {
@@ -475,6 +481,9 @@
       },
       "sleep_in_all": {
         "name": "Sleep in (all shutters)"
+      },
+      "automatic_all": {
+        "name": "Automatic control (all shutters)"
       }
     },
     "number": {
@@ -500,6 +509,7 @@
         "state": {
           "idle": "Idle",
           "off": "Automatic control off",
+          "paused": "Automatic control paused",
           "manual": "Manual",
           "calibrating": "Calibrating",
           "sun": "Sun",
@@ -548,6 +558,9 @@
     "binary_sensor": {
       "sunny": {
         "name": "Sunny"
+      },
+      "stuck": {
+        "name": "Stuck"
       },
       "sun_on_window": {
         "name": "Sun on the window"

@@ -109,6 +109,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, _LOGGER, config_entry=entry, name=DOMAIN)
+        self.automatic_all = True  # (#53)
         self.entry = entry
         self._quiet_update = False
         self.sources = dict(entry.data)
@@ -190,6 +191,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             self.entity_names = await self.hass.async_add_executor_job(entity_names, self.language)
         self.outdoor_mean = OutdoorMean.from_dict(self.store.globals.get("outdoor_mean"))
         self.winter.mode = str(self.store.globals.get("winter_mode", "auto"))
+        self.automatic_all = bool(self.store.globals.get("automatic_all", True))  # (#53)
         self.sunny = SunnyDetector(
             reference=ClearSkyReference.from_dict(self.store.globals.get(self.reference_key)),
             threshold=self.sunny_threshold,
@@ -322,7 +324,10 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     async def async_tick(self) -> None:
         self.inputs = self.read_inputs()
         for controller in self.shutters.values():
-            await controller.async_evaluate(self.inputs, weather=self.weather_state)
+            await controller.async_evaluate(
+                self.inputs, weather=self.weather_state, paused=not self.automatic_all
+            )
+            await controller.async_check_arrival()
         self.async_set_updated_data(None)
 
     async def _on_tick(self, _now: datetime) -> None:
@@ -350,7 +355,15 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
 
     def set_winter_mode(self, mode: str) -> None:
         self.winter.mode = mode
-        self.store.set_global("winter_mode", mode)
+        self.store.set_global("winter_mode", mode, setting=True)
+
+    def set_automatic_all(self, on: bool) -> None:
+        """Off: no shutter moves by itself, not even in a storm (#53); on: all go to their wanted position."""
+        self.automatic_all = on
+        self.store.set_global("automatic_all", on, setting=True)
+        if on:
+            for controller in self.shutters.values():
+                controller.last_target = None
 
     @callback
     def _on_manual(self) -> None:
@@ -390,6 +403,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         for controller in self.shutters.values():
             if entity_id in (controller.config.cover, controller.adapter.power_entity):
                 controller.observe()
+                if controller.arrival.active:  # the motor stopped or the module reported (#48)
+                    self.hass.async_create_task(controller.async_check_arrival())
         self.async_update_listeners()  # positions shown by our entities
 
     @callback

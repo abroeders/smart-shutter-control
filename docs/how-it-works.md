@@ -20,6 +20,9 @@ proposal is not changed by lower rules.
 | 50 | winter | closed all day in severe cold; at dusk, never raise a closed shutter (cap) |
 | 60 | schedule | the position of the current phase |
 
+With the switch *Automatic control (all shutters)* off, no rule is asked at all (storm included): the
+*Reason* is *paused* and nothing moves by itself.
+
 Afterwards the **maximum position** limits every automatic target (except fully closing). The sensor
 *Reason* says which rule decided; its attribute `decision` lists what **every** rule said, in priority order:
 the position it proposed (`target`, `cap` or `final`), whether that one decided (`applied`), or why it
@@ -163,6 +166,17 @@ Automatic control **resumes**:
 - when you move the shutter by hand to the position automatic control wants anyway.
 
 A manual action also ends sleep-in. Storm still acts during a pause.
+
+## Did the move arrive?
+
+After every position the integration sends (automatic, or through its own entities), it checks that the
+shutter got there: with a motor power sensor when the motor has stopped (at the earliest after 10 s, so a
+command that never started the motor is noticed too), without one after 1.5 × the travel time + 30 s
+(180 s when the travel time is not known). It asks the module for its position and accepts ±2 %. If the
+shutter is not there, the same command is sent **once more**. If that does not arrive either, the binary
+sensor *Stuck* turns on and a repair issue appears under *Settings → Repairs*; both clear at the next move
+that arrives. A manual move in between (wall switch, remote) cancels the check. Automatic control goes on as
+usual: being stuck does not block the next decision.
 
 ## Storm
 

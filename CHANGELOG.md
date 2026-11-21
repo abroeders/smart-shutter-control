@@ -6,6 +6,17 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.12] - 2026-11-21
+
+### Added
+
+- Moves are checked: when a shutter did not reach the position that was sent (a lost radio command, a module
+  that stopped short), the command is sent once more; if that fails too, the binary sensor *Stuck* turns on
+  and a repair issue appears, both clearing at the next move that arrives (#48).
+- A switch *Automatic control (all shutters)* on the base controller pauses the whole integration: no shutter
+  moves by itself, not even in a storm, and the reason is *paused*. Switched on again, every shutter goes to
+  its wanted position at once (#53).
+
 ## [2026.11.11] - 2026-11-21
 
 ### Added
@@ -311,7 +322,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.11...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.12...HEAD
+[2026.11.12]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.11...2026.11.12
 [2026.11.11]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.10...2026.11.11
 [2026.11.10]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.9...2026.11.10
 [2026.11.9]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.8...2026.11.9

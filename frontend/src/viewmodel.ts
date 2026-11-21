@@ -238,6 +238,6 @@ export function statusLines(m: ShutterModel, t: Translate, time: (iso: string) =
     detail,
     next: first ? `${t("next")}: ${action(first)}` : null,
     then: second ? `${t("then")} ${action(second)}` : null,
-    chip: !m.automatic ? "off" : m.paused ? "manual_pause" : "automatic",
+    chip: !m.automatic || m.reason === "paused" ? "off" : m.paused ? "manual_pause" : "automatic",
   };
 }

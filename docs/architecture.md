@@ -1051,3 +1051,72 @@ classDiagram
     DepthShading ..> RoomGeometry
     ShutterConfig o-- RoomGeometry
 ```
+
+## 18. Pausing the whole integration (#53)
+
+`BaseCoordinator.automatic_all` (a global in `RuntimeStore`, saved within seconds) is passed to every
+`ShutterController.async_evaluate` as `paused`; while it is set, the controller returns
+`Decision(None, PAUSED)` before asking any rule (so the storm rule does not act either) and the trace is
+empty. Switching it on clears every controller's last target, so the next tick moves each shutter to its
+wanted position.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant S as AutomaticAllSwitch
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    U->>S: turn off
+    S->>C: set_automatic_all(False), async_tick
+    C->>SC: async_evaluate(inputs, paused=True)
+    SC-->>C: Decision(None, paused)
+    U->>S: turn on
+    S->>C: set_automatic_all(True): last_target = None for all, async_tick
+    C->>SC: async_evaluate(inputs, paused=False)
+    SC->>SC: move to the wanted position
+```
+
+## 19. Checking that a move arrives (#48)
+
+`ArrivalCheck` (`core/arrival.py`, pure) per shutter: every command the adapter sends (except during the
+calibration assistant) starts a check; a manual move by someone else, the calibration and pausing everything
+cancel it. `ShutterController.async_check_arrival` runs on every tick and when the cover or its power sensor
+reports; when due it refreshes the module's position, judges it (±2 %) and retries once or reports the
+shutter stuck: the binary sensor *Stuck* and a repair issue `stuck_<shutter>` (`issue_registry`), deleted at
+the next arrival.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Waiting: sent(target)
+    Waiting --> Idle: arrived
+    Waiting --> Retrying: not arrived, send again
+    Retrying --> Idle: arrived (issue deleted)
+    Retrying --> Stuck: not arrived (issue created)
+    Stuck --> Waiting: sent(target)
+    Waiting --> Idle: manual move / calibration / paused
+    Retrying --> Idle: manual move / calibration / paused
+```
+
+```mermaid
+classDiagram
+    class ArrivalCheck {
+        +state State
+        +target int|None
+        +deadline float
+        +sent(target, now)
+        +cancel()
+        +due(motor_running, now) bool
+        +judge(position) Verdict
+    }
+    class ShutterController {
+        +arrival ArrivalCheck
+        +stuck bool
+        +async_check_arrival()
+    }
+    class StuckSensor {
+        <<BinarySensorEntity, problem>>
+    }
+    ShutterController o-- ArrivalCheck
+    StuckSensor ..> ShutterController
+```

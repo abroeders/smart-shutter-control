@@ -454,6 +454,12 @@
       }
     }
   },
+  "issues": {
+    "stuck": {
+      "title": "{name} heeft zijn stand niet bereikt",
+      "description": "{name} heeft {target} % niet bereikt (staat op {position} %), ook niet na een tweede poging. Controleer het rolluik en de module. Deze melding verdwijnt bij de volgende beweging die wel aankomt."
+    }
+  },
   "entity": {
     "cover": {
       "shutter": {
@@ -475,6 +481,9 @@
       },
       "sleep_in_all": {
         "name": "Uitslapen (alle rolluiken)"
+      },
+      "automatic_all": {
+        "name": "Automatische sturing (alle rolluiken)"
       }
     },
     "number": {
@@ -500,6 +509,7 @@
         "state": {
           "idle": "Geen actie",
           "off": "Automatisch uit",
+          "paused": "Automatische sturing gepauzeerd",
           "manual": "Handmatig",
           "calibrating": "Kalibreren",
           "sun": "Zon",
@@ -548,6 +558,9 @@
     "binary_sensor": {
       "sunny": {
         "name": "Zonnig"
+      },
+      "stuck": {
+        "name": "Vastgelopen"
       },
       "sun_on_window": {
         "name": "Zon op het raam"

@@ -14,6 +14,7 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | binary_sensor *Winter* | winter mode active; attributes `mean_24h`, `mode` |
 | select *Winter mode* | *Auto* (by the 24-hour mean), *On*, *Off* |
 | switch *Sleep in (all shutters)* | turns sleep-in on or off for every shutter |
+| switch *Automatic control (all shutters)* | off: no shutter moves by itself, **not even in a storm**; manual operation still works. On again: every shutter goes to its wanted position at once. The shutters' own *Automatic* switches keep their state |
 
 ## Each shutter
 
@@ -29,9 +30,10 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | switch *Heat protection* | heat protection for this shutter |
 | switch *Glare protection* | glare protection for this shutter (off by default) |
 | switch *Sleep in* | stays closed in the coming slit and day phases; ends on a manual action or at *Sleep in until* |
+| binary_sensor *Stuck* (diagnostic) | on when a move did not arrive, also not after a second try; attributes `target`, `position` (module positions). A repair issue says the same; both clear at the next move that arrives (see [How it works](how-it-works.md#did-the-move-arrive)) |
 | button *Resume automatic control* | ends a manual pause and moves the shutter to the wanted position |
 | button *Sun has left the window* | records where the sun leaves the window now as a point of its [horizon](how-it-works.md#sun-on-the-window) |
-| sensor *Reason* | why the shutter is where it is: idle, automatic control off, manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare. Attributes `target_position`, `max_position`, `language`, `decision` (what every rule said, see [How it works](how-it-works.md#rules-and-priorities)) |
+| sensor *Reason* | why the shutter is where it is: idle, automatic control off, automatic control paused (all shutters), manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare. Attributes `target_position`, `max_position`, `language`, `decision` (what every rule said, see [How it works](how-it-works.md#rules-and-priorities)) |
 | sensor *Next action* | time of the next phase change; attributes `phase`, `position`, `following` (the two after it), `overrides` |
 | sensor *Phase* | night, slit, day or dusk |
 | sensor *State* | closed, slit (gaps open, bar on the sill), partly open, open; attributes `opening`, `module_position` |
