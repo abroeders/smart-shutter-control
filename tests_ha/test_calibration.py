@@ -65,10 +65,18 @@ async def run(hass: HomeAssistant, flow_id: str, result):
 
 
 async def open_menu(hass: HomeAssistant, entry, subentry_id: str, choice: str):
+    """Open the shutter's menu and choose; "calibrate" goes on to the assistant (its own menu, #40)."""
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, "shutter"), context={"source": "reconfigure", "subentry_id": subentry_id}
     )
-    return await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": choice})
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"next_step_id": choice})
+    if choice == "calibrate":
+        assert result["type"] is FlowResultType.MENU
+        assert result["menu_options"] == ["cal_assistant", "cal_table"]
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"next_step_id": "cal_assistant"}
+        )
+    return result
 
 
 async def test_full_calibration(hass: HomeAssistant, covers, fast) -> None:
@@ -79,7 +87,7 @@ async def test_full_calibration(hass: HomeAssistant, covers, fast) -> None:
     controller = entry.runtime_data.shutters[subentry_id]
 
     result = await open_menu(hass, entry, subentry_id, "calibrate")
-    assert result["step_id"] == "calibrate"
+    assert result["step_id"] == "cal_assistant"
     flow_id = result["flow_id"]
     result = await run(
         hass,
@@ -352,3 +360,59 @@ async def test_without_power_sensor_the_travel_time_is_measured(hass: HomeAssist
 def controller_flow_session(hass: HomeAssistant, flow_id: str):
     flow = hass.config_entries.subentries._progress[flow_id]  # noqa: SLF001
     return flow._session  # noqa: SLF001
+
+
+async def test_edit_the_table(hass: HomeAssistant, covers) -> None:
+    """The table shows the stored points; an edited table is checked, reviewed, saved and used (#40)."""
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    subentry_id = next(iter(entry.subentries))
+    stored = {
+        "window_height_cm": 140,
+        "points": {"up": [[0.34, 0.09], [0.53, 0.3], [0.73, 0.6]], "down": [[0.34, 0.01], [0.53, 0.22]]},
+        "slit": {"up": 0.2},
+    }
+    hass.config_entries.async_update_subentry(
+        entry,
+        entry.subentries[subentry_id],
+        data={**entry.subentries[subentry_id].data, "calibration": stored},
+    )
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "shutter"), context={"source": "reconfigure", "subentry_id": subentry_id}
+    )
+    flow_id = result["flow_id"]
+    await hass.config_entries.subentries.async_configure(flow_id, {"next_step_id": "calibrate"})
+    result = await hass.config_entries.subentries.async_configure(flow_id, {"next_step_id": "cal_table"})
+    assert result["step_id"] == "cal_table"
+    defaults = {str(k): k.default() for k in result["data_schema"].schema if callable(k.default)}
+    assert defaults["rows"] == [
+        {"module": 34, "up": 9, "down": 1},
+        {"module": 53, "up": 30, "down": 22},
+        {"module": 73, "up": 60},
+    ]
+
+    rows = [{"module": 34, "up": 9, "down": 1}, {"module": 34, "up": 30}]  # twice
+    result = await hass.config_entries.subentries.async_configure(flow_id, {"rows": rows})
+    assert result["errors"] == {"base": "module_twice"}
+
+    rows = [
+        {"module": 30, "up": 5, "down": 2},
+        {"module": 50, "up": 28, "down": 20},
+        {"module": 75, "up": 62, "down": 55},
+        {"module": 95, "up": 94, "down": 90},
+    ]
+    result = await hass.config_entries.subentries.async_configure(
+        flow_id, {"rows": rows, "slit_up": 18, "slit_down": 18}
+    )
+    assert result["step_id"] == "cal_table_review"
+    assert "↑" in result["description_placeholders"]["summary"]
+    result = await hass.config_entries.subentries.async_configure(flow_id, {})
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    saved = entry.subentries[subentry_id].data["calibration"]
+    assert saved["window_height_cm"] == 140
+    assert saved["points"]["down"][1] == [0.5, 0.2]
+    assert saved["slit"] == {"up": 0.18, "down": 0.18}
+    assert entry.runtime_data.shutters[subentry_id].calibration.calibrated

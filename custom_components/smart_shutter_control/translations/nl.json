@@ -297,13 +297,6 @@
             "schedule_reset": "Terug naar het standaardschema"
           }
         },
-        "calibrate": {
-          "title": "Kalibreren",
-          "description": "Eerst zoekt de assistent het punt waarop de onderlat loskomt van de dorpel: vanuit dicht gaat hij in kleine stappen omhoog en vraagt of de onderlat los is. Daarna meet hij vier punten, verdeeld over het stuk boven dat punt, vanuit dicht en vanuit open, en vraagt telkens hoe ver het raam onder de onderlat open is. De automaat voor dit rolluik staat zolang op pauze.\n\nVul de raamhoogte in om in cm te meten, of laat leeg om te schatten in % van het raam.",
-          "data": {
-            "window_height_cm": "Raamhoogte"
-          }
-        },
         "add_point": {
           "title": "Kalibratiepunt toevoegen",
           "description": "Het rolluik gaat eerst naar dicht (↑) of open (↓), daarna naar de module-stand, en vraagt dan de opening.",
@@ -379,12 +372,50 @@
             "winter": "Standaardschema: {base_winter}",
             "winter_closed_below": "Standaardschema: {base_winter_closed_below}"
           }
+        },
+        "calibrate": {
+          "title": "Kalibreren",
+          "description": "Laat de assistent het rolluik bewegen en om metingen vragen, of bewerk de gemeten punten zelf.",
+          "menu_options": {
+            "cal_assistant": "Assistent",
+            "cal_table": "Tabel bewerken"
+          }
+        },
+        "cal_assistant": {
+          "title": "Kalibreren",
+          "description": "Eerst zoekt de assistent het punt waarop de onderlat loskomt van de dorpel: vanuit dicht gaat hij in kleine stappen omhoog en vraagt of de onderlat los is. Daarna meet hij vier punten, verdeeld over het stuk boven dat punt, vanuit dicht en vanuit open, en vraagt telkens hoe ver het raam onder de onderlat open is. De automaat voor dit rolluik staat zolang op pauze.\n\nVul de raamhoogte in om in cm te meten, of laat leeg om te schatten in % van het raam.",
+          "data": {
+            "window_height_cm": "Raamhoogte"
+          }
+        },
+        "cal_table": {
+          "title": "Kalibratietabel",
+          "description": "Een rij per modulestand (de stand die de module meldt, %), met de gemeten opening onder de onderlat in % van het raam: omhoog (het rolluik kwam van onder) en omlaag (het kwam van boven). Een cel mag leeg blijven. In één richting zijn minstens twee punten nodig; een richting met minder gebruikt de andere.",
+          "data": {
+            "rows": "Gemeten punten",
+            "slit_up": "Spleet omhoog",
+            "slit_down": "Spleet omlaag"
+          },
+          "data_description": {
+            "rows": "Rijen toevoegen, aanpassen of verwijderen.",
+            "slit_up": "Modulestand met de spleten tussen de lamellen open en de onderlat nog op de vensterbank. Optioneel.",
+            "slit_down": "Modulestand met de spleten tussen de lamellen open en de onderlat nog op de vensterbank. Optioneel."
+          }
+        },
+        "cal_table_review": {
+          "title": "Resultaat",
+          "description": "Modulestand voor 50 % open: {summary}\n\nVerschil tussen de richtingen: {difference} %.\n\nDeze kalibratie opslaan?"
         }
       },
       "error": {
         "no_position": "Dit rolluik kan niet op een stand gezet worden.",
         "already_configured": "Dit rolluik heeft al een rolluikcontroller.",
-        "elevation_order": "De hoogste zonshoogte moet boven de laagste liggen."
+        "elevation_order": "De hoogste zonshoogte moet boven de laagste liggen.",
+        "module_range": "Een modulestand moet tussen 1 en 99 % liggen.",
+        "module_twice": "Een modulestand komt twee keer voor.",
+        "opening_range": "Een opening moet tussen 0 en 100 % liggen.",
+        "too_few_points": "In één richting zijn minstens twee punten nodig.",
+        "opening_falls": "In één richting neemt de opening af terwijl de modulestand stijgt; controleer de waarden."
       },
       "abort": {
         "reconfigure_successful": "Het rolluik is opgeslagen.",

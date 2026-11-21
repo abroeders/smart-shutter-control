@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Calibration: *Calibrate* offers the assistant or a table. The table shows the measured points (a row per
+  module position, the opening going up and going down) and the slit per direction, filled in with the stored
+  calibration; edited rows are checked, the result is shown, and confirming saves it (#40).
+
 ## [2026.11.5] - 2026-11-21
 
 ### Fixed

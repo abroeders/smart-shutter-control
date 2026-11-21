@@ -17,8 +17,9 @@ shutter by hand.
   shutters.
 - **Glare protection:** bright sun on the window lowers the shutter to its own position, whatever the
   temperature, also in winter.
-- **Calibrated positions:** an assistant measures each shutter, so 50 % is half way down the window from
-  either direction; fully open and closed use the module's own ends.
+- **Calibrated positions:** an assistant measures each shutter, or you edit the measured points in a table,
+  so 50 % is half way down the window from either direction; fully open and closed use the module's own
+  ends.
 - **Manual operation is respected:** a manual move pauses automatic control until the next phase (or for a
   while); it resumes with a button, or when you move the shutter to where automatic control wants it.
 - **Safety:** in a storm only fully open or fully closed; no moves during frost; optional temperature limits.
