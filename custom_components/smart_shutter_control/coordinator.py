@@ -327,6 +327,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             await controller.async_evaluate(
                 self.inputs, weather=self.weather_state, paused=not self.automatic_all
             )
+            await controller.async_check_arrival()
         self.async_set_updated_data(None)
 
     async def _on_tick(self, _now: datetime) -> None:
@@ -402,6 +403,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         for controller in self.shutters.values():
             if entity_id in (controller.config.cover, controller.adapter.power_entity):
                 controller.observe()
+                if controller.arrival.active:  # the motor stopped or the module reported (#48)
+                    self.hass.async_create_task(controller.async_check_arrival())
         self.async_update_listeners()  # positions shown by our entities
 
     @callback

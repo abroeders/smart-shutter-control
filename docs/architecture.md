@@ -1075,3 +1075,48 @@ sequenceDiagram
     C->>SC: async_evaluate(inputs, paused=False)
     SC->>SC: move to the wanted position
 ```
+
+## 19. Checking that a move arrives (#48)
+
+`ArrivalCheck` (`core/arrival.py`, pure) per shutter: every command the adapter sends (except during the
+calibration assistant) starts a check; a manual move by someone else, the calibration and pausing everything
+cancel it. `ShutterController.async_check_arrival` runs on every tick and when the cover or its power sensor
+reports; when due it refreshes the module's position, judges it (±2 %) and retries once or reports the
+shutter stuck: the binary sensor *Stuck* and a repair issue `stuck_<shutter>` (`issue_registry`), deleted at
+the next arrival.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Waiting: sent(target)
+    Waiting --> Idle: arrived
+    Waiting --> Retrying: not arrived, send again
+    Retrying --> Idle: arrived (issue deleted)
+    Retrying --> Stuck: not arrived (issue created)
+    Stuck --> Waiting: sent(target)
+    Waiting --> Idle: manual move / calibration / paused
+    Retrying --> Idle: manual move / calibration / paused
+```
+
+```mermaid
+classDiagram
+    class ArrivalCheck {
+        +state State
+        +target int|None
+        +deadline float
+        +sent(target, now)
+        +cancel()
+        +due(motor_running, now) bool
+        +judge(position) Verdict
+    }
+    class ShutterController {
+        +arrival ArrivalCheck
+        +stuck bool
+        +async_check_arrival()
+    }
+    class StuckSensor {
+        <<BinarySensorEntity, problem>>
+    }
+    ShutterController o-- ArrivalCheck
+    StuckSensor ..> ShutterController
+```

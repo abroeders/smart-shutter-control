@@ -8,6 +8,10 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ### Added
 
+- Moves are checked: when a shutter did not reach the position that was sent (a lost radio command, a module
+  that stopped short), the command is sent once more; if that fails too, the binary sensor *Stuck* turns on
+  and a repair issue appears, both clearing at the next move that arrives (#48).
+
 - A switch *Automatic control (all shutters)* on the base controller pauses the whole integration: no shutter
   moves by itself, not even in a storm, and the reason is *paused*. Switched on again, every shutter goes to
   its wanted position at once (#53).

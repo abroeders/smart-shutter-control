@@ -88,6 +88,7 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
         "shutter",
         "sleep_in",
         "stand",
+        "stuck",
         "sun_left",
         "sun_on_window",
     ]

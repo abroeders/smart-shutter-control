@@ -454,6 +454,12 @@
       }
     }
   },
+  "issues": {
+    "stuck": {
+      "title": "{name} heeft zijn stand niet bereikt",
+      "description": "{name} heeft {target} % niet bereikt (staat op {position} %), ook niet na een tweede poging. Controleer het rolluik en de module. Deze melding verdwijnt bij de volgende beweging die wel aankomt."
+    }
+  },
   "entity": {
     "cover": {
       "shutter": {
@@ -552,6 +558,9 @@
     "binary_sensor": {
       "sunny": {
         "name": "Zonnig"
+      },
+      "stuck": {
+        "name": "Vastgelopen"
       },
       "sun_on_window": {
         "name": "Zon op het raam"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import replace
@@ -10,6 +11,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 
 from .adapter import CoverAdapter
 from .const import (
@@ -37,7 +39,9 @@ from .const import (
     CONF_WINDOW_HEIGHT,
     CONF_WINDOW_SILL,
     DEFAULT_SHUTTER,
+    DOMAIN,
 )
+from .core.arrival import ArrivalCheck, State, Verdict
 from .core.calibration import Calibration, DirectionTracker, RollerCalibration
 from .core.daily import ScheduleRule, SleepIn, SleepInRule
 from .core.glare import GlareProtectionRule
@@ -54,6 +58,8 @@ from .core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
 from .core.weather import FrostRule, StormRule, TemperatureLimitRule
 from .core.winter import WinterRule
 from .storage import RuntimeStore
+
+_LOGGER = logging.getLogger(__name__)
 
 KEY_AUTOMATIC = "automatic"
 KEY_CLEAR_SKY_LUX = "clear_sky_lux"
@@ -156,6 +162,8 @@ class ShutterController:
         # manual operation (#5)
         travel = subentry.data.get(CONF_TRAVEL_TIME)
         self.detector = ManualDetector(float(travel) if travel else None)
+        self.arrival = ArrivalCheck(float(travel) if travel else None)  # (#48)
+        self._checking = False
         self.detector.observe(self.adapter.module_position(), self._motor_running(), time.time())
         self.pause = ManualPause.from_dict(store.get(self.id, KEY_PAUSE))
         self.pause_rule = ManualPauseRule(self.pause, lambda now: str(self.schedule_rule.phase(now)))
@@ -309,6 +317,8 @@ class ShutterController:
 
     def _on_send(self, module: int, before: int | None, automatic: bool) -> None:
         self.detector.sent(module, before, time.time())
+        if not self.paused:  # the calibration assistant checks its own moves
+            self.arrival.sent(module, time.time())
         if not automatic:
             self._manual(time.time(), "entity")
 
@@ -323,6 +333,8 @@ class ShutterController:
         """Someone moved the shutter: end sleep-in, pause automatic control (unless the mode is ignore)."""
         if self.sleep_in.armed:
             self.sleep_in.arm(False, now)
+        if source == "switch":  # moved by someone else: whatever we sent is no longer the goal
+            self.arrival.cancel()
         mode = str(self.schedule_values["manual_mode"])
         duration = float(self.schedule_values["manual_duration"])
         self.pause.start(now, mode, duration, str(self.schedule_rule.phase(now)), source)
@@ -431,6 +443,58 @@ class ShutterController:
         self.config = replace(self.config, horizon=horizon)
         self.subentry_data[CONF_HORIZON] = horizon.as_data()
 
+    # --- arrival (#48) ---------------------------------------------------------------------------------
+    @property
+    def stuck(self) -> bool:
+        return self.arrival.state is State.STUCK
+
+    async def async_check_arrival(self) -> None:
+        """When a command is due: ask the module where it is; send once more, or report the shutter stuck."""
+        now = time.time()
+        if self._checking or not self.arrival.due(self._motor_running(), now):
+            return
+        self._checking = True
+        try:
+            await self.adapter.async_refresh()  # not every module reports by itself (#42)
+            position = self.adapter.module_position()
+            verdict = self.arrival.judge(position)
+            if verdict is Verdict.ARRIVED:
+                ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
+            elif verdict is Verdict.RETRY:
+                command = self.adapter.last_command
+                _LOGGER.info(
+                    "%s did not reach %s %% (at %s %%): sending it again",
+                    self.title,
+                    self.arrival.target,
+                    position,
+                )
+                await self.adapter.async_move(
+                    self.arrival.target, automatic=command.automatic if command else True
+                )
+            else:
+                _LOGGER.warning(
+                    "%s did not reach %s %% (at %s %%)", self.title, self.arrival.target, position
+                )
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    self.issue_id,
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="stuck",
+                    translation_placeholders={
+                        "name": self.title,
+                        "target": str(self.arrival.target),
+                        "position": "?" if position is None else str(position),
+                    },
+                )
+        finally:
+            self._checking = False
+
+    @property
+    def issue_id(self) -> str:
+        return f"stuck_{self.id}"
+
     def trace(self) -> list[dict]:
         """What every rule said in the last decision (#56); empty while automatic control is off."""
         if not self.automatic or self.paused or self.paused_all:
@@ -444,6 +508,8 @@ class ShutterController:
         self.observe()  # a report not handled yet must not count as manual after this decision
         self.storm = inputs.storm
         self.paused_all = paused
+        if self.paused or paused:
+            self.arrival.cancel()
         if not self.automatic or self.paused or paused:
             reason = Reason.CALIBRATING if self.paused else Reason.PAUSED if paused else Reason.OFF
             self.decision = Decision(None, reason)
