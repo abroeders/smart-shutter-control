@@ -21,6 +21,8 @@ async def async_setup_entry(
             OpeningNumber(c, s, "opening"),
             MaxPositionNumber(c, s, "max_position"),
             ShadingPositionNumber(c, s, "shading_position"),
+            GlarePositionNumber(c, s, "glare_position"),
+            GlareFromNumber(c, s, "glare_from"),
         ],
     )
 
@@ -51,6 +53,32 @@ class ShadingPositionNumber(MaxPositionNumber):
 
     async def async_set_native_value(self, value: float) -> None:
         self.controller.set_shading_position(int(value))
+        await self.coordinator.async_tick()
+
+
+class GlarePositionNumber(MaxPositionNumber):
+    """Position while bright sun shines on the window (glare protection, #36)."""
+
+    @property
+    def native_value(self) -> float:
+        return self.controller.glare_position
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.controller.set_glare_position(int(value))
+        await self.coordinator.async_tick()
+
+
+class GlareFromNumber(MaxPositionNumber):
+    """Sun factor (% of the clear-sky value) from which the sun dazzles."""
+
+    _attr_native_min_value = 10
+
+    @property
+    def native_value(self) -> float:
+        return self.controller.glare_from
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.controller.set_glare_from(int(value))
         await self.coordinator.async_tick()
 
 

@@ -22,6 +22,7 @@ async def async_setup_entry(
         lambda c, s: [
             AutomaticSwitch(c, s, "automatic"),
             HeatProtectionSwitch(c, s, "heat_protection"),
+            GlareProtectionSwitch(c, s, "glare_protection"),
             SleepInSwitch(c, s, "sleep_in"),
         ],
     )
@@ -56,6 +57,22 @@ class HeatProtectionSwitch(ShutterEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self.controller.set_heat_protection(False)
+        await self.coordinator.async_tick()
+
+
+class GlareProtectionSwitch(ShutterEntity, SwitchEntity):
+    """Glare protection (bright sun on the window, whatever the temperature) for this shutter (#36)."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.glare_protection
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        self.controller.set_glare_protection(True)
+        await self.coordinator.async_tick()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        self.controller.set_glare_protection(False)
         await self.coordinator.async_tick()
 
 

@@ -23,6 +23,7 @@ class Reason(StrEnum):
     HEAT_LIMIT = "heat_limit"
     COLD_LIMIT = "cold_limit"
     WINTER = "winter"  # (#7)
+    GLARE = "glare"  # (#36)
 
 
 class Kind(StrEnum):
@@ -76,6 +77,9 @@ class ShutterContext:
     room: float | None = None  # room temperature
     heat_protection: bool = True
     shading_position: int = 30
+    glare_protection: bool = False
+    glare_position: int = 40
+    glare_from: float = 0.7  # share of the clear-sky value
 
 
 @dataclass(frozen=True)

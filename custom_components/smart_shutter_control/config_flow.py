@@ -25,6 +25,9 @@ from .const import (
     CONF_CALIBRATION,
     CONF_COVER,
     CONF_FACADE_LIGHT,
+    CONF_GLARE_FROM,
+    CONF_GLARE_POSITION,
+    CONF_GLARE_PROTECTION,
     CONF_HEAT_OUTDOOR,
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
@@ -558,6 +561,9 @@ SHUTTER = {
     vol.Required(CONF_SHADING_POSITION): _number(0, 100, 5, "%"),
     vol.Optional(CONF_HEAT_OUTDOOR): _number(-10, 40, 0.5, "°C"),
     vol.Optional(CONF_HEAT_ROOM): _number(10, 35, 0.5, "°C"),
+    vol.Required(CONF_GLARE_PROTECTION): selector.BooleanSelector(),
+    vol.Required(CONF_GLARE_POSITION): _number(0, 100, 5, "%"),
+    vol.Required(CONF_GLARE_FROM): _number(10, 100, 5, "%"),
 }
 
 

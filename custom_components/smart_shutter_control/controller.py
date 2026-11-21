@@ -17,6 +17,9 @@ from .const import (
     CONF_CALIBRATION,
     CONF_COVER,
     CONF_FACADE_LIGHT,
+    CONF_GLARE_FROM,
+    CONF_GLARE_POSITION,
+    CONF_GLARE_PROTECTION,
     CONF_HEAT_OUTDOOR,
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
@@ -33,6 +36,7 @@ from .const import (
 )
 from .core.calibration import Calibration, DirectionTracker, RollerCalibration
 from .core.daily import ScheduleRule, SleepIn, SleepInRule
+from .core.glare import GlareProtectionRule
 from .core.heat import HeatProtectionRule, SunSettings
 from .core.limits import PositionLimiter
 from .core.manual import ManualDetector, ManualPause, ManualPauseRule, matches
@@ -49,6 +53,9 @@ KEY_CLEAR_SKY_LUX = "clear_sky_lux"
 KEY_MAX_POSITION = "max_position"
 KEY_HEAT_PROTECTION = "heat_protection"
 KEY_SHADING_POSITION = "shading_position"
+KEY_GLARE_PROTECTION = "glare_protection"
+KEY_GLARE_POSITION = "glare_position"
+KEY_GLARE_FROM = "glare_from"
 KEY_SLEEP_IN = "sleep_in"
 KEY_PAUSE = "pause"
 RUNNING = 5.0  # W: the motor runs above this
@@ -98,6 +105,10 @@ class ShutterController:
         self.default_shading = int(
             subentry.data.get(CONF_SHADING_POSITION, DEFAULT_SHUTTER[CONF_SHADING_POSITION])
         )
+        self.default_glare = {
+            key: subentry.data.get(key, DEFAULT_SHUTTER[key])
+            for key in (CONF_GLARE_PROTECTION, CONF_GLARE_POSITION, CONF_GLARE_FROM)
+        }
         self.limiter = PositionLimiter()
         self.calibration: Calibration = calibration or RollerCalibration.from_data(
             subentry.data.get(CONF_CALIBRATION)
@@ -129,6 +140,7 @@ class ShutterController:
         self.pause = ManualPause.from_dict(store.get(self.id, KEY_PAUSE))
         self.pause_rule = ManualPauseRule(self.pause, lambda now: str(self.schedule_rule.phase(now)))
         self.heat_rule = HeatProtectionRule(sun)
+        self.glare_rule = GlareProtectionRule(sun, self.schedule_rule.phase)
         safety = safety or {}
         self.storm_rule = StormRule(
             lambda: str(self.schedule_values["storm_position"]), self._wanted_without_storm
@@ -141,6 +153,7 @@ class ShutterController:
                 self.pause_rule,
                 SleepInRule(self.sleep_in, self.schedule),
                 self.heat_rule,
+                self.glare_rule,
                 WinterRule(
                     lambda: _on(self.schedule_values["winter"]),
                     lambda: _number(self.schedule_values["winter_closed_below"]),
@@ -184,6 +197,28 @@ class ShutterController:
 
     def set_shading_position(self, value: int) -> None:
         self.store.set(self.id, KEY_SHADING_POSITION, int(value))
+
+    @property
+    def glare_protection(self) -> bool:
+        return bool(self.store.get(self.id, KEY_GLARE_PROTECTION, self.default_glare[CONF_GLARE_PROTECTION]))
+
+    def set_glare_protection(self, on: bool) -> None:
+        self.store.set(self.id, KEY_GLARE_PROTECTION, on)
+
+    @property
+    def glare_position(self) -> int:
+        return int(self.store.get(self.id, KEY_GLARE_POSITION, self.default_glare[CONF_GLARE_POSITION]))
+
+    def set_glare_position(self, value: int) -> None:
+        self.store.set(self.id, KEY_GLARE_POSITION, int(value))
+
+    @property
+    def glare_from(self) -> int:
+        """% of the clear-sky value from which the sun dazzles."""
+        return int(self.store.get(self.id, KEY_GLARE_FROM, self.default_glare[CONF_GLARE_FROM]))
+
+    def set_glare_from(self, value: int) -> None:
+        self.store.set(self.id, KEY_GLARE_FROM, int(value))
 
     def set_sleep_in(self, on: bool) -> None:
         self.sleep_in.arm(on, time.time())
@@ -345,6 +380,9 @@ class ShutterController:
             room=self.room_temperature(),
             heat_protection=self.heat_protection,
             shading_position=self.shading_position,
+            glare_protection=self.glare_protection,
+            glare_position=self.glare_position,
+            glare_from=self.glare_from / 100,
         )
 
     def _limited(self, decision: Decision, storm: bool) -> tuple[str, int] | None:

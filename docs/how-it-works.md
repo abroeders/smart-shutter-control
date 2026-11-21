@@ -16,6 +16,7 @@ proposal is not changed by lower rules.
 | 20 | manual pause | leave the shutter where it was put (final) |
 | 30 | sleep-in | closed during the slit and day phases |
 | 40 | heat protection | at most the shading position (cap) |
+| 41 | glare protection | at most the glare position (cap) |
 | 50 | winter | closed all day in severe cold; at dusk, never raise a closed shutter (cap) |
 | 60 | schedule | the position of the current phase |
 
@@ -91,6 +92,21 @@ When the sun is on the window, it is sunny, and it is warm (outdoor or room temp
 limit), the shutter goes down to its shading position after 5 minutes. It goes up again 20 minutes after
 one of these stops, or at once when the sun has moved past the window. Passing clouds do not make it move up
 and down.
+
+## Glare protection
+
+Heat protection needs warmth; a low winter sun can dazzle on a cold day. **Glare protection** (switch per
+shutter, off by default) lowers the shutter to its **glare position** after 5 minutes when:
+
+- the sun is on **this window** (the same window direction, tilt, largest angle of incidence and sun
+  elevations as heat protection), so a north window never reacts to a sun in the south;
+- the sun is **bright**: the sun factor (PV power or light as a share of its clear-sky value, or the facade
+  light sensor's own factor) is at or above *Glare from* (70 %). Without a sun factor, *Sunny* decides;
+- it is the **day** phase of the schedule (not slit, dusk or night).
+
+It does not look at the temperature and also acts in winter. Once down it stays until the sun factor is 15
+points below *Glare from*; it goes up 20 minutes after a condition falls away, at once when the sun leaves
+the window or the day phase ends. With heat protection active as well, the lower position wins.
 
 ## Manual operation
 

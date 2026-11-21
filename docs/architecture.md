@@ -35,6 +35,7 @@ flowchart LR
 | 20 | `ManualPauseRule` | `core/manual.py` | final: no move |
 | 30 | `SleepInRule` | `core/daily.py` | target |
 | 40 | `HeatProtectionRule` | `core/heat.py` | cap |
+| 41 | `GlareProtectionRule` | `core/glare.py` | cap |
 | 50 | `WinterRule` | `core/winter.py` | target or cap |
 | 60 | `ScheduleRule` | `core/daily.py` | target |
 
@@ -831,3 +832,58 @@ only draws it, in the glass area of `ssc-drawing`, under the curtain. The cloud 
 entity (cloud coverage or condition) with the measured sun factor (the facade sensor's when the shutter has
 one), the latter weighing three times as much by day. The closed slat pattern is opaque; the open
 pattern's slots are transparent, so the view shows through them.
+
+## 13. Glare protection (#36)
+
+Design: [`design/2026-11-21-glare-protection.md`](design/2026-11-21-glare-protection.md).
+
+```mermaid
+classDiagram
+    class GlareProtectionRule {
+        <<cap>>
+        +priority 41
+        +settings SunSettings
+        +day_phase(now) Phase
+        +phase Phase
+        +propose(ctx) Decision|None
+    }
+    class HeatProtectionRule {
+        <<cap>>
+        +priority 40
+        +settings SunSettings
+    }
+    class WindowGeometry {
+        +sun_on(sun, max_incidence) bool
+    }
+    class ShutterContext {
+        +glare_protection bool
+        +glare_position int
+        +glare_from float
+    }
+    class ScheduleRule {
+        +phase(now) Phase
+    }
+    GlareProtectionRule ..> WindowGeometry
+    HeatProtectionRule ..> WindowGeometry
+    GlareProtectionRule ..> ShutterContext
+    GlareProtectionRule ..> ScheduleRule : day phase
+    ShutterController o-- GlareProtectionRule
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open
+    Open --> Pending: day phase, sun on window, sun factor ≥ glare_from
+    Pending --> Open: a condition falls away
+    Pending --> Shading: held for close_delay
+    Shading --> Leaving: sun factor < glare_from − 15 points (or not sunny)
+    Leaving --> Shading: bright again
+    Leaving --> Open: open_delay passed, the sun left the window, or the day phase ended
+```
+
+`GlareProtectionRule` reuses the phases of heat protection (`core.heat.Phase`) and its `SunSettings` (largest
+angle of incidence, delays), but not the temperature. The sun factor is `Inputs.sun_factor`: the base
+controller's, or the facade sensor's when the shutter has one. Its phase is the attribute `glare_phase` of
+*Sun on the window*. The switch *Glare protection* and the numbers *Glare position* and *Glare from* are kept
+in the `RuntimeStore`, with the subentry's values as defaults.
+

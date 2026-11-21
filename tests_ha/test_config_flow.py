@@ -73,6 +73,9 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
     assert keys == [
         "automatic",
         "calibration",
+        "glare_from",
+        "glare_position",
+        "glare_protection",
         "heat_protection",
         "manual_pause",
         "max_position",
