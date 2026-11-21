@@ -6,6 +6,14 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Window and door contacts: with an *opened* contact, automatic control raises the shutter to the lockout
+  position (fully open by default) and never lowers it below that while the door is open, also not in a
+  storm, so nobody is locked out; with a *tilted* contact it keeps at least the ventilation position (the
+  slit by default). One minute after the contact closes, the shutter follows its rules again; the reason
+  is *lockout* or *ventilation* (#49).
+
 ## [2026.11.12] - 2026-11-21
 
 ### Added

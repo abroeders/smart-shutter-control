@@ -307,7 +307,8 @@
             "add_point": "Add a calibration point",
             "horizon": "Horizon",
             "schedule": "Schedule overrides",
-            "schedule_reset": "Reset to the base schedule"
+            "schedule_reset": "Reset to the base schedule",
+            "contacts": "Window and door contacts"
           }
         },
         "horizon": {
@@ -428,6 +429,22 @@
         "cal_table_review": {
           "title": "Result",
           "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %.\n\nSave this calibration?"
+        },
+        "contacts": {
+          "title": "Window and door contacts",
+          "description": "Never close the shutter in front of an open door, and leave a gap for a tilted window. When the contact closes, the shutter follows its rules again after 1 minute.",
+          "data": {
+            "opened_contact": "Opened contact",
+            "tilted_contact": "Tilted contact",
+            "lockout_position": "Lockout position",
+            "ventilation_position": "Ventilation position"
+          },
+          "data_description": {
+            "opened_contact": "On while the door or window is open. Automatic control then raises the shutter to the lockout position and keeps it there, also in a storm.",
+            "tilted_contact": "On while the window is tilted.",
+            "lockout_position": "While opened, automatic control keeps the shutter at least this high.",
+            "ventilation_position": "While tilted, automatic control keeps the shutter at least this high. Leave empty for the slit."
+          }
         }
       },
       "error": {
@@ -520,7 +537,9 @@
           "heat_limit": "Heat limit",
           "cold_limit": "Cold limit",
           "winter": "Winter",
-          "glare": "Glare"
+          "glare": "Glare",
+          "lockout": "Lockout protection",
+          "ventilation": "Ventilation"
         }
       },
       "next_action": {

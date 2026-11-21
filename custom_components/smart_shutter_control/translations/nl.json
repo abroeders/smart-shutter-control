@@ -307,7 +307,8 @@
             "add_point": "Kalibratiepunt toevoegen",
             "horizon": "Horizon",
             "schedule": "Schema-overrides",
-            "schedule_reset": "Terug naar het standaardschema"
+            "schedule_reset": "Terug naar het standaardschema",
+            "contacts": "Raam- en deurcontacten"
           }
         },
         "horizon": {
@@ -428,6 +429,22 @@
         "cal_table_review": {
           "title": "Resultaat",
           "description": "Modulestand voor 50 % open: {summary}\n\nVerschil tussen de richtingen: {difference} %.\n\nDeze kalibratie opslaan?"
+        },
+        "contacts": {
+          "title": "Raam- en deurcontacten",
+          "description": "Sluit het rolluik nooit voor een open deur, en laat een kier voor een gekanteld raam. Gaat het contact dicht, dan volgt het rolluik na 1 minuut weer zijn regels.",
+          "data": {
+            "opened_contact": "Contact geopend",
+            "tilted_contact": "Contact gekanteld",
+            "lockout_position": "Buitensluitstand",
+            "ventilation_position": "Ventilatiestand"
+          },
+          "data_description": {
+            "opened_contact": "Aan zolang de deur of het raam open is. De automaat zet het rolluik dan op de buitensluitstand en houdt het daar, ook bij storm.",
+            "tilted_contact": "Aan zolang het raam gekanteld staat.",
+            "lockout_position": "Zolang geopend houdt de automaat het rolluik minstens zo hoog.",
+            "ventilation_position": "Zolang gekanteld houdt de automaat het rolluik minstens zo hoog. Leeg = de spleetstand."
+          }
         }
       },
       "error": {
@@ -520,7 +537,9 @@
           "heat_limit": "Hittegrens",
           "cold_limit": "Koudegrens",
           "winter": "Winter",
-          "glare": "Verblinding"
+          "glare": "Verblinding",
+          "lockout": "Buitensluitbeveiliging",
+          "ventilation": "Ventilatie"
         }
       },
       "next_action": {
