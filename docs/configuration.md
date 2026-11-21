@@ -116,7 +116,8 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 ## A shutter
 
 *Reconfigure* opens a menu: **Settings**, **Schedule overrides**, **Reset to the base schedule**,
-**Calibrate** and **Add a calibration point**.
+**Calibrate** (the assistant, or a table of the measured points; see [Calibration](calibration.md)) and
+**Add a calibration point**.
 
 ### Settings
 

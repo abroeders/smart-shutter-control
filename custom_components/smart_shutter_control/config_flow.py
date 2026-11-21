@@ -82,6 +82,8 @@ from .const import (
     SUN_SOURCES,
 )
 from .coordinator import read_calendar
+from .core import calibration_table
+from .core.calibration import RollerCalibration
 from .core.model import Direction
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
 
@@ -567,6 +569,26 @@ SHUTTER = {
 }
 
 
+# labels of the calibration table's columns (the object selector's fields have no translation keys)
+TABLE_LABELS = {
+    "en": {"module": "Module position", "up": "Going up: opening", "down": "Going down: opening"},
+    "nl": {"module": "Modulestand", "up": "Omhoog: opening", "down": "Omlaag: opening"},
+}
+
+
+def _review(summary: dict) -> dict[str, str]:
+    """The result of a calibration: the module position for 50 % per direction, and their difference."""
+    arrows = {"up": "↑", "down": "↓"}
+    lines = [
+        f"{arrows[d]} {s['module_at_50']} % ({s['model']}, ± {s['residual']} %)" for d, s in summary.items()
+    ]
+    at50 = [s["module_at_50"] for s in summary.values()]
+    return {
+        "summary": " · ".join(lines) or "–",
+        "difference": str(abs(at50[0] - at50[1])) if len(at50) == 2 else "–",
+    }
+
+
 def _without_fields(data: dict[str, Any], schema: dict) -> dict[str, Any]:
     keys = {str(k) for k in schema}
     return {k: v for k, v in data.items() if k not in keys}
@@ -688,6 +710,10 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
             self._session.controller.paused = False
 
     async def async_step_calibrate(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Two ways (#40): the assistant that moves the shutter, or editing the measured points."""
+        return self.async_show_menu(step_id="calibrate", menu_options=["cal_assistant", "cal_table"])
+
+    async def async_step_cal_assistant(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         controller = self._controller()
         if controller is None:
             return self.async_abort(reason="not_loaded")
@@ -699,7 +725,68 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
             self._start(CalibrationSession.full(controller, height, float(travel) if travel else None))
             return await self.async_step_cal_next()
         schema = vol.Schema({vol.Optional("window_height_cm"): _number(10, 500, 1, "cm")})
-        return self.async_show_form(step_id="calibrate", data_schema=schema)
+        return self.async_show_form(step_id="cal_assistant", data_schema=schema)
+
+    # --- calibration table (#40) --------------------------------------------------------------------
+    _table: dict[str, Any] | None = None  # the calibration from the table, waiting for the review
+
+    def _table_schema(self) -> dict:
+        labels = TABLE_LABELS.get((self.hass.config.language or "en")[:2], TABLE_LABELS["en"])
+        percent = {"number": {"min": 0, "max": 100, "step": 1, "mode": "box", "unit_of_measurement": "%"}}
+        rows = selector.ObjectSelector(
+            selector.ObjectSelectorConfig(
+                multiple=True,
+                label_field="module",
+                fields={
+                    "module": {"label": labels["module"], "required": True, "selector": percent},
+                    "up": {"label": labels["up"], "required": False, "selector": percent},
+                    "down": {"label": labels["down"], "required": False, "selector": percent},
+                },
+            )
+        )
+        return {
+            vol.Required("rows"): rows,
+            vol.Optional("slit_up"): _number(0, 99, 1, "%"),
+            vol.Optional("slit_down"): _number(0, 99, 1, "%"),
+        }
+
+    async def async_step_cal_table(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        stored = dict(self._get_reconfigure_subentry().data.get(CONF_CALIBRATION) or {})
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            rows = [r for r in user_input.get("rows") or [] if isinstance(r, dict)]
+            problems = calibration_table.check(rows)
+            if problems:
+                errors["base"] = problems[0]
+            else:
+                slits = {"up": user_input.get("slit_up"), "down": user_input.get("slit_down")}
+                self._table = calibration_table.data_from(rows, slits, stored.get("window_height_cm"))
+                return await self.async_step_cal_table_review()
+        slits = calibration_table.slits_from(stored)
+        values = {
+            "rows": calibration_table.rows_from(stored),
+            **{f"slit_{d}": v for d, v in slits.items()},
+            **(user_input or {}),
+        }
+        return self.async_show_form(
+            step_id="cal_table", data_schema=_with_defaults(self._table_schema(), values), errors=errors
+        )
+
+    async def async_step_cal_table_review(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        if user_input is not None and self._shown == "cal_table_review":
+            return self.async_update_and_abort(
+                self._get_entry(),
+                self._get_reconfigure_subentry(),
+                data_updates={CONF_CALIBRATION: self._table},
+            )
+        calibration = RollerCalibration.from_data(self._table)
+        summary = calibration.summary() if isinstance(calibration, RollerCalibration) else {}
+        self._shown = "cal_table_review"
+        return self.async_show_form(
+            step_id="cal_table_review", data_schema=vol.Schema({}), description_placeholders=_review(summary)
+        )
 
     async def async_step_add_point(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         controller = self._controller()
@@ -804,17 +891,6 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
                 self._get_reconfigure_subentry(),
                 data_updates=session.updates(),
             )
-        arrows = {"up": "↑", "down": "↓"}
-        lines = [
-            f"{arrows[d]} {s['module_at_50']} % ({s['model']}, ± {s['residual']} %)"
-            for d, s in summary.items()
-        ]
-        at50 = [s["module_at_50"] for s in summary.values()]
         return self.async_show_form(
-            step_id="cal_review",
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                "summary": " · ".join(lines) or "–",
-                "difference": str(abs(at50[0] - at50[1])) if len(at50) == 2 else "–",
-            },
+            step_id="cal_review", data_schema=vol.Schema({}), description_placeholders=_review(summary)
         )

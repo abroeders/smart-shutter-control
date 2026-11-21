@@ -6,6 +6,14 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.6] - 2026-11-21
+
+### Added
+
+- Calibration: *Calibrate* offers the assistant or a table. The table shows the measured points (a row per
+  module position, the opening going up and going down) and the slit per direction, filled in with the stored
+  calibration; edited rows are checked, the result is shown, and confirming saves it (#40).
+
 ## [2026.11.5] - 2026-11-21
 
 ### Fixed
@@ -257,7 +265,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.5...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.6...HEAD
+[2026.11.6]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.5...2026.11.6
 [2026.11.5]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.4...2026.11.5
 [2026.11.4]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.3...2026.11.4
 [2026.11.3]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.2...2026.11.3

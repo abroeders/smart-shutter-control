@@ -889,3 +889,56 @@ controller's, or the facade sensor's when the shutter has one. Its phase is the 
 *Sun on the window*. The switch *Glare protection* and the numbers *Glare position* and *Glare from* are kept
 in the `RuntimeStore`, with the subentry's values as defaults.
 
+## 14. Calibration table (#40)
+
+Design: [`design/2026-11-21-calibration-table.md`](design/2026-11-21-calibration-table.md).
+
+```mermaid
+classDiagram
+    class ShutterSubentryFlow {
+        +async_step_calibrate() menu
+        +async_step_cal_assistant()
+        +async_step_cal_table()
+        +async_step_cal_table_review()
+    }
+    class calibration_table {
+        <<module, pure>>
+        +rows_from(data) list
+        +slits_from(data) dict
+        +check(rows) list~str~
+        +data_from(rows, slits, height_cm) dict
+    }
+    class RollerCalibration {
+        +from_data(data)$
+        +summary() dict
+    }
+    ShutterSubentryFlow ..> calibration_table
+    ShutterSubentryFlow ..> RollerCalibration : review
+```
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as ShutterSubentryFlow
+    participant T as calibration_table
+    participant R as RollerCalibration
+    U->>F: Calibrate → Edit table
+    F->>T: rows_from(stored calibration)
+    F-->>U: object selector with the rows, slits
+    U->>F: edited rows
+    F->>T: check(rows)
+    alt errors
+        F-->>U: the form again, with the error
+    else fine
+        F->>T: data_from(rows, slits, height)
+        F->>R: from_data(data).summary()
+        F-->>U: result (module position for 50 %, fit)
+        U->>F: submit
+        F->>F: async_update_and_abort(calibration)
+    end
+```
+
+The stored format is unchanged (`points` per direction as fractions, `slit`, `window_height_cm`); the table
+only converts it to whole percentages and back. The column labels of the object selector come from
+`TABLE_LABELS` (en, nl), as its fields have no translation keys.
+

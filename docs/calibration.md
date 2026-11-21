@@ -16,9 +16,16 @@ After calibration the integration's cover and card show the **real** position (t
 below the bottom bar, as a share of the window), and a target of 50 % ends half way, from either direction.
 Fully open and fully closed always use the module's own ends (its limit switches).
 
+## Two ways
+
+*Reconfigure → Calibrate* on the shutter offers:
+
+- **Assistant:** moves the shutter and asks for measurements (below).
+- **Edit table:** edit the measured points yourself (see [Edit the table](#edit-the-table)).
+
 ## The assistant
 
-*Reconfigure → Calibrate* on the shutter. Have a tape measure ready. Automatic control of that shutter pauses
+*Reconfigure → Calibrate → Assistant* on the shutter. Have a tape measure ready. Automatic control of that shutter pauses
 while the assistant runs. It does not run during a storm.
 
 1. **Window height** in cm (or leave it empty and give openings in % of the window).
@@ -36,6 +43,29 @@ With a **motor power sensor** the assistant sees when the motor stops; without o
 
 **Add a calibration point** moves the shutter from closed (↑) or from open (↓) to a module position you
 choose, and asks for the opening. Use it to improve a curve without measuring everything again.
+
+## Edit the table
+
+*Reconfigure → Calibrate → Edit table* shows the stored points as a list of rows, ready to change, extend
+or remove. Use it to correct one value, to type in measurements taken earlier, or to give an identical
+window the same calibration.
+
+| Module position (%) | Going up: opening (%) | Going down: opening (%) |
+|---|---|---|
+| 34 | 9 | 1 |
+| 53 | 30 | 22 |
+| 73 | 60 | 53 |
+| 92 | 90 | 86 |
+
+- **Module position:** the position the module reports (it follows the travel time).
+- **Going up / going down:** the opening below the bottom bar in % of the window, measured when the shutter
+  came from below (up) or from above (down). A cell may stay empty.
+- **Slit going up / going down:** the module position with the slat gaps open and the bottom bar still on
+  the sill (optional).
+
+At least one direction needs two points; a direction with fewer uses the other one. Per direction the
+opening may not fall while the module position rises. After *Submit* you see the result (the module position
+for 50 % and the fit per direction); *Submit* again saves it.
 
 ## The model
 

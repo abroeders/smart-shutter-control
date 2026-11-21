@@ -1,6 +1,6 @@
 {
   "name": "smart-shutter-card",
-  "version": "2026.11.5",
+  "version": "2026.11.6",
   "private": true,
   "description": "Lovelace card for the Smart Shutter Control integration",
   "license": "Apache-2.0",
