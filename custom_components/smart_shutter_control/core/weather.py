@@ -87,6 +87,8 @@ def storm_target(position: int | None, mode: str, max_position: int, wanted: int
 
 class StormRule:
     priority = 10
+    name = "storm"
+    why = None
 
     def __init__(self, mode_of, wanted_of=None) -> None:
         self.mode_of = mode_of  # callable() -> nearest | open | closed
@@ -94,6 +96,7 @@ class StormRule:
 
     def propose(self, ctx: ShutterContext) -> Decision | None:
         if not ctx.inputs.storm:
+            self.why = ("calm", {})
             return None
         wanted = self.wanted_of(ctx) if self.wanted_of else None
         target = storm_target(ctx.position, self.mode_of(), ctx.max_position, wanted)
@@ -104,9 +107,12 @@ class FrostRule:
     """During frost the controller does not move the shutter (it may be frozen to the frame)."""
 
     priority = 11
+    name = "frost"
+    why = None
 
     def propose(self, ctx: ShutterContext) -> Decision | None:
         if not ctx.inputs.frost:
+            self.why = ("no_frost", {})
             return None
         return Decision(None, Reason.FROST, final=True)
 
@@ -118,6 +124,8 @@ class TemperatureLimitRule:
     """Close above a high or below a low outdoor temperature (both optional), with a hysteresis."""
 
     priority = 15
+    name = "temperature_limits"
+    why = None
 
     def __init__(self, close_above: float | None, close_below: float | None) -> None:
         self.close_above = close_above
@@ -139,5 +147,6 @@ class TemperatureLimitRule:
             else:
                 self.state = None
         if self.state is None:
+            self.why = ("within_limits", {"outdoor": t, "above": self.close_above, "below": self.close_below})
             return None
         return Decision(0, self.state, final=True)

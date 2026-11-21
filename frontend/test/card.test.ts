@@ -40,6 +40,7 @@ describe("card", () => {
     const card = await mount();
     const t = text(card);
     for (const s of ["Living room", "Automatic", "62 %", "partly open", "Sun on the window", "Next: 16:55 dusk 35 %", "then 17:10 closed", "Sleep in"]) expect(t).toContain(s);
+    expect(card.shadowRoot.querySelector(".why-toggle")).toBeNull();
     const drawing = card.shadowRoot.querySelector("ssc-drawing");
     expect(drawing.shadowRoot.querySelector("line.max")).not.toBeNull();
     expect(drawing.shadowRoot.textContent).toContain("max 80\u00a0%");
@@ -164,6 +165,40 @@ describe("card", () => {
     expect(text(await mount(hass))).toContain("Zon op het raam");
     document.body.innerHTML = "";
     expect(text(await mount(hass, { language: "en" }))).toContain("Sun on the window");
+  });
+
+  it("unfolds the decision trace with the applied rule emphasized", async () => {
+    const hass = fakeHass({
+      "sensor.living_reason": {
+        state: "sun",
+        attributes: {
+          target_position: 30,
+          max_position: 80,
+          language: "en",
+          decision: [
+            { rule: "glare", priority: 41, result: "cap", position: 40, applied: true, why: "bright", values: { factor: 90, limit: 55 } },
+            { rule: "heat", priority: 40, result: "none", why: "too_cold", values: { outdoor: 6, limit: 22 } },
+          ],
+        },
+      },
+    });
+    const card = await mount(hass);
+    const button = card.shadowRoot.querySelector(".why-toggle") as HTMLButtonElement;
+    expect(button.textContent.trim()).toBe("Why?");
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(card.shadowRoot.querySelector(".decision-list")?.hidden).toBe(true);
+
+    button.click();
+    await card.updateComplete;
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(text(card)).toContain("Glare protection: at most 40 % (sun factor 90 % ≥ 55 %)");
+    expect(text(card)).toContain("Heat protection: not warm (6 °C < 22 °C)");
+    expect(card.shadowRoot.querySelector(".decision-line.applied")?.textContent).toContain("Glare protection");
+
+    button.click();
+    await card.updateComplete;
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(card.shadowRoot.querySelector(".decision-list")?.hidden).toBe(true);
   });
 
   it("shows all shutters of a base controller", async () => {

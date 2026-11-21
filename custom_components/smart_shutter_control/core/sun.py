@@ -71,6 +71,19 @@ class WindowGeometry:
         )
         return math.degrees(math.acos(max(-1.0, min(1.0, cos_i))))
 
+    def why_not(self, sun: SunPosition, max_incidence: float = 85.0) -> tuple[str, dict] | None:
+        """Why the sun is not on the window (a code and its values, #56), or None when it is."""
+        if sun.elevation <= 0:
+            return "night", {}
+        if sun.elevation < self.min_elevation:
+            return "below_horizon", {"elevation": round(sun.elevation, 1), "limit": self.min_elevation}
+        if sun.elevation > self.max_elevation:
+            return "above_overhang", {"elevation": round(sun.elevation, 1), "limit": self.max_elevation}
+        incidence = self.incidence(sun)
+        if incidence >= max_incidence:
+            return "not_facing", {"incidence": round(incidence, 1), "limit": max_incidence}
+        return None
+
     def sun_on(self, sun: SunPosition, max_incidence: float = 85.0) -> bool:
         return (
             sun.elevation > 0

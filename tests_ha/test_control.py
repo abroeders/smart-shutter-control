@@ -37,6 +37,11 @@ async def test_schedule_leaves_an_open_shutter_by_day(hass: HomeAssistant, cover
     assert not calls  # already open
     assert hass.states.get(entity(hass, entry, "sensor", "reason")).state == "schedule"
     assert hass.states.get(entity(hass, entry, "sensor", "phase")).state == "day"
+    trace = hass.states.get(entity(hass, entry, "sensor", "reason")).attributes["decision"]
+    assert [e["rule"] for e in trace][0] == "storm"  # every rule, in priority order (#56)
+    schedule = next(e for e in trace if e["rule"] == "schedule")
+    assert schedule["applied"] and schedule["why"] == "phase" and schedule["values"] == {"phase": "day"}
+    assert next(e for e in trace if e["rule"] == "heat")["result"] == "none"
 
 
 async def test_moves_limited_and_only_when_automatic(hass: HomeAssistant, covers) -> None:

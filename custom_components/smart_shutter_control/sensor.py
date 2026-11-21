@@ -35,6 +35,7 @@ async def async_setup_entry(
 class ReasonSensor(ShutterEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = [r.value for r in Reason]
+    _unrecorded_attributes = frozenset({"decision"})  # changes on every evaluation
 
     @property
     def native_value(self) -> str:
@@ -46,6 +47,7 @@ class ReasonSensor(ShutterEntity, SensorEntity):
             "target_position": self.controller.decision.position,
             "max_position": self.controller.max_position,
             "language": self.coordinator.language,
+            "decision": self.controller.trace(),
         }
 
 

@@ -399,6 +399,12 @@ class ShutterController:
             return module is not None and abs(module - value) <= 1
         return matches(self.position(), value)
 
+    def trace(self) -> list[dict]:
+        """What every rule said in the last decision (#56); empty while automatic control is off."""
+        if not self.automatic or self.paused:
+            return []
+        return [entry.as_dict() for entry in self.chain.last_trace]
+
     async def async_evaluate(
         self, inputs: Inputs, storm: bool = False, weather: str | None = None
     ) -> Decision:

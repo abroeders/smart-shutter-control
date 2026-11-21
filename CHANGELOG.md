@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Why the shutter is where it is: the *Reason* sensor's attribute `decision` lists what every rule said (the
+  position it proposed and whether it decided, or why it did nothing, with the values), and the card unfolds
+  it under **Why?** (#56).
+
 ## [2026.11.10] - 2026-11-21
 
 ### Added
