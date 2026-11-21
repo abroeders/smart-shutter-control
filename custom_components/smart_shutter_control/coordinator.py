@@ -67,7 +67,7 @@ from .core.model import Inputs
 from .core.schedule import HolidayCalendar, parse_holidays, weekend_set
 from .core.sun import SunPosition
 from .core.sunny import ClearSkyReference, LuxBaseline, PvBaseline, SunnyDetector
-from .core.weather import FrostDetector, StormDetector
+from .core.weather import FrostDetector, StormDetector, cloud_coverage
 from .core.winter import OutdoorMean, WinterDetector
 from .storage import RuntimeStore
 
@@ -135,6 +135,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.inputs = Inputs(now=time.time())
         self.sunny = SunnyDetector()
         self.weather_state: str | None = None
+        self.cloud_coverage: float | None = None
         self.calendar = self._holiday_calendar()
         self.base_device_id: str | None = None
         self._unsubs: list = []
@@ -268,6 +269,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         weather = self.hass.states.get(self.sources[CONF_WEATHER]) if self.sources.get(CONF_WEATHER) else None
         value = self.sun_value()
         self.weather_state = weather.state if weather else None
+        self.cloud_coverage = cloud_coverage(dict(weather.attributes)) if weather else None
         sunny = self.sunny.update(sun, value, self.weather_state, now)
         if value is not None:
             self.store.set_global(self.reference_key, self.sunny.reference.to_dict())

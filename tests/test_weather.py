@@ -8,6 +8,7 @@ from core.weather import (
     StormDetector,
     StormRule,
     TemperatureLimitRule,
+    cloud_coverage,
     storm_target,
 )
 
@@ -65,3 +66,10 @@ def test_priorities():
     assert chain.decide(ctx(outdoor=28.9)).reason == Reason.MANUAL
     assert chain.decide(ctx(outdoor=-6)).reason == Reason.COLD_LIMIT
     assert RuleChain([TemperatureLimitRule(None, None)]).decide(ctx(outdoor=40)).position is None
+
+
+def test_cloud_coverage_from_the_weather_attributes():
+    assert cloud_coverage({"cloud_coverage": 55.5}) == 55.5
+    assert cloud_coverage({"cloud_coverage": "120"}) == 100.0
+    assert cloud_coverage({"cloud_coverage": None}) is None
+    assert cloud_coverage({"temperature": 12}) is None

@@ -26,6 +26,13 @@ device_id: <the shutter's device>
   phase) at their place as seen through this window, the leaves of the season, and trees that sway with the
   wind (harder in a storm). Fully closed you see nothing; otherwise the view shows through the slots and below
   the bottom bar. With reduced motion everything stands still.
+  - **Per window:** every window direction has its own landscape, the sky is lighter and warmer on the side
+    of the sun, and a dotted arc shows today's path of the sun from east to west, as far as this window sees
+    it (a north window sees none in winter).
+  - **Clouds that match the light:** the amount of clouds follows the cloud cover. By day the measured light
+    (PV power or light sensors, or the window's own facade light sensor) counts three times as much as the
+    weather entity, which reports for a wide area. A sun in view that is not bright has a grey cloud in front
+    of it; when the sun breaks through for a while, the cloud slides aside.
 
   | Summer day | Autumn storm | Full moon | Snow |
   |---|---|---|---|

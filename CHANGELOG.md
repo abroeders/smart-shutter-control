@@ -6,6 +6,20 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Card: every window direction has its own landscape and light on the sun's side, and a dotted arc shows
+  today's path of the sun through the window (#34).
+- Card: the amount of clouds follows the cloud cover; by day the measured light (PV power, light sensors or
+  the facade light sensor) weighs three times as much as the weather entity. A sun that is in view but not
+  bright has a cloud in front of it that slides aside when the sun breaks through (#34).
+- Attribute `cloud_coverage` on *Sun factor*: the weather entity's cloud coverage (#34).
+
+### Changed
+
+- Card: the sun stays visible, dimmed, under a closed cloud layer; a station reporting *cloudy* while the
+  panels measure sunshine no longer turns the view grey (#34).
+
 ## [2026.11.2] - 2026-11-20
 
 ### Added
