@@ -19,6 +19,7 @@ class SunSettings:
     heat_room: float = 24.0
     close_delay: float = 300.0  # s
     open_delay: float = 1200.0  # s
+    hot_day: float | None = 28.0  # °C forecast maximum from which the temperature limits do not apply (#50)
 
 
 class Phase(StrEnum):
@@ -44,7 +45,13 @@ class HeatProtectionRule:
         self.incidence: float | None = None
         self.sun_on: bool = False
 
+    def _hot_day(self, ctx: ShutterContext) -> bool:
+        forecast, limit = ctx.inputs.forecast_max, self.settings.hot_day
+        return forecast is not None and limit is not None and forecast >= limit
+
     def _warm(self, ctx: ShutterContext) -> bool:
+        if self._hot_day(ctx):
+            return True
         outdoor, room = ctx.inputs.outdoor, ctx.room
         if outdoor is None and room is None:
             return True
@@ -105,4 +112,6 @@ class HeatProtectionRule:
         values = {"outdoor": ctx.inputs.outdoor, "limit": self.settings.heat_outdoor}
         if ctx.room is not None:
             values |= {"room": ctx.room, "room_limit": self.settings.heat_room}
+        if ctx.inputs.forecast_max is not None and self.settings.hot_day is not None:
+            values |= {"forecast": ctx.inputs.forecast_max, "forecast_limit": self.settings.hot_day}
         return "too_cold", values

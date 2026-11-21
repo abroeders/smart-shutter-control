@@ -109,6 +109,7 @@
           "max_incidence": "Grootste invalshoek",
           "heat_outdoor": "Hittewering vanaf (buiten)",
           "heat_room": "Hittewering vanaf (kamer)",
+          "hot_day": "Hete dag vanaf (verwachting)",
           "close_delay": "Sluiten na",
           "open_delay": "Openen na"
         },
@@ -116,6 +117,7 @@
           "sunny_threshold": "Pv-vermogen of licht (lux) als deel van de waarde bij heldere lucht, voor deze zonnestand. Met lichtsensoren geldt de vaste lux-grens tot de waarde bij heldere lucht is geleerd.",
           "max_incidence": "Zon onder een grotere hoek met het raam telt als niet op het raam.",
           "heat_room": "Alleen voor rolluiken met een kamertemperatuursensor.",
+          "hot_day": "Verwachte maximumtemperatuur vanaf welke de hittewering niet meer wacht op de buiten- of kamertemperatuur. Leeg: uit.",
           "close_delay": "Minuten zon op het raam voordat het rolluik zakt.",
           "open_delay": "Minuten zonder zon voordat het weer omhoog gaat."
         }
@@ -223,6 +225,7 @@
             "sun_depth": "Zon de kamer in",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
+            "hot_day": "Hete dag vanaf (verwachting)",
             "glare_protection": "Verblinding",
             "glare_position": "Verblindingsstand",
             "glare_from": "Verblinding vanaf",
@@ -244,6 +247,7 @@
             "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
+            "hot_day": "Overschrijft de basiswaarde. Leeg: de basiswaarde.",
             "glare_protection": "Laat het rolluik zakken zolang felle zon op dit raam schijnt, ongeacht de temperatuur (ook in de winter).",
             "glare_position": "Stand terwijl de zon verblindt.",
             "glare_from": "Zonfactor (pv-vermogen of licht als deel van de waarde bij heldere lucht) vanaf welke de zon als fel telt.",
@@ -270,6 +274,7 @@
             "sun_depth": "Zon de kamer in",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
+            "hot_day": "Hete dag vanaf (verwachting)",
             "glare_protection": "Verblinding",
             "glare_position": "Verblindingsstand",
             "glare_from": "Verblinding vanaf",
@@ -291,6 +296,7 @@
             "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
+            "hot_day": "Overschrijft de basiswaarde. Leeg: de basiswaarde.",
             "glare_protection": "Laat het rolluik zakken zolang felle zon op dit raam schijnt, ongeacht de temperatuur (ook in de winter).",
             "glare_position": "Stand terwijl de zon verblindt.",
             "glare_from": "Zonfactor (pv-vermogen of licht als deel van de waarde bij heldere lucht) vanaf welke de zon als fel telt.",
@@ -555,6 +561,9 @@
       "sun_factor": {
         "name": "Zonfactor"
       },
+      "forecast_max": {
+        "name": "Verwachte maximumtemperatuur"
+      },
       "stand": {
         "name": "Stand",
         "state": {
@@ -598,6 +607,9 @@
       },
       "winter": {
         "name": "Winter"
+      },
+      "hot_day": {
+        "name": "Hete dag"
       }
     },
     "button": {

@@ -70,6 +70,7 @@ class Inputs:
     storm: bool = False
     frost: bool = False
     winter: bool = False
+    forecast_max: float | None = None  # today's forecast maximum temperature (#50)
     extra: dict = field(default_factory=dict)
 
 

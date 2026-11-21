@@ -26,6 +26,7 @@ from .const import (
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
     CONF_HORIZON,
+    CONF_HOT_DAY,
     CONF_LOCKOUT_POSITION,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
@@ -127,6 +128,7 @@ class ShutterController:
         overrides = {
             "heat_outdoor": subentry.data.get(CONF_HEAT_OUTDOOR),
             "heat_room": subentry.data.get(CONF_HEAT_ROOM),
+            "hot_day": subentry.data.get(CONF_HOT_DAY),
         }
         sun = SunSettings(**{**sun.__dict__, **{k: float(v) for k, v in overrides.items() if v is not None}})
         self.default_heat = bool(

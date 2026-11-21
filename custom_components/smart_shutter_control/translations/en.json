@@ -109,6 +109,7 @@
           "max_incidence": "Largest angle of incidence",
           "heat_outdoor": "Heat protection from (outdoor)",
           "heat_room": "Heat protection from (room)",
+          "hot_day": "Hot day from (forecast)",
           "close_delay": "Close after",
           "open_delay": "Open after"
         },
@@ -116,6 +117,7 @@
           "sunny_threshold": "PV power or light (lux) as a share of its clear-sky value at this position of the sun. With light sensors, the fixed lux limit applies until the clear-sky value is learned.",
           "max_incidence": "Sun at a larger angle to the window counts as not shining on it.",
           "heat_room": "Only for shutters with a room temperature sensor.",
+          "hot_day": "Forecast maximum from which heat protection no longer waits for the outdoor or room temperature. Empty: off.",
           "close_delay": "Minutes of sun on the window before the shutter goes down.",
           "open_delay": "Minutes without sun before it goes up again."
         }
@@ -223,6 +225,7 @@
             "sun_depth": "Sun into the room",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
+            "hot_day": "Hot day from (forecast)",
             "glare_protection": "Glare protection",
             "glare_position": "Glare position",
             "glare_from": "Glare from",
@@ -244,6 +247,7 @@
             "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
+            "hot_day": "Override of the base value. Empty: the base value.",
             "glare_protection": "Lower the shutter while bright sun shines on this window, whatever the temperature (also in winter).",
             "glare_position": "Position while the sun dazzles.",
             "glare_from": "Sun factor (PV power or light as a share of its clear-sky value) from which the sun counts as bright.",
@@ -270,6 +274,7 @@
             "sun_depth": "Sun into the room",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
+            "hot_day": "Hot day from (forecast)",
             "glare_protection": "Glare protection",
             "glare_position": "Glare position",
             "glare_from": "Glare from",
@@ -291,6 +296,7 @@
             "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
+            "hot_day": "Override of the base value. Empty: the base value.",
             "glare_protection": "Lower the shutter while bright sun shines on this window, whatever the temperature (also in winter).",
             "glare_position": "Position while the sun dazzles.",
             "glare_from": "Sun factor (PV power or light as a share of its clear-sky value) from which the sun counts as bright.",
@@ -555,6 +561,9 @@
       "sun_factor": {
         "name": "Sun factor"
       },
+      "forecast_max": {
+        "name": "Forecast maximum"
+      },
       "stand": {
         "name": "State",
         "state": {
@@ -598,6 +607,9 @@
       },
       "winter": {
         "name": "Winter"
+      },
+      "hot_day": {
+        "name": "Hot day"
       }
     },
     "button": {

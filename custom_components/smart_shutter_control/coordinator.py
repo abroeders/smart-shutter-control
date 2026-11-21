@@ -35,6 +35,7 @@ from .const import (
     DEFAULT_LUX_LIMIT,
     DEFAULT_OPTIONS,
     DOMAIN,
+    FORECAST_SECONDS,
     INPUT_DEBOUNCE,
     OPT_CLOSE_ABOVE,
     OPT_CLOSE_BELOW,
@@ -47,6 +48,7 @@ from .const import (
     OPT_HOLIDAYS_DISABLED,
     OPT_HOLIDAYS_EXCLUDED,
     OPT_HOLIDAYS_EXTRA,
+    OPT_HOT_DAY,
     OPT_LANGUAGE,
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
@@ -62,6 +64,7 @@ from .const import (
     TICK_SECONDS,
 )
 from .controller import ShutterController
+from .core.forecast import ForecastMaximum, today_max
 from .core.heat import SunSettings
 from .core.model import Inputs
 from .core.schedule import HolidayCalendar, parse_holidays, weekend_set
@@ -138,6 +141,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.sunny = SunnyDetector()
         self.weather_state: str | None = None
         self.cloud_coverage: float | None = None
+        self.forecast = ForecastMaximum()  # today's forecast maximum (#50)
         self.calendar = self._holiday_calendar()
         self.base_device_id: str | None = None
         self._unsubs: list = []
@@ -184,6 +188,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             heat_room=float(o[OPT_HEAT_ROOM]),
             close_delay=float(o[OPT_CLOSE_DELAY]) * 60,
             open_delay=float(o[OPT_OPEN_DELAY]) * 60,
+            hot_day=_num(o.get(OPT_HOT_DAY)),
         )
 
     async def async_start(self) -> None:
@@ -221,8 +226,10 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         inputs = [e for e in self._input_entities() if e]
         contacts = [e for s in self.shutters.values() for e in s.contacts if e]
         await self.async_refresh_holidays()
+        await self.async_refresh_forecast()
         self._unsubs += [
             async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=TICK_SECONDS)),
+            async_track_time_interval(self.hass, self._on_forecast, timedelta(seconds=FORECAST_SECONDS)),
             async_track_state_change_event(self.hass, watched, self._on_cover),
             async_track_state_change_event(self.hass, inputs, self._on_input),
             async_track_state_change_event(self.hass, contacts, self._on_contact),
@@ -297,6 +304,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         winter = self.winter.update(self.outdoor_mean.mean(now))
         return Inputs(
             winter=winter,
+            forecast_max=self.forecast_max,
             now=now,
             storm=storm,
             frost=frost,
@@ -354,6 +362,39 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
 
     async def _on_tick(self, _now: datetime) -> None:
         await self.async_tick()
+
+    async def async_refresh_forecast(self) -> None:
+        """Today's maximum from the weather entity's daily forecast (#50); a failed call keeps today's."""
+        entity_id = self.sources.get(CONF_WEATHER)
+        today = dt_util.now().date()
+        value = None
+        if entity_id and self.hass.states.get(entity_id) is not None:
+            try:
+                response = await self.hass.services.async_call(
+                    "weather",
+                    "get_forecasts",
+                    {"entity_id": entity_id, "type": "daily"},
+                    blocking=True,
+                    return_response=True,
+                )
+            except HomeAssistantError as err:
+                _LOGGER.debug("No daily forecast from %s: %s", entity_id, err)
+            else:
+                forecast = (response or {}).get(entity_id, {}).get("forecast") or []
+                value = today_max(forecast, today, dt_util.get_default_time_zone())
+        self.forecast.update(value, today)
+
+    @property
+    def forecast_max(self) -> float | None:
+        return self.forecast.today(dt_util.now().date())
+
+    @property
+    def hot_day(self) -> bool:
+        limit, value = self.sun_settings().hot_day, self.forecast_max
+        return value is not None and limit is not None and value >= limit
+
+    async def _on_forecast(self, _now: datetime) -> None:
+        await self.async_refresh_forecast()
 
     def _holiday_calendar(self) -> HolidayCalendar:
         extra, _ = parse_holidays(self.options.get(OPT_HOLIDAYS_EXTRA))

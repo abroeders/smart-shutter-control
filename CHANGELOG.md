@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Heat protection from the weather forecast: with *Hot day from (forecast)* (default 28 °C, per shutter
+  adjustable), on a day whose forecast maximum reaches it heat protection no longer waits for the outdoor or
+  room temperature and lowers a sun-facing shutter as soon as the sun is on the window and it is sunny. New
+  base entities *Forecast maximum* and *Hot day* (#50).
+
 ### Changed
 
 - Releases are published by a workflow, only when the tagged commit passes the HACS and hassfest validation

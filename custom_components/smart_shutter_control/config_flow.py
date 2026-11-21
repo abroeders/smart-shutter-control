@@ -32,6 +32,7 @@ from .const import (
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
     CONF_HORIZON,
+    CONF_HOT_DAY,
     CONF_LIGHT,
     CONF_LOCKOUT_POSITION,
     CONF_LUX_LIMIT,
@@ -75,6 +76,7 @@ from .const import (
     OPT_HOLIDAYS_DISABLED,
     OPT_HOLIDAYS_EXCLUDED,
     OPT_HOLIDAYS_EXTRA,
+    OPT_HOT_DAY,
     OPT_LANGUAGE,
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
@@ -517,12 +519,14 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
     async def async_step_sun(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
         if user_input is not None:
-            return self.async_create_entry(data={**current, **user_input})
+            # an emptied "hot day from" switches it off: keep None, not the old value (#50)
+            return self.async_create_entry(data={**current, OPT_HOT_DAY: None, **user_input})
         schema = {
             vol.Required(OPT_SUNNY_THRESHOLD): _number(10, 100, 5, "%"),
             vol.Required(OPT_MAX_INCIDENCE): _number(30, 90, 1, "°"),
             vol.Required(OPT_HEAT_OUTDOOR): _number(-10, 40, 0.5, "°C"),
             vol.Required(OPT_HEAT_ROOM): _number(10, 35, 0.5, "°C"),
+            vol.Optional(OPT_HOT_DAY): _number(15, 45, 0.5, "°C"),
             vol.Required(OPT_CLOSE_DELAY): _number(0, 60, 1, "min"),
             vol.Required(OPT_OPEN_DELAY): _number(0, 120, 1, "min"),
         }
@@ -576,6 +580,7 @@ SHUTTER = {
     vol.Optional(CONF_SUN_DEPTH): _number(0, 10, 0.1, "m"),
     vol.Optional(CONF_HEAT_OUTDOOR): _number(-10, 40, 0.5, "°C"),
     vol.Optional(CONF_HEAT_ROOM): _number(10, 35, 0.5, "°C"),
+    vol.Optional(CONF_HOT_DAY): _number(15, 45, 0.5, "°C"),
     vol.Required(CONF_GLARE_PROTECTION): selector.BooleanSelector(),
     vol.Required(CONF_GLARE_POSITION): _number(0, 100, 5, "%"),
     vol.Required(CONF_GLARE_FROM): _number(10, 100, 5, "%"),

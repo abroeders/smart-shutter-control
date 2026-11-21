@@ -96,10 +96,10 @@ def test_caps_lower_but_never_raise():
 NOON = SunPosition(180, 40)
 
 
-def sun_ctx(now, sunny=True, outdoor=25.0, sun=NOON, heat=True):
+def sun_ctx(now, sunny=True, outdoor=25.0, sun=NOON, heat=True, forecast_max=None):
     return ShutterContext(
         ShutterConfig("cover.a", 180),
-        Inputs(now=now, outdoor=outdoor, sun=sun, sunny=sunny),
+        Inputs(now=now, outdoor=outdoor, sun=sun, sunny=sunny, forecast_max=forecast_max),
         100,
         100,
         heat_protection=heat,
@@ -128,6 +128,32 @@ def test_heat_rule_opens_when_the_sun_leaves_the_window_and_needs_warmth():
     assert cool.propose(sun_ctx(0, outdoor=15.0)) is None
     off = HeatProtectionRule(SunSettings(close_delay=0))
     assert off.propose(sun_ctx(0, heat=False)) is None
+
+
+def test_hot_day_lowers_at_a_low_outside_temperature():
+    rule = HeatProtectionRule(SunSettings(close_delay=0, hot_day=28))
+    assert rule.propose(sun_ctx(0, outdoor=15.0, forecast_max=30.0)) is not None
+
+
+def test_forecast_below_the_hot_day_limit_does_not_replace_temperature():
+    rule = HeatProtectionRule(SunSettings(close_delay=0, hot_day=28))
+    assert rule.propose(sun_ctx(0, outdoor=15.0, forecast_max=27.9)) is None
+
+
+def test_forecast_without_a_value_or_with_hot_day_off_changes_nothing():
+    rule = HeatProtectionRule(SunSettings(close_delay=0, hot_day=28))
+    assert rule.propose(sun_ctx(0, outdoor=15.0, forecast_max=None)) is None
+    off = HeatProtectionRule(SunSettings(close_delay=0, hot_day=None))
+    assert off.propose(sun_ctx(0, outdoor=15.0, forecast_max=30.0)) is None
+
+
+def test_too_cold_trace_includes_forecast_and_limit():
+    rule = HeatProtectionRule(SunSettings(close_delay=0, hot_day=28))
+    rule.propose(sun_ctx(0, outdoor=15.0, forecast_max=24.0))
+    assert rule.why == (
+        "too_cold",
+        {"outdoor": 15.0, "limit": 22.0, "forecast": 24.0, "forecast_limit": 28.0},
+    )
 
 
 def test_lux_start_limit_with_hysteresis_then_learned():
