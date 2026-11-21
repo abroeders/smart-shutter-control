@@ -1,5 +1,9 @@
 # Smart Shutter Control
 
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
+[![Release](https://img.shields.io/github/v/release/abroeders/smart-shutter-control)](https://github.com/abroeders/smart-shutter-control/releases)
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-ffdd00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/abroeders)
+
 A Home Assistant integration (HACS) that controls roller shutters: on a schedule per shutter, against the
 heat when the sun really shines on a window, safely in a storm, and without fighting you when you move a
 shutter by hand.
@@ -65,6 +69,12 @@ Smart Shutter Control*, and *Add shutter* for each shutter. Details: [Installati
 - Card: in `frontend/`, `npm ci`, `npm test`, `npm run build` (the bundle in
   `custom_components/smart_shutter_control/frontend/` is committed); screenshots with
   `python scripts/screenshot_card.py`.
+
+## Support
+
+Do your shutters run themselves now? A coffee keeps the project going. Thank you!
+
+<a href="https://www.buymeacoffee.com/abroeders"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="50"></a>
 
 ## License
 

@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.10] - 2026-11-21
+
+### Added
+
+- A Buy Me a Coffee button in the README and a *Sponsor* link on GitHub, for those who want to support the
+  project (#57).
+
 ## [2026.11.9] - 2026-11-21
 
 ### Fixed
@@ -288,7 +295,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.9...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.10...HEAD
+[2026.11.10]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.9...2026.11.10
 [2026.11.9]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.8...2026.11.9
 [2026.11.8]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.7...2026.11.8
 [2026.11.7]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.6...2026.11.7
