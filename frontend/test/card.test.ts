@@ -96,11 +96,15 @@ describe("card", () => {
     const card = await mount(hass);
     const drawing = card.shadowRoot.querySelector("ssc-drawing");
     const svg = layout(drawing);
-    svg.dispatchEvent(pointer("pointerdown", 100));
-    svg.dispatchEvent(pointer("pointermove", 140));
+    svg.dispatchEvent(pointer("pointerdown", 100)); // the glass, not the grip: a scroll on a phone
+    svg.dispatchEvent(pointer("pointerup", 140.5));
+    expect(hass.calls).toEqual([]);
+    const grip = drawing.shadowRoot.querySelector(".grip");
+    grip.dispatchEvent(pointer("pointerdown", 100));
+    grip.dispatchEvent(pointer("pointermove", 140));
     await drawing.updateComplete;
     expect(drawing.shadowRoot.querySelector(".target")).not.toBeNull();
-    svg.dispatchEvent(pointer("pointerup", 140.5)); // y 140.5 of 262 → bar half way: 50 %
+    grip.dispatchEvent(pointer("pointerup", 140.5)); // y 140.5 of 262 → bar half way: 50 %
     expect(hass.calls).toEqual([{ domain: "cover", service: "set_cover_position", data: { entity_id: "cover.living", position: 50 } }]);
   });
 
@@ -109,12 +113,13 @@ describe("card", () => {
     const card = await mount(hass);
     expect(text(card)).toContain("Storm: only open/closed");
     const drawing = card.shadowRoot.querySelector("ssc-drawing");
-    const svg = layout(drawing);
-    svg.dispatchEvent(pointer("pointerdown", 100));
-    svg.dispatchEvent(pointer("pointerup", 101));
+    layout(drawing);
+    const grip = drawing.shadowRoot.querySelector(".grip");
+    grip.dispatchEvent(pointer("pointerdown", 100));
+    grip.dispatchEvent(pointer("pointerup", 101));
     expect(hass.calls).toEqual([]);
-    svg.dispatchEvent(pointer("pointerdown", 100));
-    svg.dispatchEvent(pointer("pointerup", 120)); // 60 %: open
+    grip.dispatchEvent(pointer("pointerdown", 100));
+    grip.dispatchEvent(pointer("pointerup", 120)); // 60 %: open
     expect(hass.calls[0].data.position).toBe(100);
   });
 

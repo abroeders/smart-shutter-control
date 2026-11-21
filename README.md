@@ -24,7 +24,7 @@ shutter by hand.
   while); it resumes with a button, or when you move the shutter to where automatic control wants it.
 - **Safety:** in a storm only fully open or fully closed; no moves during frost; optional temperature limits.
 - **Winter mode:** closed all day in severe cold, and a closed shutter stays closed in the evening.
-- **Lovelace card:** drag the drawing to a position, up/stop/down, the reason and the next actions; or all
+- **Lovelace card:** drag the grip to a position, up/stop/down, the reason and the next actions; or all
   shutters at a glance. English and Dutch.
 
 | Dragging to a position | Dark theme |

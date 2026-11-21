@@ -12,8 +12,9 @@ type: custom:smart-shutter-card
 device_id: <the shutter's device>
 ```
 
-- **Drawing:** the shutter at its real (calibrated) position. Drag it up or down: a shadow bar shows the
-  target, releasing moves the shutter there. This counts as a manual action, so automatic control pauses
+- **Drawing:** the shutter at its real (calibrated) position. Drag the blue grip on the bottom bar up or
+  down: a shadow bar shows the target, releasing moves the shutter there. Only the grip moves the shutter,
+  so scrolling over the drawing on a phone does nothing. This counts as a manual action, so automatic control pauses
   (see *Manual operation*). During a storm the target snaps to fully open or fully closed.
 - **Keyboard:** focus the drawing; ↑/↓ 5 %, Page Up/Down 25 %, Home open, End closed, Enter to move,
   Escape to cancel.
