@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.8] - 2026-11-21
+
+### Changed
+
+- Card: only the blue grip on the bottom bar drags the shutter to a position. Touching or scrolling over
+  the rest of the drawing on a phone no longer moves the shutter (#44).
+
 ## [2026.11.7] - 2026-11-21
 
 ### Fixed
@@ -273,7 +280,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.7...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.8...HEAD
+[2026.11.8]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.7...2026.11.8
 [2026.11.7]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.6...2026.11.7
 [2026.11.6]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.5...2026.11.6
 [2026.11.5]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.4...2026.11.5

@@ -1,4 +1,5 @@
-// The shutter drawing: window, box, slats down to the real position. Drag (or ↑/↓, Home, End, Enter) to move it.
+// The shutter drawing: window, box, slats down to the real position. Drag the grip (or ↑/↓, Home, End, Enter) to
+// move it; the rest of the drawing leaves touches to the page, so scrolling over it on a phone moves nothing.
 
 import { LitElement, css, html, svg } from "lit";
 import { type Box, positionForY, snap, yForPosition } from "./geometry";
@@ -12,6 +13,8 @@ export const BAR: Box = { top: 40, bottom: 241 };
 /** the window glass: where the view through the window is drawn */
 export const GLASS = { x: 64, y: 40, w: 156, h: 206 };
 const MIN_DRAG_PX = 4;
+// a drag that starts on the grip never scrolls the page, also where SVG elements ignore `touch-action`
+const NO_SCROLL = { handleEvent: (ev: Event) => ev.preventDefault(), passive: false };
 
 export class ShutterDrawing extends LitElement {
   static properties = {
@@ -74,7 +77,7 @@ export class ShutterDrawing extends LitElement {
       height: auto;
       outline: none;
     }
-    svg.interactive {
+    .grip {
       cursor: ns-resize;
       touch-action: none;
     }
@@ -101,7 +104,7 @@ export class ShutterDrawing extends LitElement {
   }
 
   private onDown(ev: PointerEvent) {
-    if (!this.interactive) return;
+    if (!this.interactive || this.compact) return;
     (ev.currentTarget as Element).setPointerCapture?.(ev.pointerId);
     this.startY = ev.clientY;
     this.moved = false;
@@ -168,10 +171,6 @@ export class ShutterDrawing extends LitElement {
       aria-valuemax="100"
       aria-valuenow=${this._drag ?? p}
       aria-valuetext=${`${this._drag ?? p} %`}
-      @pointerdown=${this.onDown}
-      @pointermove=${this.onMove}
-      @pointerup=${this.onUp}
-      @pointercancel=${this.onCancel}
       @keydown=${this.onKey}
     >
       <defs>
@@ -203,9 +202,19 @@ export class ShutterDrawing extends LitElement {
           <rect class="slats ${this.gaps ? "open" : "closed"}" x="64" y="-170" width="156" height="406" fill=${this.gaps ? "url(#slats-open)" : "url(#slats)"}></rect>
           <rect class="bar" x="60" y="236" width="164" height="10" rx="3" fill="var(--ssc-bar)"></rect>
           ${handle
-            ? svg`<rect x="124" y="230" width="36" height="22" rx="11" fill="var(--ssc-accent)" stroke="#fff" stroke-width="2"></rect>
-                 <line x1="134" y1="238" x2="150" y2="238" stroke="#fff" stroke-width="2"></line>
-                 <line x1="134" y1="244" x2="150" y2="244" stroke="#fff" stroke-width="2"></line>`
+            ? svg`<g
+                class="grip"
+                @pointerdown=${this.onDown}
+                @pointermove=${this.onMove}
+                @pointerup=${this.onUp}
+                @pointercancel=${this.onCancel}
+                @touchstart=${NO_SCROLL}
+              >
+                <rect x="112" y="220" width="60" height="40" fill="transparent"></rect>
+                <rect x="124" y="230" width="36" height="22" rx="11" fill="var(--ssc-accent)" stroke="#fff" stroke-width="2"></rect>
+                <line x1="134" y1="238" x2="150" y2="238" stroke="#fff" stroke-width="2"></line>
+                <line x1="134" y1="244" x2="150" y2="244" stroke="#fff" stroke-width="2"></line>
+              </g>`
             : ""}
         </g>
       </g>
