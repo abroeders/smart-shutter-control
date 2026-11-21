@@ -8,7 +8,7 @@ shutter by hand.
 
 ## Features
 
-- **Base controller with one device per shutter:** shared settings (sun and PV sources, wind, holidays,
+- **Base controller with one device per shutter:** shared settings (sun source: PV power or light sensors, wind, holidays,
   the base schedule) and per shutter its window direction, maximum position and any overrides.
 - **Schedules:** slit, open, dusk and night per shutter, with weekend and holiday times (from a calendar,
   with holidays you can switch off), sunset-relative evenings and sleep-in.

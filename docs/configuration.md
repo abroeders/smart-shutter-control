@@ -82,7 +82,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 | Setting | Default | Effect |
 |---|---|---|
-| Sunny from | 60 % | PV power as a share of its clear-sky value above which it counts as sunny (−15 % hysteresis) |
+| Sunny from | 60 % | PV power or light (lux) as a share of its clear-sky value above which it counts as sunny (−15 % hysteresis). With light sensors, the fixed *Sunny from (until learned)* limit in lux applies until the clear-sky value is learned |
 | Largest angle of incidence | 85° | sun at a larger angle to the window does not count as shining on it |
 | Heat protection from (outdoor) | 22 °C | heat protection only acts at or above this outdoor temperature, or … |
 | Heat protection from (room) | 24 °C | … at or above this room temperature (shutters with a room sensor) |

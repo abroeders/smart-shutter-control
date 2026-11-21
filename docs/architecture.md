@@ -53,7 +53,7 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
 | **Observer** | the entities listen to `BaseCoordinator` |
-| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned PV reference) |
+| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux) |
 
 ## 3. Scaffold (#1)
 
@@ -409,10 +409,11 @@ classDiagram
     class SunnyDetector {
         +threshold float
         +pv_peak_kw float|None
+        +baseline PvBaseline|LuxBaseline
         +sunny bool
         +factor float|None
         +source str
-        +update(sun, pv_power, weather, now) bool
+        +update(sun, value, weather, now) bool
     }
     class HeatProtectionRule {
         +priority 40
@@ -447,8 +448,8 @@ sequenceDiagram
     participant R as RuleChain
     participant H as HeatProtectionRule
     C->>SP: at(latitude, longitude, now)
-    C->>SD: update(sun, PV power, weather)
-    SD-->>C: sunny, factor, source (learned / pv_peak / weather / geometry)
+    C->>SD: update(sun, PV power or lux, weather)
+    SD-->>C: sunny, factor, source (learned / pv_peak / lux_learned / lux_limit / weather / geometry)
     C->>SC: async_evaluate(inputs with sun and sunny)
     SC->>R: decide(ctx: room temperature, heat protection, shading position)
     R->>H: propose(ctx)

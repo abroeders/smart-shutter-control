@@ -113,7 +113,7 @@
           "open_delay": "Openen na"
         },
         "data_description": {
-          "sunny_threshold": "Pv-vermogen als deel van de waarde bij heldere lucht, voor deze zonnestand.",
+          "sunny_threshold": "Pv-vermogen of licht (lux) als deel van de waarde bij heldere lucht, voor deze zonnestand. Met lichtsensoren geldt de vaste lux-grens tot de waarde bij heldere lucht is geleerd.",
           "max_incidence": "Zon onder een grotere hoek met het raam telt als niet op het raam.",
           "heat_room": "Alleen voor rolluiken met een kamertemperatuursensor.",
           "close_delay": "Minuten zon op het raam voordat het rolluik zakt.",

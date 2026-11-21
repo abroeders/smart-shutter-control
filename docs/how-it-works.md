@@ -27,7 +27,7 @@ a higher rule ends. A shutter moved in the middle of a phase is left there until
 
 ```mermaid
 flowchart LR
-  I["inputs: time, sun, PV, temperatures, wind"] --> R["rules by priority"]
+  I["inputs: time, sun, PV or lux, temperatures, wind"] --> R["rules by priority"]
   R --> L["maximum position"]
   L --> C["calibration: real → module position"]
   C --> M["cover.set_cover_position, only when the target changes"]

@@ -6,8 +6,10 @@
 - Roller shutters as `cover` entities that can be **set to a position** (for example Z-Wave, Zigbee or Shelly
   shutter modules). The integration does not talk to the hardware itself; it moves these covers.
 - An outdoor temperature sensor.
-- Recommended: one or more PV power sensors (used to tell whether the sun really shines), a wind or gust
-  sensor (storm), and a power sensor on each shutter module (calibration and manual-operation detection).
+- Recommended: one or more PV power sensors or outdoor light sensors (lux), used to tell whether the sun
+  really shines (one kind, not both; see [Configuration](configuration.md)), a wind or gust sensor (storm),
+  and a power sensor on each shutter module (calibration and manual-operation detection). Optionally a light
+  sensor at a window, which decides for that shutter alone whether it is sunny.
 
 ## Install with HACS
 
@@ -24,8 +26,10 @@ restart.
 *Settings → Devices & services → Add integration → Smart Shutter Control.*
 
 1. **Name**, for example *House*.
-2. **Sources** (see [Configuration](configuration.md#sources)): outdoor temperature (required), weather, PV
-   power sensors, PV peak power, wind speed and gust sensors.
+2. **Sources** (see [Configuration](configuration.md#sources)): outdoor temperature (required), weather,
+   wind speed and gust sensors, and the sun source: *PV power* (PV power sensors, PV peak power), *Light
+   sensors (lux)* (light sensors, the "sunny from" limit) or *None*. A second page shows only the fields of
+   the chosen sun source.
 
 The base controller is a device of its own. It holds the settings shared by all shutters.
 
