@@ -6,18 +6,18 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.11] - 2026-11-21
+
 ### Added
 
 - Shading position from the sun: with the window's height above the floor, its height and how far direct sun
   may reach into the room, heat and glare protection lower the shutter only as far as needed (in steps of
   10 %, at most once per quarter of an hour, never below the fixed position), so a high sun leaves more
   daylight (#55).
-
 - Horizon per window: buildings and trees block a low sun at different heights in different directions.
   The button *Sun has left the window* (also in the card) records the sun's direction and elevation as a
   horizon point, and *Reconfigure → Horizon* shows the points as a table. Heat and glare protection stop when
   the sun is below the horizon (#54).
-
 - Why the shutter is where it is: the *Reason* sensor's attribute `decision` lists what every rule said (the
   position it proposed and whether it decided, or why it did nothing, with the values), and the card unfolds
   it under **Why?** (#56).
@@ -311,7 +311,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.10...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.11...HEAD
+[2026.11.11]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.10...2026.11.11
 [2026.11.10]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.9...2026.11.10
 [2026.11.9]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.8...2026.11.9
 [2026.11.8]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.7...2026.11.8
