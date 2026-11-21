@@ -416,3 +416,34 @@ async def test_edit_the_table(hass: HomeAssistant, covers) -> None:
     assert saved["points"]["down"][1] == [0.5, 0.2]
     assert saved["slit"] == {"up": 0.18, "down": 0.18}
     assert entry.runtime_data.shutters[subentry_id].calibration.calibrated
+
+
+async def test_a_module_that_reports_only_when_asked_is_polled(
+    hass: HomeAssistant, covers, fast, monkeypatch
+) -> None:
+    """The module moves but never reports by itself: the assistant asks for its position every few
+    seconds and goes on as soon as the target is there, instead of waiting until it gives up."""
+    monkeypatch.setattr(assistant, "REFRESH", 0.05)
+    monkeypatch.setattr(assistant, "STABLE", 1.5)  # would give up long before without polling
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    controller = entry.runtime_data.shutters[next(iter(entry.subentries))]
+    physical_position = {"value": 100}
+    refreshes: list[int] = []
+
+    async def set_position(call: ServiceCall) -> None:
+        physical_position["value"] = int(call.data["position"])  # moves, but tells nobody
+
+    async def update_entity(call: ServiceCall) -> None:
+        refreshes.append(physical_position["value"])
+        hass.states.async_set(
+            LIVING, "open", {"current_position": physical_position["value"], "supported_features": 15}
+        )
+
+    hass.services.async_register("cover", "set_cover_position", set_position)
+    hass.services.async_register("homeassistant", "update_entity", update_entity)
+    session = assistant.CalibrationSession(controller)
+    start = asyncio.get_running_loop().time()
+    await session.move(40)
+    assert session.reached and refreshes
+    assert asyncio.get_running_loop().time() - start < 1.0

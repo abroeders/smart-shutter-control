@@ -13,6 +13,7 @@ from .core.calibration import RollerCalibration
 from .core.model import Direction
 
 POLL = 0.5  # s between checks
+REFRESH = 5.0  # s between asking the module for its position while waiting: not every module reports
 RUNNING_W = 5.0  # motor power above this: the motor runs
 START_WAIT = 6.0  # s for the motor to start after a command
 IDLE = 2.0  # s of motor power below RUNNING_W: the motor has stopped
@@ -47,6 +48,7 @@ class CalibrationSession:
     reached: bool = True  # the last move ended at its target
     measuring: list[int] = field(default_factory=list)  # module positions of the measuring points
     travel_time: float | None = None  # s, fully open to fully closed (#18)
+    _refreshed: float = 0.0  # monotonic time of the last refresh request
     measured_travel: bool = False
 
     @property
@@ -194,6 +196,25 @@ class CalibrationSession:
         if self.reached and end:
             await asyncio.sleep(END_SETTLE if self.has_power else END_SETTLE_NO_POWER)
 
+    async def _pause(self) -> None:
+        """Wait one check interval; every REFRESH seconds also ask the module for its position (without
+        waiting for the answer), so a module that does not report by itself is still seen to arrive."""
+        await asyncio.sleep(POLL)
+        now = time.monotonic()
+        if now - self._refreshed >= REFRESH:
+            self._refreshed = now
+            self.controller.hass.async_create_task(self.controller.adapter.async_refresh())
+
+    def _at(self, target: int | None) -> bool:
+        """The module reports the target (±1) and the motor does not run."""
+        position = self.controller.adapter.module_position()
+        return (
+            target is not None
+            and position is not None
+            and abs(position - target) <= 1
+            and not self._motor_running()
+        )
+
     def _motor_running(self) -> bool:
         power = self.controller.adapter.motor_power()
         return power is not None and power > RUNNING_W
@@ -204,10 +225,11 @@ class CalibrationSession:
         stopped = dt_util.utcnow()
         await adapter.async_refresh()
         start = time.monotonic()
+        self._refreshed = time.monotonic()
         while time.monotonic() - start < REPORT_WAIT:
             if adapter.reported_since(stopped):
                 return
-            await asyncio.sleep(POLL)
+            await self._pause()
 
     async def _wait_for_end(self, module: int) -> float | None:
         """Until the module reports the end position and the motor has been idle for a while (without a
@@ -217,7 +239,7 @@ class CalibrationSession:
         start = time.monotonic()
         idle_since: float | None = None
         while time.monotonic() - start < MAX_WAIT:
-            await asyncio.sleep(POLL)
+            await self._pause()
             now = time.monotonic()
             if adapter.module_position() == module and not self._motor_running():
                 idle_since = idle_since or now
@@ -240,20 +262,20 @@ class CalibrationSession:
         ):
             expected = abs(target - start_position) / 100 * self.travel_time + TRAVEL_MARGIN
             while time.monotonic() - start < expected:
-                await asyncio.sleep(POLL)
+                await self._pause()
             await self._fresh_report()
             return
         if adapter.motor_power() is not None:
             started = False
             idle_since: float | None = None
             while time.monotonic() - start < MAX_WAIT:
-                await asyncio.sleep(POLL)
+                await self._pause()
                 now = time.monotonic()
                 if self._motor_running():
                     started, idle_since = True, None
                     continue
-                if not started and now - start < START_WAIT:
-                    continue  # not started yet
+                if not started and now - start < START_WAIT and not self._at(target):
+                    continue  # not started yet (a short move may be over before the power sensor shows it)
                 idle_since = idle_since or now
                 if now - idle_since >= IDLE:
                     await self._fresh_report()
@@ -262,10 +284,12 @@ class CalibrationSession:
         last_change = start
         last = adapter.module_position()
         while time.monotonic() - start < MAX_WAIT:
-            await asyncio.sleep(POLL)
+            await self._pause()
             now = time.monotonic()
             position = adapter.module_position()
             if position != last:
                 last, last_change = position, now
+                if self._at(target):
+                    return  # arrived: no need to wait until the position has been stable for a while
             elif now - last_change >= STABLE:
                 return
