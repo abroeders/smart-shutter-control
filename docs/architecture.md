@@ -706,6 +706,7 @@ classDiagram
         +max
         +storm
         +set-position event
+        -onDown/onMove/onUp() on the grip only
     }
     class viewmodel {
         <<module>>

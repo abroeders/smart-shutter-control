@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Changed
+
+- Card: only the blue grip on the bottom bar drags the shutter to a position. Touching or scrolling over
+  the rest of the drawing on a phone no longer moves the shutter (#44).
+
 ## [2026.11.7] - 2026-11-21
 
 ### Fixed
