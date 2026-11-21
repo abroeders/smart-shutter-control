@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Changed
+
+- Releases are published by a workflow, only when the tagged commit passes the HACS and hassfest validation
+  and its versions match the tag.
+
 ## [2026.11.13] - 2026-11-21
 
 ### Added
