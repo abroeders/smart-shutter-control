@@ -30,7 +30,7 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | switch *Glare protection* | glare protection for this shutter (off by default) |
 | switch *Sleep in* | stays closed in the coming slit and day phases; ends on a manual action or at *Sleep in until* |
 | button *Resume automatic control* | ends a manual pause and moves the shutter to the wanted position |
-| sensor *Reason* | why the shutter is where it is: idle, automatic control off, manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare. Attributes `target_position`, `max_position`, `language` |
+| sensor *Reason* | why the shutter is where it is: idle, automatic control off, manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare. Attributes `target_position`, `max_position`, `language`, `decision` (what every rule said, see [How it works](how-it-works.md#rules-and-priorities)) |
 | sensor *Next action* | time of the next phase change; attributes `phase`, `position`, `following` (the two after it), `overrides` |
 | sensor *Phase* | night, slit, day or dusk |
 | sensor *State* | closed, slit (gaps open, bar on the sill), partly open, open; attributes `opening`, `module_position` |

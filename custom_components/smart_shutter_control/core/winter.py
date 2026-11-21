@@ -70,6 +70,8 @@ class WinterRule:
     """In winter: closed all day when it is very cold; the dusk position never raises a closed shutter."""
 
     priority = 50
+    name = "winter"
+    why = None
 
     def __init__(
         self,
@@ -85,6 +87,7 @@ class WinterRule:
 
     def propose(self, ctx: ShutterContext) -> Decision | None:
         if not ctx.inputs.winter or not self.enabled():
+            self.why = ("off", {})
             return None
         limit, outdoor = self.closed_below(), ctx.inputs.outdoor
         if limit is not None and outdoor is not None and outdoor <= limit:
@@ -95,4 +98,5 @@ class WinterRule:
             and ctx.position < self.dusk_position()
         ):
             return Decision(ctx.position, Reason.WINTER, Kind.CAP)
+        self.why = ("not_cold", {"outdoor": outdoor, "limit": limit})
         return None

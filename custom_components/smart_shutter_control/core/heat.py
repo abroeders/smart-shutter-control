@@ -31,9 +31,11 @@ class HeatProtectionRule:
     """A cap: at most the shading position while the sun is on the window, it is sunny and warm."""
 
     priority = PRIORITY
+    name = "heat"
 
     def __init__(self, settings: SunSettings) -> None:
         self.settings = settings
+        self.why: tuple[str, dict] | None = None  # (#56)
         self.phase = Phase.OPEN
         self.since = 0.0
         self.started = False  # the first evaluation after a (re)start acts without the close delay
@@ -56,6 +58,7 @@ class HeatProtectionRule:
         sun, now = ctx.inputs.sun, ctx.inputs.now
         if not ctx.heat_protection or sun is None:
             self.phase, self.sun_on, self.incidence = Phase.OPEN, False, None
+            self.why = ("off", {}) if not ctx.heat_protection else ("night", {})
             return None
         cfg = ctx.config
         window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation)
@@ -78,6 +81,24 @@ class HeatProtectionRule:
                 self._go(Phase.SHADING, now)
             elif not self.sun_on or now - self.since >= self.settings.open_delay:
                 self._go(Phase.OPEN, now)
+        self.why = self._why(ctx, window, sun, now)
         if self.phase in (Phase.SHADING, Phase.LEAVING):
             return Decision(ctx.shading_position, Reason.SUN, Kind.CAP)
         return None
+
+    def _why(self, ctx: ShutterContext, window: WindowGeometry, sun, now: float) -> tuple[str, dict] | None:
+        if self.phase is Phase.PENDING:
+            return "waiting", {"seconds": round(self.settings.close_delay - (now - self.since))}
+        if self.phase is Phase.LEAVING:
+            return "leaving", {"seconds": round(self.settings.open_delay - (now - self.since))}
+        if self.phase is Phase.SHADING:
+            return None
+        off = window.why_not(sun, self.settings.max_incidence)
+        if off:
+            return off
+        if not ctx.inputs.sunny:
+            return "not_sunny", {}
+        values = {"outdoor": ctx.inputs.outdoor, "limit": self.settings.heat_outdoor}
+        if ctx.room is not None:
+            values |= {"room": ctx.room, "room_limit": self.settings.heat_room}
+        return "too_cold", values

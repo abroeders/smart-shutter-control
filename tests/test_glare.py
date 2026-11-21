@@ -99,3 +99,68 @@ def test_heat_and_glare_together_the_lower_wins():
 
 def test_after_a_restart_it_acts_at_once():
     assert rule().propose(glare_ctx(0)) == Decision(40, Reason.GLARE, Kind.CAP)
+
+
+def test_the_trace_tells_what_every_rule_said():
+    glare = rule(close_delay=0)
+    heat = HeatProtectionRule(SunSettings(close_delay=0))
+
+    class Open:
+        priority = 60
+        name = "schedule"
+
+        def propose(self, ctx):
+            return Decision(100, Reason.SCHEDULE)
+
+    chain = RuleChain([heat, glare, Open()])
+    assert chain.decide(glare_ctx(0, heat_protection=True)).position == 40
+    trace = [e.as_dict() for e in chain.last_trace]
+    assert trace[0] == {
+        "rule": "heat",
+        "priority": 40,
+        "result": "none",
+        "why": "too_cold",
+        "values": {"outdoor": 6.0, "limit": 22.0},
+    }
+    assert trace[1] == {
+        "rule": "glare",
+        "priority": 41,
+        "result": "cap",
+        "position": 40,
+        "applied": True,
+        "why": "bright",
+        "values": {"factor": 90, "limit": 55},
+    }
+    assert trace[2] == {
+        "rule": "schedule",
+        "priority": 60,
+        "result": "target",
+        "position": 100,
+        "applied": False,
+    }
+
+    chain.decide(glare_ctx(60, factor=0.3))  # leaving: still capped, with the time left
+    assert chain.last_trace[1].why == "leaving" and chain.last_trace[1].values["seconds"] == 1200
+
+
+def test_the_trace_says_why_the_sun_is_not_on_the_window():
+    r = rule(close_delay=0)
+    r.propose(glare_ctx(0, sun=SunPosition(280, 4)))  # beyond the side of a south window
+    assert r.why[0] == "not_facing" and r.why[1]["incidence"] > 85
+    ctx = glare_ctx(0, sun=SunPosition(180, 4))
+    object.__setattr__(ctx.config, "min_elevation", 5.0)
+    r.propose(ctx)
+    assert r.why == ("below_horizon", {"elevation": 4.0, "limit": 5.0})
+    r.propose(glare_ctx(0, factor=0.5))
+    assert r.why == ("not_bright", {"factor": 50, "limit": 70})
+
+
+def test_a_final_target_is_the_applied_one():
+    from core.weather import StormRule
+
+    chain = RuleChain([StormRule(lambda: "open"), rule(close_delay=0)])
+    ctx = glare_ctx(0)
+    object.__setattr__(ctx.inputs, "storm", True)
+    assert chain.decide(ctx).reason == Reason.STORM
+    assert [e.applied for e in chain.last_trace] == [True, False]
+    assert chain.last_trace[1].result == "cap"

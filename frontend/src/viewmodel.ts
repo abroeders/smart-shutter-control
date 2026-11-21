@@ -11,6 +11,22 @@ export interface NextAction {
   position: number | "slit";
 }
 
+export interface Decision {
+  rule: string;
+  priority: number;
+  result: "target" | "cap" | "final" | "none";
+  position?: number;
+  applied?: boolean;
+  why?: string;
+  values?: Record<string, unknown>;
+}
+
+export interface DecisionLine {
+  rule: string;
+  text: string;
+  applied: boolean;
+}
+
 export interface ShutterModel {
   deviceId: string;
   name: string;
@@ -21,6 +37,7 @@ export interface ShutterModel {
   closed: boolean;
   stand: string | null;
   reason: string | null;
+  decision: Decision[];
   target: number | null;
   max: number;
   phase: string | null;
@@ -37,6 +54,15 @@ export interface ShutterModel {
 }
 
 const num = (v: unknown): number | null => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
+const isDecision = (value: unknown): value is Decision => {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.rule === "string" &&
+    ["target", "cap", "final", "none"].includes(String(entry.result)) &&
+    (entry.values === undefined || (typeof entry.values === "object" && entry.values !== null && !Array.isArray(entry.values)))
+  );
+};
 
 export function shutterModel(hass: HomeAssistant, deviceId: string): ShutterModel {
   const e = deviceEntities(hass, deviceId);
@@ -63,6 +89,7 @@ export function shutterModel(hass: HomeAssistant, deviceId: string): ShutterMode
     closed: state === "closed",
     stand: st("stand")?.state ?? null,
     reason: reason?.state ?? null,
+    decision: Array.isArray(reason?.attributes.decision) ? reason.attributes.decision.filter(isDecision) : [],
     target: num(reason?.attributes.target_position),
     max: num(reason?.attributes.max_position) ?? 100,
     phase: st("phase")?.state ?? null,
@@ -125,6 +152,60 @@ export function positionText(position: number | "slit" | null, t: Translate): st
   if (position <= 0) return t("closed");
   if (position >= 100) return t("open");
   return `${position} %`;
+}
+
+function decisionNumber(value: unknown, language: string): string {
+  const n = num(value);
+  if (n === null) return String(value ?? "");
+  try {
+    return new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(n);
+  } catch {
+    return String(n);
+  }
+}
+
+function decisionTemplate(template: string, values: Record<string, unknown>, language: string, t: Translate): string {
+  return template.replace(/\{(\w+)\}/g, (_match, key: string) => {
+    const value = values[key];
+    if (value === undefined || value === null) return "–";
+    if (key === "phase") return t(`phase_${value}`);
+    if (key === "duration") return String(value);
+    return decisionNumber(value, language);
+  });
+}
+
+function decisionDuration(seconds: unknown, language: string, t: Translate): string {
+  const value = num(seconds);
+  if (value === null) return "";
+  const minutes = value >= 60;
+  const duration = decisionNumber(minutes ? Math.ceil(value / 60) : Math.ceil(value), language);
+  return decisionTemplate(t(minutes ? "decision_minutes" : "decision_seconds"), { duration }, language, t);
+}
+
+/** Turns the reason sensor's decision trace into localized lines for the card. */
+export function decisionLines(decisions: Decision[], t: Translate, language = "en"): DecisionLine[] {
+  return decisions.map((entry) => {
+    const values = entry.values ?? {};
+    const whyValues = { ...values };
+    if (entry.why === "waiting" || entry.why === "leaving") whyValues.duration = decisionDuration(values.seconds, language, t);
+    const whyKey = entry.why === "too_cold" && values.room !== undefined && values.room_limit !== undefined
+      ? "why_too_cold_room"
+      : `why_${entry.why}`;
+    const why = entry.why ? decisionTemplate(t(whyKey), whyValues, language, t) : "";
+    const position = entry.position === undefined ? null : entry.position;
+    const result = position === null
+      ? t(entry.result === "final" ? "decision_hold" : "decision_nothing")
+      : decisionTemplate(
+          t(entry.result === "cap" ? "decision_at_most" : entry.result === "final" ? "decision_final" : "decision_to"),
+          { position: decisionNumber(position, language) },
+          language,
+          t,
+        );
+    const text = entry.result === "none"
+      ? why || t("decision_nothing")
+      : [result, why ? `(${why})` : ""].filter(Boolean).join(" ");
+    return { rule: t(`rule_${entry.rule}`), text, applied: entry.applied === true };
+  });
 }
 
 export interface StatusLines {

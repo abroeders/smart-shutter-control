@@ -20,9 +20,11 @@ class GlareProtectionRule:
     """
 
     priority = PRIORITY
+    name = "glare"
 
     def __init__(self, settings: SunSettings, day_phase: Callable[[float], DayPhase]) -> None:
         self.settings = settings
+        self.why: tuple[str, dict] | None = None  # (#56)
         self.day_phase = day_phase
         self.phase = Phase.OPEN
         self.since = 0.0
@@ -43,6 +45,7 @@ class GlareProtectionRule:
         sun, now = ctx.inputs.sun, ctx.inputs.now
         if not ctx.glare_protection or sun is None:
             self.phase = Phase.OPEN
+            self.why = ("off", {}) if not ctx.glare_protection else ("night", {})
             return None
         cfg = ctx.config
         window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation)
@@ -66,6 +69,30 @@ class GlareProtectionRule:
                 self._go(Phase.SHADING, now)
             elif not sun_on or not day or now - self.since >= self.settings.open_delay:
                 self._go(Phase.OPEN, now)
+        self.why = self._why(ctx, window, sun, day, self.phase in (Phase.SHADING, Phase.LEAVING), now)
         if self.phase in (Phase.SHADING, Phase.LEAVING):
             return Decision(ctx.glare_position, Reason.GLARE, Kind.CAP)
         return None
+
+    def _why(self, ctx, window: WindowGeometry, sun, day: bool, active: bool, now: float):
+        factor = ctx.inputs.sun_factor
+        bright = (
+            {
+                "factor": round(100 * factor),
+                "limit": round(100 * (ctx.glare_from - (HYSTERESIS if active else 0))),
+            }
+            if factor is not None
+            else {}
+        )
+        if self.phase is Phase.PENDING:
+            return "waiting", {"seconds": round(self.settings.close_delay - (now - self.since)), **bright}
+        if self.phase is Phase.LEAVING:
+            return "leaving", {"seconds": round(self.settings.open_delay - (now - self.since)), **bright}
+        if self.phase is Phase.SHADING:
+            return ("bright", bright) if bright else None
+        if not day:
+            return "not_day", {}
+        off = window.why_not(sun, self.settings.max_incidence)
+        if off:
+            return off
+        return "not_bright", bright

@@ -21,7 +21,21 @@ proposal is not changed by lower rules.
 | 60 | schedule | the position of the current phase |
 
 Afterwards the **maximum position** limits every automatic target (except fully closing). The sensor
-*Reason* says which rule decided.
+*Reason* says which rule decided; its attribute `decision` lists what **every** rule said, in priority order:
+the position it proposed (`target`, `cap` or `final`), whether that one decided (`applied`), or why it
+proposed nothing (`why` with `values`), for example:
+
+```yaml
+- {rule: heat, priority: 40, result: none, why: too_cold, values: {outdoor: 9.5, limit: 22}}
+- {rule: glare, priority: 41, result: cap, position: 40, applied: true, why: bright,
+   values: {factor: 100, limit: 55}}
+```
+
+Codes: `off`, `night`, `below_horizon`, `above_overhang`, `not_facing` (the sun is not in front of the
+window), `not_sunny`, `too_cold`, `waiting` / `leaving` (seconds until the delay ends), `bright` /
+`not_bright` (sun factor against *Glare from*), `not_day`, `phase`, `calm`, `no_frost`, `within_limits`,
+`no_pause`, `not_cold`. The card shows the list under **Why?**. The attribute is not recorded in the
+history (it changes on every evaluation).
 
 **Moves only at changes.** The schedule's target is sent when a phase starts, when a setting changes, or when
 a higher rule ends. A shutter moved in the middle of a phase is left there until the next phase.

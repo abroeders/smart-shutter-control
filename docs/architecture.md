@@ -121,13 +121,28 @@ classDiagram
     }
     class RuleChain {
         +rules list~Rule~
-        +decide(ctx) Decision
+        +last_trace list~TraceEntry~
+        +decide(ctx, skip) Decision
     }
     class Rule {
         <<protocol>>
         +priority int
+        +name str
+        +why tuple|None
         +propose(ctx) Decision|None
     }
+    class TraceEntry {
+        <<frozen>>
+        +rule str
+        +priority int
+        +result str
+        +position int|None
+        +applied bool
+        +why str|None
+        +values dict
+        +as_dict() dict
+    }
+    RuleChain ..> TraceEntry
     class PositionLimiter {
         +limit(target, max_position, storm) int
     }
@@ -943,3 +958,29 @@ The stored format is unchanged (`points` per direction as fractions, `slit`, `wi
 only converts it to whole percentages and back. The column labels of the object selector come from
 `TABLE_LABELS` (en, nl), as its fields have no translation keys.
 
+
+## 15. The decision of every rule (#56)
+
+`RuleChain.decide` builds a `TraceEntry` per rule while it decides, and keeps the list of the last full
+decision (not of a decision with a skipped rule) as `last_trace`. A rule that proposes nothing sets
+`why = (code, values)` during `propose`; the chain clears it before asking. `WindowGeometry.why_not` gives
+the codes for a sun that is not on the window. The *Reason* sensor shows the trace as the attribute
+`decision` (not recorded); the card turns it into localized lines under **Why?**.
+
+```mermaid
+sequenceDiagram
+    participant SC as ShutterController
+    participant RC as RuleChain
+    participant R as Rule
+    participant S as ReasonSensor
+    SC->>RC: decide(ctx)
+    loop by priority
+        RC->>R: why = None, propose(ctx)
+        R-->>RC: Decision or None (+ why)
+        RC->>RC: append TraceEntry
+    end
+    RC->>RC: mark the applied entry, last_trace
+    RC-->>SC: Decision
+    S->>SC: trace()
+    SC-->>S: [entry.as_dict()] (empty while automatic control is off)
+```

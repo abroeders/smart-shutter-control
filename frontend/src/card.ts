@@ -5,7 +5,7 @@ import { deviceEntities, integrationDevices, isShutter, shuttersOf } from "./ent
 import { localizer, type Translate } from "./localize";
 import { sceneFor } from "./scene";
 import type { CardConfig, HomeAssistant } from "./types";
-import { cardLanguage, formatTime, positionText, shutterModel, statusLines, type ShutterModel } from "./viewmodel";
+import { cardLanguage, decisionLines, formatTime, positionText, shutterModel, statusLines, type ShutterModel } from "./viewmodel";
 
 export const CARD_TAG = "smart-shutter-card";
 export const EDITOR_TAG = "smart-shutter-card-editor";
@@ -18,11 +18,12 @@ const ICONS = {
 };
 
 export class SmartShutterCard extends LitElement {
-  static properties = { hass: { attribute: false }, _config: { state: true }, _narrow: { state: true } };
+  static properties = { hass: { attribute: false }, _config: { state: true }, _narrow: { state: true }, _decisionOpen: { state: true } };
 
   hass?: HomeAssistant;
   _config?: CardConfig;
   _narrow = false;
+  _decisionOpen = false;
   private observer?: ResizeObserver;
 
   static getConfigElement(): HTMLElement {
@@ -121,8 +122,9 @@ export class SmartShutterCard extends LitElement {
 
   private renderShutter(hass: HomeAssistant, id: string) {
     const m = shutterModel(hass, id);
-    const { t, time } = this.texts(hass, m);
+    const { t, time, lang } = this.texts(hass, m);
     const s = statusLines(m, t, time);
+    const decisions = decisionLines(m.decision, t, lang);
     const dark = !!hass.themes?.darkMode;
     return html`<ha-card class=${this._narrow ? "narrow" : ""}>
       <div class="head">
@@ -152,6 +154,18 @@ export class SmartShutterCard extends LitElement {
           <div class="sub">${s.detail}</div>
           ${s.next ? html`<div class="line next">${s.next}</div>` : nothing}
           ${s.then ? html`<div class="sub then">${s.then}</div>` : nothing}
+          ${decisions.length
+            ? html`<div class="why">
+                <button class="why-toggle" type="button" aria-expanded=${this._decisionOpen ? "true" : "false"} aria-controls="decision-list" @click=${() => (this._decisionOpen = !this._decisionOpen)}>
+                  ${t("why")}
+                </button>
+                <div id="decision-list" class="decision-list" ?hidden=${!this._decisionOpen}>
+                  ${decisions.map(
+                    (line) => html`<div class="decision-line ${line.applied ? "applied" : ""}">${line.rule}: ${line.text}</div>`,
+                  )}
+                </div>
+              </div>`
+            : nothing}
         </div>
       </div>
       <div class="switches">
@@ -286,7 +300,8 @@ export class SmartShutterCard extends LitElement {
       height: 18px;
     }
     .round:focus-visible,
-    .switch:focus-visible {
+    .switch:focus-visible,
+    .why-toggle:focus-visible {
       outline: 2px solid var(--primary-color);
     }
     .status .big {
@@ -301,6 +316,24 @@ export class SmartShutterCard extends LitElement {
     .sub {
       color: var(--secondary-text-color);
       font-size: 0.9em;
+    }
+    .why {
+      margin-top: 8px;
+    }
+    .why-toggle {
+      border: none;
+      background: none;
+      color: var(--secondary-text-color);
+      font-size: 0.9em;
+      padding: 0;
+    }
+    .decision-list {
+      margin-top: 4px;
+      color: var(--secondary-text-color);
+      font-size: 0.9em;
+    }
+    .decision-line.applied {
+      font-weight: 700;
     }
     .sub.manual {
       color: var(--warning-color, #e65100);
