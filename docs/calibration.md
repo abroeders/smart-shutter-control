@@ -14,7 +14,9 @@ but the shutter is then **lower** than half way, for three reasons:
 
 After calibration the integration's cover and card show the **real** position (the height of the opening
 below the bottom bar, as a share of the window), and a target of 50 % ends half way, from either direction.
-Fully open and fully closed always use the module's own ends (its limit switches).
+Fully open and fully closed always use the module's own ends (its limit switches): the integration sends
+the module's open or close (the arrows), not position 100 or 0, so the module runs until it stops at its
+limit even when its own travel-time estimate has drifted.
 
 ## Two ways
 

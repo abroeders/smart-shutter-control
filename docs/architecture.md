@@ -52,7 +52,7 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | **Template / inheritance of settings** | `merged(base, overrides)`: every shutter takes the base schedule unless it overrides a setting (#4) |
 | **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
-| **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
+| **Adapter** | `CoverAdapter` is the only code that moves a physical cover; the ends (100, 0) go by `open_cover`/`close_cover` when the cover supports them, so the module runs to its limit switch |
 | **Observer** | the entities listen to `BaseCoordinator` |
 | **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
 
@@ -200,7 +200,7 @@ sequenceDiagram
             SC->>L: limit(position, max position, storm)
             SC->>K: to_module(position, direction)
             SC->>A: async_move(module position)
-            A->>HA: cover.set_cover_position (only when it differs)
+            A->>HA: cover.set_cover_position (only when it differs)<br/>100 / 0: cover.open_cover / close_cover
         end
     end
     C-->>C: update the entities

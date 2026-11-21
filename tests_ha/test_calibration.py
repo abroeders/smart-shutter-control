@@ -9,7 +9,7 @@ from homeassistant.helpers import entity_registry as er
 
 from custom_components.smart_shutter_control import assistant
 
-from .conftest import LIVING, add_shutter, setup_base
+from .conftest import LIVING, add_shutter, position_of, register_moves, setup_base
 
 # real opening (%) for a module position (%): the bar leaves the sill at 6 %, a bit lower going up
 
@@ -43,7 +43,7 @@ def physical(hass: HomeAssistant, stop_short: dict[int, int] | None = None) -> l
     short = dict(stop_short or {})
 
     async def set_position(call: ServiceCall) -> None:
-        position = int(call.data["position"])
+        position = position_of(call)
         moves.append(position)
         position = short.pop(position, position)
         hass.states.async_set(
@@ -52,7 +52,7 @@ def physical(hass: HomeAssistant, stop_short: dict[int, int] | None = None) -> l
             {"current_position": position, "supported_features": 15, "friendly_name": "Living room"},
         )
 
-    hass.services.async_register("cover", "set_cover_position", set_position)
+    register_moves(hass, set_position)
     return moves
 
 
@@ -233,7 +233,7 @@ def travelling(hass: HomeAssistant, seconds: float = 0.3, report_delay: float = 
     hass.states.async_set(POWER, "0", {"device_class": "power", "unit_of_measurement": "W"})
 
     async def set_position(call: ServiceCall) -> None:
-        target = int(call.data["position"])
+        target = position_of(call)
         moves.append(target)
         start = hass.states.get(LIVING).attributes["current_position"]
 
@@ -252,7 +252,7 @@ def travelling(hass: HomeAssistant, seconds: float = 0.3, report_delay: float = 
 
         hass.async_create_task(run())
 
-    hass.services.async_register("cover", "set_cover_position", set_position)
+    register_moves(hass, set_position)
     return moves
 
 
@@ -312,7 +312,7 @@ def silent(hass: HomeAssistant, travel: float = 0.4) -> list[int]:
     moves: list[int] = []
 
     async def set_position(call: ServiceCall) -> None:
-        target = int(call.data["position"])
+        target = position_of(call)
         moves.append(target)
         start = hass.states.get(LIVING).attributes["current_position"]
 
@@ -326,7 +326,7 @@ def silent(hass: HomeAssistant, travel: float = 0.4) -> list[int]:
 
         hass.async_create_task(run())
 
-    hass.services.async_register("cover", "set_cover_position", set_position)
+    register_moves(hass, set_position)
     return moves
 
 
@@ -432,7 +432,7 @@ async def test_a_module_that_reports_only_when_asked_is_polled(
     refreshes: list[int] = []
 
     async def set_position(call: ServiceCall) -> None:
-        physical_position["value"] = int(call.data["position"])  # moves, but tells nobody
+        physical_position["value"] = position_of(call)  # moves, but tells nobody
 
     async def update_entity(call: ServiceCall) -> None:
         refreshes.append(physical_position["value"])
@@ -440,7 +440,7 @@ async def test_a_module_that_reports_only_when_asked_is_polled(
             LIVING, "open", {"current_position": physical_position["value"], "supported_features": 15}
         )
 
-    hass.services.async_register("cover", "set_cover_position", set_position)
+    register_moves(hass, set_position)
     hass.services.async_register("homeassistant", "update_entity", update_entity)
     session = assistant.CalibrationSession(controller)
     start = asyncio.get_running_loop().time()

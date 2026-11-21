@@ -31,7 +31,7 @@ flowchart LR
   I["inputs: time, sun, PV or lux, temperatures, wind"] --> R["rules by priority"]
   R --> L["maximum position"]
   L --> C["calibration: real → module position"]
-  C --> M["cover.set_cover_position, only when the target changes"]
+  C --> M["cover.set_cover_position, only when the target changes;<br/>fully open/closed by cover.open_cover / close_cover"]
 ```
 
 ## The day of a shutter

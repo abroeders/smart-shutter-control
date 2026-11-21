@@ -6,6 +6,14 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.9] - 2026-11-21
+
+### Fixed
+
+- Fully open and fully closed are sent as the module's open and close (its arrows) instead of position
+  100 and 0, so the module runs until it stops at its limit switch. A module whose travel-time estimate
+  had drifted stopped short of fully open (#46).
+
 ## [2026.11.8] - 2026-11-21
 
 ### Changed
@@ -280,7 +288,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.8...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.9...HEAD
+[2026.11.9]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.8...2026.11.9
 [2026.11.8]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.7...2026.11.8
 [2026.11.7]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.6...2026.11.7
 [2026.11.6]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.5...2026.11.6

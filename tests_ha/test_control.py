@@ -4,12 +4,11 @@ from dataclasses import dataclass
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import async_mock_service
 
 from custom_components.smart_shutter_control.core.model import Decision
 from custom_components.smart_shutter_control.core.rules import RuleChain
 
-from .conftest import LIVING, add_shutter, setup_base
+from .conftest import LIVING, add_shutter, mock_moves, setup_base
 
 
 @dataclass
@@ -32,7 +31,7 @@ async def test_schedule_leaves_an_open_shutter_by_day(hass: HomeAssistant, cover
     freezer.move_to("2026-11-18 12:00:00+01:00")  # a Wednesday at noon: the day phase wants it open
     await hass.config.async_set_time_zone("Europe/Amsterdam")
     entry = await setup_base(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     await entry.runtime_data.async_tick()
     assert not calls  # already open
@@ -43,7 +42,7 @@ async def test_schedule_leaves_an_open_shutter_by_day(hass: HomeAssistant, cover
 async def test_moves_limited_and_only_when_automatic(hass: HomeAssistant, covers) -> None:
     entry = await setup_base(hass)
     await add_shutter(hass, entry, LIVING, max_position=60)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     controller = next(iter(entry.runtime_data.shutters.values()))
     controller.chain = RuleChain([FixedRule(90)])
     controller.last_target = None  # the first tick when the shutter was added may already have sent a target
@@ -65,7 +64,7 @@ async def test_moves_limited_and_only_when_automatic(hass: HomeAssistant, covers
 async def test_cover_entity_forwards_without_limits(hass: HomeAssistant, covers) -> None:
     entry = await setup_base(hass)
     await add_shutter(hass, entry, LIVING, max_position=50)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     cover_id = entity(hass, entry, "cover", "shutter")
     assert hass.states.get(cover_id).attributes["current_position"] == 100
     # the mocked cover service would also catch calls to our own cover entity: call the entity directly
@@ -90,7 +89,7 @@ async def test_opening_number_moves_to_the_real_position(hass: HomeAssistant, co
             "slit": {"up": 0.2},
         }
     )
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     number = entity(hass, entry, "number", "opening")
     await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 50}, blocking=True)
     module = calls[-1].data["position"]
@@ -98,11 +97,11 @@ async def test_opening_number_moves_to_the_real_position(hass: HomeAssistant, co
     # one module percent is about two real percents here: the closest whole position is within 1 %
     assert abs(controller.calibration.from_module(module, controller.direction()) - 50) <= 1
 
-    # fully open and fully closed are the module's own end positions (limit switches)
+    # fully open and fully closed go by the module's open/close (its arrows): it runs to its limit switch
     await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 100}, blocking=True)
-    assert calls[-1].data["position"] == 100
+    assert calls[-1].service == "open_cover" and calls[-1].data["position"] == 100
     await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 0}, blocking=True)
-    assert calls[-1].data["position"] == 0
+    assert calls[-1].service == "close_cover" and calls[-1].data["position"] == 0
 
     # in the slit the opening is 0 %, but the shutter is not closed
     hass.states.async_set(LIVING, "open", {"current_position": 18, "supported_features": 15})
@@ -139,3 +138,13 @@ async def test_motor_power_sensor_is_found_on_the_device(hass: HomeAssistant, co
         hass.states.async_set(f"sensor.{object_id}", value, {"unit_of_measurement": "W"})
     assert CoverAdapter(hass, "cover.living").power_entity == "sensor.consumption_w"  # not the stale 672 W
     assert CoverAdapter(hass, "cover.unknown").power_entity is None
+
+
+async def test_ends_by_position_without_open_and_close(hass: HomeAssistant, covers) -> None:
+    hass.states.async_set(LIVING, "open", {"current_position": 50, "supported_features": 4})  # position only
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    calls = mock_moves(hass)
+    controller = next(iter(entry.runtime_data.shutters.values()))
+    await controller.adapter.async_move(100)
+    assert calls[-1].service == "set_cover_position" and calls[-1].data["position"] == 100
