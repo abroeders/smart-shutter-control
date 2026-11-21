@@ -23,6 +23,7 @@ from .const import (
     CONF_HEAT_OUTDOOR,
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
+    CONF_HORIZON,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
     CONF_MIN_ELEVATION,
@@ -38,11 +39,13 @@ from .core.calibration import Calibration, DirectionTracker, RollerCalibration
 from .core.daily import ScheduleRule, SleepIn, SleepInRule
 from .core.glare import GlareProtectionRule
 from .core.heat import HeatProtectionRule, SunSettings
+from .core.horizon import Horizon
 from .core.limits import PositionLimiter
 from .core.manual import ManualDetector, ManualPause, ManualPauseRule, matches
 from .core.model import Decision, Direction, Inputs, Reason, ShutterConfig, ShutterContext
 from .core.rules import RuleChain
 from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, merged, overridden
+from .core.sun import SunPosition, WindowGeometry
 from .core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
 from .core.weather import FrostRule, StormRule, TemperatureLimitRule
 from .core.winter import WinterRule
@@ -70,6 +73,7 @@ def shutter_config(data: dict) -> ShutterConfig:
         min_elevation=float(values[CONF_MIN_ELEVATION]),
         max_elevation=float(values[CONF_MAX_ELEVATION]),
         room_temperature=values.get(CONF_ROOM_TEMPERATURE),
+        horizon=Horizon.from_data(values.get(CONF_HORIZON)),
     )
 
 
@@ -398,6 +402,18 @@ class ShutterController:
             module = self.adapter.module_position()
             return module is not None and abs(module - value) <= 1
         return matches(self.position(), value)
+
+    def window(self) -> WindowGeometry:
+        c = self.config
+        return WindowGeometry(c.azimuth, c.tilt, c.min_elevation, c.max_elevation, c.horizon)
+
+    def horizon_with(self, sun: SunPosition) -> Horizon:
+        """The horizon with a point where the sun leaves the window now (just above it: off at once)."""
+        return self.config.horizon.with_point(sun.azimuth, sun.elevation + 0.1)
+
+    def set_horizon(self, horizon: Horizon) -> None:
+        self.config = replace(self.config, horizon=horizon)
+        self.subentry_data[CONF_HORIZON] = horizon.as_data()
 
     def trace(self) -> list[dict]:
         """What every rule said in the last decision (#56); empty while automatic control is off."""

@@ -48,7 +48,7 @@ class GlareProtectionRule:
             self.why = ("off", {}) if not ctx.glare_protection else ("night", {})
             return None
         cfg = ctx.config
-        window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation)
+        window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation, cfg.horizon)
         sun_on = window.sun_on(sun, self.settings.max_incidence)
         active = self.phase in (Phase.SHADING, Phase.LEAVING)
         day = self.day_phase(now) is DayPhase.DAY

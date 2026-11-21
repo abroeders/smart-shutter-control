@@ -171,6 +171,9 @@ export class SmartShutterCard extends LitElement {
       <div class="switches">
         ${this.switch(t("automatic"), m.entities.automatic, m.automatic, "automatic")}
         ${this.switch(t("sleep_in"), m.entities.sleep_in, m.sleepIn, "sleep-in")}
+        ${m.entities.sun_left && hass.states[m.entities.sun_on_window]?.state === "on"
+          ? html`<button class="text sun-left" @click=${() => this.call("button", "press", m.entities.sun_left)}>${t("sun_left")}</button>`
+          : nothing}
         ${m.paused && m.entities.resume
           ? html`<button class="text resume" @click=${() => this.call("button", "press", m.entities.resume)}>${t("resume")}</button>`
           : nothing}
