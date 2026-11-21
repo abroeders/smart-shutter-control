@@ -69,6 +69,9 @@ Smart Shutter Control*, and *Add shutter* for each shutter. Details: [Installati
 - Card: in `frontend/`, `npm ci`, `npm test`, `npm run build` (the bundle in
   `custom_components/smart_shutter_control/frontend/` is committed); screenshots with
   `python scripts/screenshot_card.py`.
+- Releases: push a version tag (`YEAR.MONTH.N`) on `main`. The *Release* workflow publishes the GitHub
+  release only when that commit passes the HACS and hassfest validation and the versions in `manifest.json`,
+  `frontend/package.json` and the changelog match the tag. Run it by hand to validate without releasing.
 
 ## Support
 
