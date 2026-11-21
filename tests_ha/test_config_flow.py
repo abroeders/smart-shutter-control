@@ -96,6 +96,7 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
     base = [e for e in entities if not e.config_subentry_id]
     base_keys = sorted(e.unique_id.removeprefix(f"{entry.entry_id}_") for e in base)
     assert base_keys == [
+        "automatic_all",
         "frost",
         "holiday",
         "sleep_in_all",

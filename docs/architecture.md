@@ -1051,3 +1051,27 @@ classDiagram
     DepthShading ..> RoomGeometry
     ShutterConfig o-- RoomGeometry
 ```
+
+## 18. Pausing the whole integration (#53)
+
+`BaseCoordinator.automatic_all` (a global in `RuntimeStore`, saved within seconds) is passed to every
+`ShutterController.async_evaluate` as `paused`; while it is set, the controller returns
+`Decision(None, PAUSED)` before asking any rule (so the storm rule does not act either) and the trace is
+empty. Switching it on clears every controller's last target, so the next tick moves each shutter to its
+wanted position.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant S as AutomaticAllSwitch
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    U->>S: turn off
+    S->>C: set_automatic_all(False), async_tick
+    C->>SC: async_evaluate(inputs, paused=True)
+    SC-->>C: Decision(None, paused)
+    U->>S: turn on
+    S->>C: set_automatic_all(True): last_target = None for all, async_tick
+    C->>SC: async_evaluate(inputs, paused=False)
+    SC->>SC: move to the wanted position
+```

@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- A switch *Automatic control (all shutters)* on the base controller pauses the whole integration: no shutter
+  moves by itself, not even in a storm, and the reason is *paused*. Switched on again, every shutter goes to
+  its wanted position at once (#53).
+
 ## [2026.11.11] - 2026-11-21
 
 ### Added

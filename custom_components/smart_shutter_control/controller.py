@@ -138,6 +138,7 @@ class ShutterController:
         self.tracker.observe(self.adapter.module_position())
         self.decision = Decision(None, Reason.IDLE)
         self.paused = False  # while the calibration assistant moves the shutter
+        self.paused_all = False  # automatic control of the whole integration is off (#53)
 
         # schedule (#4): the base schedule with this shutter's overrides
         self.schedule_overrides = dict(subentry.data.get(CONF_SCHEDULE) or {})
@@ -432,17 +433,20 @@ class ShutterController:
 
     def trace(self) -> list[dict]:
         """What every rule said in the last decision (#56); empty while automatic control is off."""
-        if not self.automatic or self.paused:
+        if not self.automatic or self.paused or self.paused_all:
             return []
         return [entry.as_dict() for entry in self.chain.last_trace]
 
     async def async_evaluate(
-        self, inputs: Inputs, storm: bool = False, weather: str | None = None
+        self, inputs: Inputs, storm: bool = False, weather: str | None = None, paused: bool = False
     ) -> Decision:
+        """`paused`: automatic control of the whole integration is off (#53), storm included."""
         self.observe()  # a report not handled yet must not count as manual after this decision
         self.storm = inputs.storm
-        if not self.automatic or self.paused:
-            self.decision = Decision(None, Reason.OFF if not self.automatic else Reason.CALIBRATING)
+        self.paused_all = paused
+        if not self.automatic or self.paused or paused:
+            reason = Reason.CALIBRATING if self.paused else Reason.PAUSED if paused else Reason.OFF
+            self.decision = Decision(None, reason)
             return self.decision
         inputs = self._with_facade(inputs, weather)
         ctx = self._context(inputs)
