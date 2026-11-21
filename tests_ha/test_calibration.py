@@ -418,6 +418,48 @@ async def test_edit_the_table(hass: HomeAssistant, covers) -> None:
     assert entry.runtime_data.shutters[subentry_id].calibration.calibrated
 
 
+async def test_edit_the_horizon_table(hass: HomeAssistant, covers) -> None:
+    """The horizon table is prefilled, checked and saved to the shutter."""
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    subentry_id = next(iter(entry.subentries))
+    hass.config_entries.async_update_subentry(
+        entry,
+        entry.subentries[subentry_id],
+        data={**entry.subentries[subentry_id].data, "horizon": [[120, 12.5], [240, 28]]},
+    )
+    await hass.async_block_till_done()
+    result = await open_menu(hass, entry, subentry_id, "horizon")
+    assert result["step_id"] == "horizon"
+    flow_id = result["flow_id"]
+    defaults = {str(k): k.default() for k in result["data_schema"].schema if callable(k.default)}
+    assert defaults["rows"] == [{"azimuth": 120.0, "elevation": 12.5}, {"azimuth": 240.0, "elevation": 28.0}]
+
+    flow = hass.config_entries.subentries._progress[flow_id]  # noqa: SLF001
+    result = await flow.async_step_horizon({"rows": [{"azimuth": 361, "elevation": 12}]})
+    assert result["step_id"] == "horizon" and result["errors"] == {"base": "azimuth_range"}
+    result = await hass.config_entries.subentries.async_configure(
+        flow_id, {"rows": [{"azimuth": 120, "elevation": 12}, {"azimuth": 120, "elevation": 20}]}
+    )
+    assert result["step_id"] == "horizon" and result["errors"] == {"base": "azimuth_twice"}
+    result = await flow.async_step_horizon({"rows": [{"azimuth": 120, "elevation": 61}]})
+    assert result["step_id"] == "horizon" and result["errors"] == {"base": "elevation_range"}
+
+    result = await hass.config_entries.subentries.async_configure(
+        flow_id, {"rows": [{"azimuth": 200, "elevation": 35.5}, {"azimuth": 100, "elevation": 10}]}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    assert entry.subentries[subentry_id].data["horizon"] == [[100.0, 10.0], [200.0, 35.5]]
+
+    result = await open_menu(hass, entry, subentry_id, "horizon")
+    flow_id = result["flow_id"]
+    result = await hass.config_entries.subentries.async_configure(flow_id, {"rows": []})
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    assert entry.subentries[subentry_id].data["horizon"] == []
+
+
 async def test_a_module_that_reports_only_when_asked_is_polled(
     hass: HomeAssistant, covers, fast, monkeypatch
 ) -> None:

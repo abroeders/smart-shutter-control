@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from .core.shading import depth_position
 from .entity import BaseEntity, ShutterEntity, add_per_shutter
 
 
@@ -56,6 +57,13 @@ class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):
             "window_azimuth": self.controller.config.azimuth,
             "window_tilt": self.controller.config.tilt,
         }
+        sun = self.coordinator.inputs.sun
+        room = self.controller.config.room
+        if sun is not None and room is not None and self.controller.config.tilt == 90:  # (#55)
+            attributes["shading_from_depth"] = depth_position(room, sun, self.controller.config.azimuth)
+        if sun is not None and self.controller.config.horizon.points:  # (#54)
+            window = self.controller.window()
+            attributes["horizon"] = round(window.lowest_elevation(sun), 1)
         facade = self.controller.facade
         if facade is not None:  # this shutter's own light sensor decides "sunny"
             attributes |= {

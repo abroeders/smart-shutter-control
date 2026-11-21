@@ -68,6 +68,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ShutterConfigEntry) -> b
 
 async def _async_reload(hass: HomeAssistant, entry: ShutterConfigEntry) -> None:
     """Options, sources or shutters changed: start again with the new settings."""
+    if entry.runtime_data.quiet_update():
+        return
     await hass.config_entries.async_reload(entry.entry_id)
 
 

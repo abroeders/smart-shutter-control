@@ -7,6 +7,7 @@ from collections.abc import Callable
 from .heat import Phase, SunSettings
 from .model import Decision, Kind, Reason, ShutterContext
 from .schedule import Phase as DayPhase
+from .shading import DepthShading
 from .sun import WindowGeometry
 
 PRIORITY = 41
@@ -20,9 +21,12 @@ class GlareProtectionRule:
     """
 
     priority = PRIORITY
+    name = "glare"
 
     def __init__(self, settings: SunSettings, day_phase: Callable[[float], DayPhase]) -> None:
         self.settings = settings
+        self.why: tuple[str, dict] | None = None  # (#56)
+        self.shade = DepthShading()  # the position from the sun with a room geometry (#55)
         self.day_phase = day_phase
         self.phase = Phase.OPEN
         self.since = 0.0
@@ -43,9 +47,10 @@ class GlareProtectionRule:
         sun, now = ctx.inputs.sun, ctx.inputs.now
         if not ctx.glare_protection or sun is None:
             self.phase = Phase.OPEN
+            self.why = ("off", {}) if not ctx.glare_protection else ("night", {})
             return None
         cfg = ctx.config
-        window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation)
+        window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation, cfg.horizon)
         sun_on = window.sun_on(sun, self.settings.max_incidence)
         active = self.phase in (Phase.SHADING, Phase.LEAVING)
         day = self.day_phase(now) is DayPhase.DAY
@@ -66,6 +71,32 @@ class GlareProtectionRule:
                 self._go(Phase.SHADING, now)
             elif not sun_on or not day or now - self.since >= self.settings.open_delay:
                 self._go(Phase.OPEN, now)
+        self.why = self._why(ctx, window, sun, day, self.phase in (Phase.SHADING, Phase.LEAVING), now)
         if self.phase in (Phase.SHADING, Phase.LEAVING):
-            return Decision(ctx.glare_position, Reason.GLARE, Kind.CAP)
+            position = self.shade(now, cfg.room, sun, cfg.azimuth, cfg.tilt, ctx.glare_position)
+            return Decision(position, Reason.GLARE, Kind.CAP)
+        self.shade.reset()
         return None
+
+    def _why(self, ctx, window: WindowGeometry, sun, day: bool, active: bool, now: float):
+        factor = ctx.inputs.sun_factor
+        bright = (
+            {
+                "factor": round(100 * factor),
+                "limit": round(100 * (ctx.glare_from - (HYSTERESIS if active else 0))),
+            }
+            if factor is not None
+            else {}
+        )
+        if self.phase is Phase.PENDING:
+            return "waiting", {"seconds": round(self.settings.close_delay - (now - self.since)), **bright}
+        if self.phase is Phase.LEAVING:
+            return "leaving", {"seconds": round(self.settings.open_delay - (now - self.since)), **bright}
+        if self.phase is Phase.SHADING:
+            return ("bright", bright) if bright else None
+        if not day:
+            return "not_day", {}
+        off = window.why_not(sun, self.settings.max_incidence)
+        if off:
+            return off
+        return "not_bright", bright

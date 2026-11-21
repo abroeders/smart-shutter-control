@@ -218,6 +218,9 @@
             "max_position": "Maximale stand",
             "heat_protection": "Hittewering",
             "shading_position": "Schaduwstand",
+            "window_sill": "Onderkant raam boven de vloer",
+            "window_height": "Raamhoogte",
+            "sun_depth": "Zon de kamer in",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
             "glare_protection": "Verblinding",
@@ -236,6 +239,9 @@
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
             "shading_position": "Stand terwijl de zon op het raam staat.",
+            "window_sill": "Onderkant van het glas boven de vloer.",
+            "window_height": "Hoogte van het glas. Standaard wordt de hoogte uit de kalibratie gebruikt.",
+            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "glare_protection": "Laat het rolluik zakken zolang felle zon op dit raam schijnt, ongeacht de temperatuur (ook in de winter).",
@@ -259,6 +265,9 @@
             "max_position": "Maximale stand",
             "heat_protection": "Hittewering",
             "shading_position": "Schaduwstand",
+            "window_sill": "Onderkant raam boven de vloer",
+            "window_height": "Raamhoogte",
+            "sun_depth": "Zon de kamer in",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
             "glare_protection": "Verblinding",
@@ -277,6 +286,9 @@
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
             "shading_position": "Stand terwijl de zon op het raam staat.",
+            "window_sill": "Onderkant van het glas boven de vloer.",
+            "window_height": "Hoogte van het glas. Standaard wordt de hoogte uit de kalibratie gebruikt.",
+            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "glare_protection": "Laat het rolluik zakken zolang felle zon op dit raam schijnt, ongeacht de temperatuur (ook in de winter).",
@@ -293,8 +305,19 @@
             "settings": "Instellingen",
             "calibrate": "Kalibreren",
             "add_point": "Kalibratiepunt toevoegen",
+            "horizon": "Horizon",
             "schedule": "Schema-overrides",
             "schedule_reset": "Terug naar het standaardschema"
+          }
+        },
+        "horizon": {
+          "title": "Horizon",
+          "description": "Stel voor elke zonrichting de laagste zonshoogte in. Waarden tussen punten worden geïnterpoleerd. Druk op ‘Zon is weg van het raam’ als de zon achter een obstakel verdwijnt om een punt vast te leggen.",
+          "data": {
+            "rows": "Horizonpunten"
+          },
+          "data_description": {
+            "rows": "Rijen toevoegen, aanpassen of verwijderen. Laat de tabel leeg voor geen horizonprofiel."
           }
         },
         "add_point": {
@@ -415,7 +438,10 @@
         "module_twice": "Een modulestand komt twee keer voor.",
         "opening_range": "Een opening moet tussen 0 en 100 % liggen.",
         "too_few_points": "In één richting zijn minstens twee punten nodig.",
-        "opening_falls": "In één richting neemt de opening af terwijl de modulestand stijgt; controleer de waarden."
+        "opening_falls": "In één richting neemt de opening af terwijl de modulestand stijgt; controleer de waarden.",
+        "azimuth_range": "Een zonrichting moet tussen 0 en 360° liggen.",
+        "azimuth_twice": "Een zonrichting komt twee keer voor.",
+        "elevation_range": "Een laagste zonshoogte moet tussen 0 en 60° liggen."
       },
       "abort": {
         "reconfigure_successful": "Het rolluik is opgeslagen.",
@@ -545,6 +571,9 @@
     "button": {
       "resume": {
         "name": "Automaat hervatten"
+      },
+      "sun_left": {
+        "name": "Zon is weg van het raam"
       }
     },
     "select": {

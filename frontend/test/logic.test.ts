@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { baseOf, deviceEntities, integrationDevices, isShutter, shuttersOf } from "../src/entities";
 import { positionForY, snap, yForPosition } from "../src/geometry";
 import { localizer } from "../src/localize";
-import { cardLanguage, formatTime, positionText, shutterModel, statusLines } from "../src/viewmodel";
+import { cardLanguage, decisionLines, formatTime, positionText, shutterModel, statusLines } from "../src/viewmodel";
 import { BASE, KITCHEN, LIVING, fakeHass } from "./fixtures";
 
 const BOX = { top: 40, bottom: 240 };
@@ -91,5 +91,23 @@ describe("view model", () => {
     const m = shutterModel(hass, LIVING);
     expect(m.storm).toBe(true);
     expect(statusLines(m, localizer("en"), time).chip).toBe("off");
+  });
+
+  it("formats decision reasons and results in English and Dutch", () => {
+    const decisions = [
+      { rule: "glare", priority: 41, result: "cap" as const, position: 40, applied: true, why: "bright", values: { factor: 90, limit: 55 } },
+      { rule: "heat", priority: 40, result: "none" as const, why: "too_cold", values: { outdoor: 6, limit: 22 } },
+      { rule: "manual", priority: 30, result: "none" as const, why: "waiting", values: { seconds: 180 } },
+    ];
+    expect(decisionLines(decisions, localizer("en"), "en")).toEqual([
+      { rule: "Glare protection", text: "at most 40 % (sun factor 90 % ≥ 55 %)", applied: true },
+      { rule: "Heat protection", text: "not warm (6 °C < 22 °C)", applied: false },
+      { rule: "Manual control", text: "starts in 3 min", applied: false },
+    ]);
+    expect(decisionLines(decisions, localizer("nl"), "nl")).toEqual([
+      { rule: "Verblinding", text: "hooguit 40 % (zonfactor 90 % ≥ 55 %)", applied: true },
+      { rule: "Hittewering", text: "niet warm (6 °C < 22 °C)", applied: false },
+      { rule: "Handbediening", text: "start over 3 min", applied: false },
+    ]);
   });
 });

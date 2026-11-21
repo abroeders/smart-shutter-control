@@ -140,6 +140,8 @@ class ManualPauseRule:
     """While paused: leave the shutter where it is (final; only safety comes first)."""
 
     priority = 20
+    name = "manual"
+    why = None
 
     def __init__(self, pause: ManualPause, phase_of) -> None:
         self.pause = pause
@@ -148,4 +150,5 @@ class ManualPauseRule:
     def propose(self, ctx: ShutterContext) -> Decision | None:
         if self.pause.still(ctx.inputs.now, self.phase_of(ctx.inputs.now)):
             return Decision(None, Reason.MANUAL, final=True)
+        self.why = ("no_pause", {})
         return None

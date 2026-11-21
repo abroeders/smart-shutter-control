@@ -41,8 +41,11 @@ device_id: <the shutter's device>
 - **Maximum position:** an orange mark on the left of the window when it is below 100 %.
 - **Buttons:** open, stop, close.
 - **Status:** position, why the shutter is where it is (sun, schedule, sleep-in, manual until …, storm,
-  frost, winter), and the next two actions of the schedule.
-- **Switches:** *Automatic* and *Sleep in*; *Resume* during a manual pause.
+  frost, winter), and the next two actions of the schedule. **Why?** unfolds what every rule said, with
+  the one that decided in bold: *Glare protection: at most 40 % (sun factor 100 % ≥ 55 %)*, *Heat
+  protection: not warm (9.5 °C < 22 °C)*.
+- **Switches:** *Automatic* and *Sleep in*; *Resume* during a manual pause; *Sun has left the window* while
+  the sun is on the window (records a point of the window's horizon).
 
 Below 360 px wide the status moves under the drawing.
 

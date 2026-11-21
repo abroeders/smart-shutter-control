@@ -121,13 +121,28 @@ classDiagram
     }
     class RuleChain {
         +rules list~Rule~
-        +decide(ctx) Decision
+        +last_trace list~TraceEntry~
+        +decide(ctx, skip) Decision
     }
     class Rule {
         <<protocol>>
         +priority int
+        +name str
+        +why tuple|None
         +propose(ctx) Decision|None
     }
+    class TraceEntry {
+        <<frozen>>
+        +rule str
+        +priority int
+        +result str
+        +position int|None
+        +applied bool
+        +why str|None
+        +values dict
+        +as_dict() dict
+    }
+    RuleChain ..> TraceEntry
     class PositionLimiter {
         +limit(target, max_position, storm) int
     }
@@ -397,9 +412,19 @@ classDiagram
         +tilt float
         +min_elevation float
         +max_elevation float
+        +horizon Horizon
         +incidence(sun) float
+        +lowest_elevation(sun) float
         +sun_on(sun, max_incidence) bool
+        +why_not(sun, max_incidence) tuple|None
     }
+    class Horizon {
+        <<frozen>>
+        +points tuple
+        +elevation_at(azimuth) float|None
+        +with_point(azimuth, elevation) Horizon
+    }
+    WindowGeometry o-- Horizon
     class ClearSkyReference {
         +cells dict
         +observe(sun, pv_power, now)
@@ -943,3 +968,86 @@ The stored format is unchanged (`points` per direction as fractions, `slit`, `wi
 only converts it to whole percentages and back. The column labels of the object selector come from
 `TABLE_LABELS` (en, nl), as its fields have no translation keys.
 
+
+## 15. The decision of every rule (#56)
+
+`RuleChain.decide` builds a `TraceEntry` per rule while it decides, and keeps the list of the last full
+decision (not of a decision with a skipped rule) as `last_trace`. A rule that proposes nothing sets
+`why = (code, values)` during `propose`; the chain clears it before asking. `WindowGeometry.why_not` gives
+the codes for a sun that is not on the window. The *Reason* sensor shows the trace as the attribute
+`decision` (not recorded); the card turns it into localized lines under **Why?**.
+
+```mermaid
+sequenceDiagram
+    participant SC as ShutterController
+    participant RC as RuleChain
+    participant R as Rule
+    participant S as ReasonSensor
+    SC->>RC: decide(ctx)
+    loop by priority
+        RC->>R: why = None, propose(ctx)
+        R-->>RC: Decision or None (+ why)
+        RC->>RC: append TraceEntry
+    end
+    RC->>RC: mark the applied entry, last_trace
+    RC-->>SC: Decision
+    S->>SC: trace()
+    SC-->>S: [entry.as_dict()] (empty while automatic control is off)
+```
+
+## 16. Horizon per window (#54)
+
+`Horizon` (`core/horizon.py`, pure) holds `(azimuth, elevation)` points of a window; `WindowGeometry` uses
+the higher of the horizon in the sun's direction and the lowest elevation. The points live in the shutter's
+subentry (`horizon`). The button *Sun has left the window* stores a point without a reload: the coordinator
+applies it to the running controller and marks the subentry update as quiet, so the update listener skips
+the reload once. The table step *Horizon* saves like the other settings (with a reload).
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as SunLeftButton
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant HA as ConfigEntries
+    U->>B: press
+    B->>C: async_record_horizon(controller)
+    C->>SC: horizon_with(sun) → set_horizon
+    C->>HA: async_update_subentry (quiet)
+    HA-->>C: update listener: quiet_update() → no reload
+    C->>C: async_tick: the sun is off the window
+```
+
+## 17. Shading position from the sun (#55)
+
+`core/shading.py` (pure): `depth_position(room, sun, window_azimuth)` computes the highest real position that
+keeps direct sun within the depth, in steps of 10 %; `DepthShading` (one per heat and glare rule) returns it,
+never below the fixed position, held for 15 minutes, and falls back to the fixed position without a
+`RoomGeometry` or on a sloped window. `ShutterConfig.room` comes from the subentry (`window_sill`,
+`window_height` or the calibration's `window_height_cm`, `sun_depth`).
+
+```mermaid
+classDiagram
+    class RoomGeometry {
+        <<frozen>>
+        +sill_cm float
+        +window_cm float
+        +depth_m float
+    }
+    class DepthShading {
+        +position int|None
+        +at float
+        +reset()
+        +__call__(now, room, sun, azimuth, tilt, fixed) int
+    }
+    class HeatProtectionRule {
+        +shade DepthShading
+    }
+    class GlareProtectionRule {
+        +shade DepthShading
+    }
+    HeatProtectionRule o-- DepthShading
+    GlareProtectionRule o-- DepthShading
+    DepthShading ..> RoomGeometry
+    ShutterConfig o-- RoomGeometry
+```

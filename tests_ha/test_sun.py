@@ -14,6 +14,34 @@ def entity_id(hass: HomeAssistant, entry, subentry_id: str | None, domain: str, 
     return er.async_get(hass).async_get_entity_id(domain, "smart_shutter_control", unique)
 
 
+async def test_shading_position_follows_sun_depth(hass: HomeAssistant, covers, monkeypatch, freezer) -> None:
+    freezer.move_to("2026-11-18 13:00:00+01:00")
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    monkeypatch.setattr(SunPosition, "at", classmethod(lambda cls, *args: SunPosition(200, 35)))
+    hass.states.async_set(OUTDOOR, "26.0", {"device_class": "temperature", "unit_of_measurement": "°C"})
+    entry = await setup_base(hass)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "close_delay": 0})
+    await hass.async_block_till_done()
+    calls = mock_moves(hass)
+    await add_shutter(
+        hass,
+        entry,
+        LIVING,
+        azimuth=190,
+        shading_position=30,
+        window_sill=100,
+        window_height=150,
+        sun_depth=3,
+    )
+    await entry.runtime_data.async_tick()
+
+    assert calls and calls[-1].data["position"] == 70
+    subentry_id = next(iter(entry.subentries))
+    sun = hass.states.get(entity_id(hass, entry, subentry_id, "binary_sensor", "sun_on_window"))
+    assert sun.state == "on"
+    assert sun.attributes["shading_from_depth"] == 70
+
+
 async def test_sun_options(hass: HomeAssistant, covers) -> None:
     entry = await setup_base(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -92,6 +120,29 @@ async def test_glare_in_the_cold(hass: HomeAssistant, covers, monkeypatch, freez
     assert hass.states.get(entity_id(hass, entry, south, "sensor", "reason")).state == "glare"
     attributes = hass.states.get(entity_id(hass, entry, south, "binary_sensor", "sun_on_window")).attributes
     assert attributes["glare_phase"] == "shading"
+
+
+async def test_sun_left_button_records_horizon_without_reloading(
+    hass: HomeAssistant, covers, monkeypatch, freezer
+) -> None:
+    freezer.move_to("2026-11-18 13:00:00+01:00")
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    monkeypatch.setattr(SunPosition, "at", classmethod(lambda cls, *args: SunPosition(200, 35)))
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING, azimuth=190)
+    subentry_id = next(iter(entry.subentries))
+    controller = entry.runtime_data.shutters[subentry_id]
+    sun = entity_id(hass, entry, subentry_id, "binary_sensor", "sun_on_window")
+    button = entity_id(hass, entry, subentry_id, "button", "sun_left")
+
+    await entry.runtime_data.async_tick()
+    assert hass.states.get(sun).state == "on"
+    await hass.services.async_call("button", "press", {"entity_id": button}, blocking=True)
+    await hass.async_block_till_done()
+
+    assert entry.runtime_data.shutters[subentry_id] is controller
+    assert entry.subentries[subentry_id].data["horizon"] == [[200, 35.1]]
+    assert hass.states.get(sun).state == "off"
 
 
 async def test_settings_survive_a_reload(hass: HomeAssistant, covers) -> None:

@@ -31,6 +31,7 @@ from .const import (
     CONF_HEAT_OUTDOOR,
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
+    CONF_HORIZON,
     CONF_LIGHT,
     CONF_LUX_LIMIT,
     CONF_MAX_ELEVATION,
@@ -43,12 +44,15 @@ from .const import (
     CONF_ROOM_TEMPERATURE,
     CONF_SCHEDULE,
     CONF_SHADING_POSITION,
+    CONF_SUN_DEPTH,
     CONF_SUN_SOURCE,
     CONF_TILT,
     CONF_TRAVEL_TIME,
     CONF_WEATHER,
     CONF_WIND_GUST,
     CONF_WIND_SPEED,
+    CONF_WINDOW_HEIGHT,
+    CONF_WINDOW_SILL,
     DEFAULT_LUX_LIMIT,
     DEFAULT_NAME,
     DEFAULT_OPTIONS,
@@ -84,6 +88,8 @@ from .const import (
 from .coordinator import read_calendar
 from .core import calibration_table
 from .core.calibration import RollerCalibration
+from .core.horizon import Horizon, from_rows, rows_from
+from .core.horizon import check as check_horizon
 from .core.model import Direction
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
 
@@ -561,6 +567,9 @@ SHUTTER = {
     vol.Required(CONF_MAX_POSITION): _number(0, 100, 5, "%"),
     vol.Required(CONF_HEAT_PROTECTION): selector.BooleanSelector(),
     vol.Required(CONF_SHADING_POSITION): _number(0, 100, 5, "%"),
+    vol.Optional(CONF_WINDOW_SILL): _number(0, 300, 1, "cm"),
+    vol.Optional(CONF_WINDOW_HEIGHT): _number(10, 400, 1, "cm"),
+    vol.Optional(CONF_SUN_DEPTH): _number(0, 10, 0.1, "m"),
     vol.Optional(CONF_HEAT_OUTDOOR): _number(-10, 40, 0.5, "°C"),
     vol.Optional(CONF_HEAT_ROOM): _number(10, 35, 0.5, "°C"),
     vol.Required(CONF_GLARE_PROTECTION): selector.BooleanSelector(),
@@ -573,6 +582,11 @@ SHUTTER = {
 TABLE_LABELS = {
     "en": {"module": "Module position", "up": "Going up: opening", "down": "Going down: opening"},
     "nl": {"module": "Modulestand", "up": "Omhoog: opening", "down": "Omlaag: opening"},
+}
+
+HORIZON_TABLE_LABELS = {
+    "en": {"azimuth": "Sun direction (°)", "elevation": "Lowest elevation (°)"},
+    "nl": {"azimuth": "Zonrichting (°)", "elevation": "Laagste zonshoogte (°)"},
 }
 
 
@@ -644,7 +658,7 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         return self.async_show_menu(
             step_id="reconfigure",
-            menu_options=["settings", "schedule", "schedule_reset", "calibrate", "add_point"],
+            menu_options=["settings", "schedule", "schedule_reset", "calibrate", "add_point", "horizon"],
         )
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
@@ -810,6 +824,61 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
             }
         )
         return self.async_show_form(step_id="add_point", data_schema=schema)
+
+    # --- horizon table (#54) -------------------------------------------------------------------------
+    def _horizon_schema(self) -> dict:
+        labels = HORIZON_TABLE_LABELS.get((self.hass.config.language or "en")[:2], HORIZON_TABLE_LABELS["en"])
+
+        def number(low: float, high: float) -> dict:
+            return {
+                "number": {
+                    "min": low,
+                    "max": high,
+                    "step": 0.1,
+                    "mode": "box",
+                    "unit_of_measurement": "°",
+                }
+            }
+
+        rows = selector.ObjectSelector(
+            selector.ObjectSelectorConfig(
+                multiple=True,
+                label_field="azimuth",
+                fields={
+                    "azimuth": {
+                        "label": labels["azimuth"],
+                        "required": True,
+                        "selector": number(0, 360),
+                    },
+                    "elevation": {
+                        "label": labels["elevation"],
+                        "required": True,
+                        "selector": number(0, 60),
+                    },
+                },
+            )
+        )
+        return {vol.Required("rows"): rows}
+
+    async def async_step_horizon(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        subentry = self._get_reconfigure_subentry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            rows = [r for r in user_input.get("rows") or [] if isinstance(r, dict)]
+            problems = check_horizon(rows)
+            if problems:
+                errors["base"] = problems[0]
+            else:
+                return self.async_update_and_abort(
+                    self._get_entry(),
+                    subentry,
+                    data_updates={CONF_HORIZON: from_rows(rows).as_data()},
+                )
+        stored = Horizon.from_data(subentry.data.get(CONF_HORIZON))
+        values = {"rows": rows_from(stored), **(user_input or {})}
+        return self.async_show_form(
+            step_id="horizon", data_schema=_with_defaults(self._horizon_schema(), values), errors=errors
+        )
 
     async def async_step_cal_next(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         session = self._session

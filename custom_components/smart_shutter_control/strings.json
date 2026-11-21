@@ -218,6 +218,9 @@
             "max_position": "Maximum position",
             "heat_protection": "Heat protection",
             "shading_position": "Shading position",
+            "window_sill": "Window bottom above the floor",
+            "window_height": "Window height",
+            "sun_depth": "Sun into the room",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
             "glare_protection": "Glare protection",
@@ -236,6 +239,9 @@
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
             "shading_position": "Position while the sun shines on the window.",
+            "window_sill": "The glass's lower edge above the floor.",
+            "window_height": "The glass height. Defaults to the calibration's window height.",
+            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "glare_protection": "Lower the shutter while bright sun shines on this window, whatever the temperature (also in winter).",
@@ -259,6 +265,9 @@
             "max_position": "Maximum position",
             "heat_protection": "Heat protection",
             "shading_position": "Shading position",
+            "window_sill": "Window bottom above the floor",
+            "window_height": "Window height",
+            "sun_depth": "Sun into the room",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
             "glare_protection": "Glare protection",
@@ -277,6 +286,9 @@
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
             "shading_position": "Position while the sun shines on the window.",
+            "window_sill": "The glass's lower edge above the floor.",
+            "window_height": "The glass height. Defaults to the calibration's window height.",
+            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "glare_protection": "Lower the shutter while bright sun shines on this window, whatever the temperature (also in winter).",
@@ -293,8 +305,19 @@
             "settings": "Settings",
             "calibrate": "Calibrate",
             "add_point": "Add a calibration point",
+            "horizon": "Horizon",
             "schedule": "Schedule overrides",
             "schedule_reset": "Reset to the base schedule"
+          }
+        },
+        "horizon": {
+          "title": "Horizon",
+          "description": "Set the lowest sun elevation for each sun direction. Values are interpolated between points. Press “Sun has left the window” when the sun disappears behind an obstruction to record a point.",
+          "data": {
+            "rows": "Horizon points"
+          },
+          "data_description": {
+            "rows": "Add, change or remove rows. Leave the table empty for no horizon profile."
           }
         },
         "add_point": {
@@ -415,7 +438,10 @@
         "module_twice": "A module position appears twice.",
         "opening_range": "An opening must be between 0 and 100 %.",
         "too_few_points": "At least two points are needed in one direction.",
-        "opening_falls": "In one direction the opening falls while the module position rises; check the values."
+        "opening_falls": "In one direction the opening falls while the module position rises; check the values.",
+        "azimuth_range": "A sun direction must be between 0 and 360°.",
+        "azimuth_twice": "A sun direction appears twice.",
+        "elevation_range": "A lowest elevation must be between 0 and 60°."
       },
       "abort": {
         "reconfigure_successful": "The shutter was saved.",
@@ -545,6 +571,9 @@
     "button": {
       "resume": {
         "name": "Resume automatic control"
+      },
+      "sun_left": {
+        "name": "Sun has left the window"
       }
     },
     "select": {

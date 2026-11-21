@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from .horizon import Horizon
+
 
 @dataclass(frozen=True)
 class SunPosition:
@@ -62,6 +64,12 @@ class WindowGeometry:
     tilt: float = 90.0  # from the horizontal: 90 = vertical
     min_elevation: float = 0.0
     max_elevation: float = 90.0
+    horizon: Horizon = Horizon()  # the lowest elevation per sun direction (#54)
+
+    def lowest_elevation(self, sun: SunPosition) -> float:
+        """Below this the sun is blocked in its current direction: the horizon or the lowest elevation."""
+        horizon = self.horizon.elevation_at(sun.azimuth)
+        return self.min_elevation if horizon is None else max(self.min_elevation, horizon)
 
     def incidence(self, sun: SunPosition) -> float:
         """Angle between the sun and the window normal, degrees (0 = straight on, ≥ 90 = behind)."""
@@ -71,9 +79,23 @@ class WindowGeometry:
         )
         return math.degrees(math.acos(max(-1.0, min(1.0, cos_i))))
 
+    def why_not(self, sun: SunPosition, max_incidence: float = 85.0) -> tuple[str, dict] | None:
+        """Why the sun is not on the window (a code and its values, #56), or None when it is."""
+        if sun.elevation <= 0:
+            return "night", {}
+        lowest = self.lowest_elevation(sun)
+        if sun.elevation < lowest:
+            return "below_horizon", {"elevation": round(sun.elevation, 1), "limit": round(lowest, 1)}
+        if sun.elevation > self.max_elevation:
+            return "above_overhang", {"elevation": round(sun.elevation, 1), "limit": self.max_elevation}
+        incidence = self.incidence(sun)
+        if incidence >= max_incidence:
+            return "not_facing", {"incidence": round(incidence, 1), "limit": max_incidence}
+        return None
+
     def sun_on(self, sun: SunPosition, max_incidence: float = 85.0) -> bool:
         return (
             sun.elevation > 0
-            and self.min_elevation <= sun.elevation <= self.max_elevation
+            and self.lowest_elevation(sun) <= sun.elevation <= self.max_elevation
             and self.incidence(sun) < max_incidence
         )

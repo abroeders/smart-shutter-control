@@ -18,16 +18,19 @@ class ScheduleRule:
     """The target of the current phase of the day."""
 
     priority = 60
+    name = "schedule"
 
     def __init__(self, schedule: DaySchedule, slit_module: Callable[[], int]) -> None:
         self.schedule = schedule
         self.slit_module = slit_module
+        self.why: tuple[str, dict] | None = None  # (#56)
 
     def phase(self, now: float) -> Phase:
         return self.schedule.phase_at(moment(now))
 
     def propose(self, ctx: ShutterContext) -> Decision | None:
         phase = self.phase(ctx.inputs.now)
+        self.why = ("phase", {"phase": str(phase)})
         if phase is Phase.SLIT:
             return Decision(0, Reason.SCHEDULE, module=self.slit_module())
         return Decision(self.schedule.target(phase), Reason.SCHEDULE)
@@ -49,13 +52,16 @@ class SleepInRule:
     """Closed during the slit and day phases until the sleep-in end time; then it switches itself off."""
 
     priority = 30
+    name = "sleep_in"
 
     def __init__(self, sleep_in: SleepIn, schedule: DaySchedule) -> None:
         self.sleep_in = sleep_in
         self.schedule = schedule
+        self.why: tuple[str, dict] | None = None  # (#56)
 
     def propose(self, ctx: ShutterContext) -> Decision | None:
         if not self.sleep_in.armed:
+            self.why = ("off", {})
             return None
         now = moment(ctx.inputs.now)
         if self.schedule.phase_at(now) not in (Phase.SLIT, Phase.DAY):

@@ -21,7 +21,21 @@ proposal is not changed by lower rules.
 | 60 | schedule | the position of the current phase |
 
 Afterwards the **maximum position** limits every automatic target (except fully closing). The sensor
-*Reason* says which rule decided.
+*Reason* says which rule decided; its attribute `decision` lists what **every** rule said, in priority order:
+the position it proposed (`target`, `cap` or `final`), whether that one decided (`applied`), or why it
+proposed nothing (`why` with `values`), for example:
+
+```yaml
+- {rule: heat, priority: 40, result: none, why: too_cold, values: {outdoor: 9.5, limit: 22}}
+- {rule: glare, priority: 41, result: cap, position: 40, applied: true, why: bright,
+   values: {factor: 100, limit: 55}}
+```
+
+Codes: `off`, `night`, `below_horizon`, `above_overhang`, `not_facing` (the sun is not in front of the
+window), `not_sunny`, `too_cold`, `waiting` / `leaving` (seconds until the delay ends), `bright` /
+`not_bright` (sun factor against *Glare from*), `not_day`, `phase`, `calm`, `no_frost`, `within_limits`,
+`no_pause`, `not_cold`. The card shows the list under **Why?**. The attribute is not recorded in the
+history (it changes on every evaluation).
 
 **Moves only at changes.** The schedule's target is sent when a phase starts, when a setting changes, or when
 a higher rule ends. A shutter moved in the middle of a phase is left there until the next phase.
@@ -63,6 +77,14 @@ with sun elevation `α`, sun azimuth `γ`, window direction `A` and window tilt 
 window** when it is above the horizon, between the lowest and highest sun elevation of the shutter, and
 `i` is below the largest angle of incidence (85°).
 
+**Horizon.** Buildings and trees block a low sun at different heights in different directions. Press the
+button *Sun has left the window* (on the shutter's device, or in the card while the sun is on the window) at
+the moment the sun disappears behind something: the sun's current direction and elevation become a point of
+the window's horizon, and the sun is off the window at once. A point within 3° of direction replaces an older
+one. Between points the horizon is interpolated; the outermost points hold 15° further; elsewhere only
+*Lowest sun elevation* applies. The higher of the two counts. View and edit the points under
+*Reconfigure → Horizon*.
+
 ## Is it sunny?
 
 The base controller uses **one** sun source: PV power or light sensors (lux), never both.
@@ -92,6 +114,21 @@ When the sun is on the window, it is sunny, and it is warm (outdoor or room temp
 limit), the shutter goes down to its shading position after 5 minutes. It goes up again 20 minutes after
 one of these stops, or at once when the sun has moved past the window. Passing clouds do not make it move up
 and down.
+
+**Shading position from the sun.** With *Window bottom above the floor*, *Window height* (or the
+calibration's) and *Sun into the room* set, heat and glare protection lower the shutter only as far as needed
+to keep direct sun within that depth over the floor. For a vertical window, with sun elevation `e` and `γ`
+the sun's horizontal angle to the window normal, the profile angle is `tan φ = tan e / cos γ`; light through
+the top of an opening `o` above the glass's lower edge `s` reaches `(s + o) / tan φ` into the room, so
+
+```
+o = depth · tan φ − s          position = 100 · o / window height
+```
+
+The position is rounded down to 10 %, never below the fixed *Shading position* / *Glare position*, and
+changes at most once per 15 minutes. A high summer sun thus leaves most of the window open; a low sun closes
+it to the fixed position. A sloped window keeps the fixed position. *Sun on the window* shows the computed
+position as `shading_from_depth`.
 
 ## Glare protection
 
