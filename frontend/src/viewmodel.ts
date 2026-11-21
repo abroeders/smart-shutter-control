@@ -14,8 +14,8 @@ export interface NextAction {
 export interface Decision {
   rule: string;
   priority: number;
-  result: "target" | "cap" | "final" | "none";
-  position?: number;
+  result: "target" | "cap" | "final" | "floor" | "none";
+  position?: number | null;
   applied?: boolean;
   why?: string;
   values?: Record<string, unknown>;
@@ -59,7 +59,7 @@ const isDecision = (value: unknown): value is Decision => {
   const entry = value as Record<string, unknown>;
   return (
     typeof entry.rule === "string" &&
-    ["target", "cap", "final", "none"].includes(String(entry.result)) &&
+    ["target", "cap", "final", "floor", "none"].includes(String(entry.result)) &&
     (entry.values === undefined || (typeof entry.values === "object" && entry.values !== null && !Array.isArray(entry.values)))
   );
 };
@@ -183,6 +183,12 @@ function decisionDuration(seconds: unknown, language: string, t: Translate): str
 }
 
 /** Turns the reason sensor's decision trace into localized lines for the card. */
+const RESULT_KEYS: Partial<Record<Decision["result"], string>> = {
+  cap: "decision_at_most",
+  final: "decision_final",
+  floor: "decision_at_least",
+};
+
 export function decisionLines(decisions: Decision[], t: Translate, language = "en"): DecisionLine[] {
   return decisions.map((entry) => {
     const values = entry.values ?? {};
@@ -194,9 +200,9 @@ export function decisionLines(decisions: Decision[], t: Translate, language = "e
     const why = entry.why ? decisionTemplate(t(whyKey), whyValues, language, t) : "";
     const position = entry.position === undefined ? null : entry.position;
     const result = position === null
-      ? t(entry.result === "final" ? "decision_hold" : "decision_nothing")
+      ? t(entry.result === "final" ? "decision_hold" : entry.result === "floor" ? "decision_at_least_slit" : "decision_nothing")
       : decisionTemplate(
-          t(entry.result === "cap" ? "decision_at_most" : entry.result === "final" ? "decision_final" : "decision_to"),
+          t(RESULT_KEYS[entry.result] ?? "decision_to"),
           { position: decisionNumber(position, language) },
           language,
           t,

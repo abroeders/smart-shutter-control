@@ -26,16 +26,20 @@ from .const import (
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
     CONF_HORIZON,
+    CONF_LOCKOUT_POSITION,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
     CONF_MIN_ELEVATION,
     CONF_MOTOR_POWER,
+    CONF_OPENED_CONTACT,
     CONF_ROOM_TEMPERATURE,
     CONF_SCHEDULE,
     CONF_SHADING_POSITION,
     CONF_SUN_DEPTH,
     CONF_TILT,
+    CONF_TILTED_CONTACT,
     CONF_TRAVEL_TIME,
+    CONF_VENTILATION_POSITION,
     CONF_WINDOW_HEIGHT,
     CONF_WINDOW_SILL,
     DEFAULT_SHUTTER,
@@ -43,6 +47,7 @@ from .const import (
 )
 from .core.arrival import ArrivalCheck, State, Verdict
 from .core.calibration import Calibration, DirectionTracker, RollerCalibration
+from .core.contacts import Floor, OpeningGuard, Target, raise_to
 from .core.daily import ScheduleRule, SleepIn, SleepInRule
 from .core.glare import GlareProtectionRule
 from .core.heat import HeatProtectionRule, SunSettings
@@ -191,6 +196,14 @@ class ShutterController:
                 self.schedule_rule,
             ]
         )
+        # window and door contacts (#49)
+        self.contacts = (subentry.data.get(CONF_OPENED_CONTACT), subentry.data.get(CONF_TILTED_CONTACT))
+        ventilation = subentry.data.get(CONF_VENTILATION_POSITION)
+        self.guard = OpeningGuard(
+            int(subentry.data.get(CONF_LOCKOUT_POSITION, DEFAULT_SHUTTER[CONF_LOCKOUT_POSITION])),
+            None if ventilation is None else int(ventilation),
+        )
+        self.floor_entry: dict | None = None  # the contacts' line in the decision trace
         self.on_manual: Callable[[], None] | None = None
         self.storm = False  # the last evaluation was in a storm
         self.last_target: tuple[str, int] | None = None  # what was last sent: ("real" | "module", value)
@@ -499,13 +512,16 @@ class ShutterController:
         """What every rule said in the last decision (#56); empty while automatic control is off."""
         if not self.automatic or self.paused or self.paused_all:
             return []
-        return [entry.as_dict() for entry in self.chain.last_trace]
+        entries = [entry.as_dict() for entry in self.chain.last_trace]
+        return [self.floor_entry, *entries] if self.floor_entry else entries
 
     async def async_evaluate(
         self, inputs: Inputs, storm: bool = False, weather: str | None = None, paused: bool = False
     ) -> Decision:
         """`paused`: automatic control of the whole integration is off (#53), storm included."""
         self.observe()  # a report not handled yet must not count as manual after this decision
+        if self._read_contacts(inputs.now) and self.pause.on:
+            self.resume()  # a door that opens ends a manual pause: the shutter goes up (#49)
         self.storm = inputs.storm
         self.paused_all = paused
         if self.paused or paused:
@@ -525,6 +541,7 @@ class ShutterController:
         storm = storm or inputs.storm
         decision = self.chain.decide(ctx)
         target = self._limited(decision, storm)
+        decision, target = self._with_floor(decision, target, storm, inputs.now)
         if target is None:
             self.decision = decision
             return decision
@@ -538,6 +555,42 @@ class ShutterController:
                     await self._move(target[1], automatic=True)
         self.decision = decision
         return decision
+
+    # --- contacts (#49) -------------------------------------------------------------------------------
+    def _read_contacts(self, now: float) -> bool:
+        """Read both contacts; true when the door or window has just opened."""
+        return self.guard.update(*(self._contact(e) for e in self.contacts), now)
+
+    def _contact(self, entity_id: str | None) -> bool | None:
+        if not entity_id:
+            return False
+        state = self.hass.states.get(entity_id)
+        if state is None or state.state not in ("on", "off"):
+            return None  # unavailable: keep the last state
+        return state.state == "on"
+
+    def _current(self) -> Target | None:
+        position = self.position()
+        if position is None:
+            return None
+        slit = ("module", self.slit_module())
+        return slit if position == 0 and self._there(slit) else ("real", position)
+
+    def _with_floor(
+        self, decision: Decision, target: Target | None, storm: bool, now: float
+    ) -> tuple[Decision, Target | None]:
+        """Keep the shutter at least at the lockout or ventilation position; frost and a manual pause
+        leave it where it is."""
+        floor = self.guard.floor(now, self.slit_module(), self.max_position)
+        leave = decision.final and decision.position is None
+        raised = target if leave else raise_to(target, self._current(), floor, storm)
+        applied = floor is not None and raised != target
+        self.floor_entry = _floor_entry(floor, applied, self.guard) if any(self.contacts) else None
+        if not applied:
+            return decision, target
+        kind, value = raised
+        module = value if kind == "module" else None
+        return Decision(0 if module is not None else value, floor.reason, module=module), raised
 
     async def async_manual(self, position: int) -> None:
         """A user moves the shutter through our entities: no limits, calibrated; counts as manual.
@@ -562,6 +615,25 @@ class ShutterController:
             "until": "next phase" if p.until_next_phase else _iso(p.until),
             "source": p.source or None,
         }
+
+
+def _floor_entry(floor: Floor | None, applied: bool, guard: OpeningGuard) -> dict:
+    """The contacts' line in the decision trace (#56); a position None is the slit."""
+    if floor is None:
+        return {"rule": "contacts", "priority": 0, "result": "none", "why": "contacts_closed"}
+    kind, value = floor.target
+    position = None if kind == "module" else value
+    why = "opened" if floor.reason == Reason.LOCKOUT else "tilted"
+    if not (guard.opened.on if why == "opened" else guard.tilted.on):
+        why += "_hold"
+    return {
+        "rule": "contacts",
+        "priority": 0,
+        "result": "floor",
+        "position": position,
+        "applied": applied,
+        "why": why,
+    }
 
 
 def _iso(epoch: float | None) -> str | None:

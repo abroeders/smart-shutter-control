@@ -85,6 +85,10 @@ CONF_WINDOW_SILL = "window_sill"  # cm: the glass's lower edge above the floor (
 CONF_WINDOW_HEIGHT = "window_height"  # cm: the height of the glass; else the calibration's
 CONF_SUN_DEPTH = "sun_depth"  # m: direct sun may reach this far into the room
 CONF_HORIZON = "horizon"  # [[azimuth, elevation], …]: the lowest sun elevation per direction (#54)
+CONF_OPENED_CONTACT = "opened_contact"  # binary sensor: the door or window is open (#49)
+CONF_TILTED_CONTACT = "tilted_contact"  # binary sensor: the window is tilted
+CONF_LOCKOUT_POSITION = "lockout_position"  # % while opened
+CONF_VENTILATION_POSITION = "ventilation_position"  # % while tilted; empty: the slit
 CONF_SCHEDULE = "schedule"  # per-shutter overrides of the base schedule (#4)
 CONF_HEAT_PROTECTION = "heat_protection"
 CONF_SHADING_POSITION = "shading_position"
@@ -104,6 +108,7 @@ DEFAULT_SHUTTER = {
     CONF_GLARE_PROTECTION: False,
     CONF_GLARE_POSITION: 40,
     CONF_GLARE_FROM: 70,
+    CONF_LOCKOUT_POSITION: 100,
 }
 
 TICK_SECONDS = 60

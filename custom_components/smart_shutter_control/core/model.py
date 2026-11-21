@@ -27,6 +27,8 @@ class Reason(StrEnum):
     COLD_LIMIT = "cold_limit"
     WINTER = "winter"  # (#7)
     GLARE = "glare"  # (#36)
+    LOCKOUT = "lockout"  # a door is open: not below the lockout position (#49)
+    VENTILATION = "ventilation"  # a window is tilted: not below the ventilation position (#49)
 
 
 class Kind(StrEnum):

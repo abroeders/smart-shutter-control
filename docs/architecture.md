@@ -51,6 +51,7 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | **State** | `HeatProtectionRule` phases open → pending → shading → leaving (#3); `DaySchedule` phases night → slit → day → dusk (#4); `ManualDetector` idle → commanded → manual (#5) |
 | **Template / inheritance of settings** | `merged(base, overrides)`: every shutter takes the base schedule unless it overrides a setting (#4) |
 | **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
+| **Decorator (floor)** | `raise_to` puts the window and door contacts' floor over the chain's decision without the rules knowing about it (#49) |
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover; the ends (100, 0) go by `open_cover`/`close_cover` when the cover supports them, so the module runs to its limit switch |
 | **Observer** | the entities listen to `BaseCoordinator` |
@@ -1119,4 +1120,67 @@ classDiagram
     }
     ShutterController o-- ArrivalCheck
     StuckSensor ..> ShutterController
+```
+
+## 20. Window and door contacts (#49)
+
+`OpeningGuard` (`core/contacts.py`, pure) per shutter holds the state of the optional *opened* and *tilted*
+contacts (an unavailable contact keeps its last state) and gives a `Floor`: the lockout position while
+opened, the ventilation position (a real position or the slit) while tilted, each held for 1 minute after
+the contact closes. `ShutterController.async_evaluate` reads the contacts first (a door that has just opened
+ends a manual pause), then applies the floor with `raise_to` to the position after the rule chain and the
+limiter, or to the current position when no rule wants anything. Frost and a manual pause (a final decision
+without a position) leave the shutter alone. The lockout floor is safety: above the maximum position, and
+fully open in a storm; ventilation gives way to both. The floor adds a line *contacts* to the decision
+trace. `BaseCoordinator` evaluates at once when a contact changes and once more when a hold ends.
+
+```mermaid
+classDiagram
+    class OpeningGuard {
+        +lockout int
+        +ventilation int|None
+        +opened Contact
+        +tilted Contact
+        +update(opened, tilted, now) bool
+        +floor(now, slit_module, max_position) Floor|None
+        +release_at() float|None
+    }
+    class Contact {
+        +on bool
+        +off_since float|None
+        +update(on, now) bool
+        +holds(now) bool
+    }
+    class Floor {
+        +reason lockout|ventilation
+        +target Target
+        +safety bool
+    }
+    class ShutterController {
+        +guard OpeningGuard
+        +contacts
+        +floor_entry dict|None
+        +async_evaluate()
+    }
+    OpeningGuard *-- Contact
+    OpeningGuard ..> Floor
+    ShutterController o-- OpeningGuard
+```
+
+```mermaid
+sequenceDiagram
+    participant D as Door contact
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant G as OpeningGuard
+    D->>C: on
+    C->>SC: async_evaluate(inputs)
+    SC->>G: update(opened, tilted, now)
+    G-->>SC: just opened: resume (end a manual pause)
+    SC->>SC: rule chain, limiter
+    SC->>G: floor(now)
+    SC->>SC: raise_to(target, current, floor, storm): lockout
+    D->>C: off
+    C->>C: async_call_later(release_at)
+    C->>SC: async_evaluate: the rules' position
 ```

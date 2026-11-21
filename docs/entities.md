@@ -33,10 +33,13 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | binary_sensor *Stuck* (diagnostic) | on when a move did not arrive, also not after a second try; attributes `target`, `position` (module positions). A repair issue says the same; both clear at the next move that arrives (see [How it works](how-it-works.md#did-the-move-arrive)) |
 | button *Resume automatic control* | ends a manual pause and moves the shutter to the wanted position |
 | button *Sun has left the window* | records where the sun leaves the window now as a point of its [horizon](how-it-works.md#sun-on-the-window) |
-| sensor *Reason* | why the shutter is where it is: idle, automatic control off, automatic control paused (all shutters), manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare. Attributes `target_position`, `max_position`, `language`, `decision` (what every rule said, see [How it works](how-it-works.md#rules-and-priorities)) |
+| sensor *Reason* | why the shutter is where it is: idle, automatic control off, automatic control paused (all shutters), manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare, lockout, ventilation. Attributes `target_position`, `max_position`, `language`, `decision` (what every rule said, see [How it works](how-it-works.md#rules-and-priorities)) |
 | sensor *Next action* | time of the next phase change; attributes `phase`, `position`, `following` (the two after it), `overrides` |
 | sensor *Phase* | night, slit, day or dusk |
 | sensor *State* | closed, slit (gaps open, bar on the sill), partly open, open; attributes `opening`, `module_position` |
 | sensor *Calibration* (diagnostic) | calibrated or not; the points, the model and the fit per direction |
 | binary_sensor *Sun on the window* | the sun is in front of the window and not blocked (geometry only); attributes `incidence`, `shading_from_depth` (with the room fields), `horizon` (the lowest elevation in the sun's current direction, with a horizon); with a facade light sensor also `sunny`, `sun_factor`, `lux`, `source` |
 | binary_sensor *Manual pause* | automatic control is paused after a manual action; attributes `since`, `until`, `source` |
+
+The decision trace includes a *contacts* line while an opened or tilted contact applies a lockout or
+ventilation floor, and while it is holding for one minute after closing.

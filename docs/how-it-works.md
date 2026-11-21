@@ -167,6 +167,23 @@ Automatic control **resumes**:
 
 A manual action also ends sleep-in. Storm still acts during a pause.
 
+## Lockout and ventilation
+
+An opened contact raises the shutter at once to its lockout position and holds it there while the door or
+window is open. A running manual pause ends, but a manual move while open is respected. In a storm the
+lockout floor means fully open, and it may go above the maximum position. Opened and tilted at once use the
+lockout floor.
+
+A tilted contact holds the shutter at the ventilation position, or at the slit when *Ventilation position*
+is empty. Ventilation is comfort: the maximum position and storm still apply.
+
+Nothing moves during frost (the shutter may be frozen), during calibration, with the shutter's *Automatic*
+switch off or with the whole integration paused. A contact that is unavailable keeps its last state.
+
+When a contact closes, the floor continues for one minute so a short walk in or out does not move the shutter.
+After the hold, the shutter goes to the position the rules want. The *Reason* is *lockout* or
+*ventilation* while the contact raises or holds it.
+
 ## Did the move arrive?
 
 After every position the integration sends (automatic, or through its own entities), it checks that the

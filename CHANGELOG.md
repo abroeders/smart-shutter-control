@@ -6,6 +6,21 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.13] - 2026-11-21
+
+### Added
+
+- Window and door contacts: with an *opened* contact, automatic control raises the shutter to the lockout
+  position (fully open by default) and never lowers it below that while the door is open, also not in a
+  storm, so nobody is locked out; with a *tilted* contact it keeps at least the ventilation position (the
+  slit by default). One minute after the contact closes, the shutter follows its rules again; the reason
+  is *lockout* or *ventilation* (#49).
+
+### Changed
+
+- The manifest lists the categories *Blinds & curtains* and *Climate*, and the HACS check runs without
+  ignored checks (#61).
+
 ## [2026.11.12] - 2026-11-21
 
 ### Added
@@ -322,7 +337,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.12...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.13...HEAD
+[2026.11.13]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.12...2026.11.13
 [2026.11.12]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.11...2026.11.12
 [2026.11.11]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.10...2026.11.11
 [2026.11.10]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.9...2026.11.10
