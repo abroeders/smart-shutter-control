@@ -8,10 +8,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
-from homeassistant.components.cover import ATTR_CURRENT_POSITION, ATTR_POSITION
+from homeassistant.components.cover import ATTR_CURRENT_POSITION, ATTR_POSITION, CoverEntityFeature
 from homeassistant.components.cover import DOMAIN as COVER_DOMAIN
 from homeassistant.const import (
     ATTR_ENTITY_ID,
+    SERVICE_CLOSE_COVER,
+    SERVICE_OPEN_COVER,
     SERVICE_SET_COVER_POSITION,
     SERVICE_STOP_COVER,
     STATE_UNAVAILABLE,
@@ -23,6 +25,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 IDLE_W = 5.0  # W: a stopped motor uses less than this
+# the ends go by the module's own open/close (its arrows): it runs until it stops at its limit, where a
+# position stops on the module's travel-time estimate, short of the limit when that estimate drifts
+ENDS = {
+    100: (SERVICE_OPEN_COVER, CoverEntityFeature.OPEN),
+    0: (SERVICE_CLOSE_COVER, CoverEntityFeature.CLOSE),
+}
 
 
 @dataclass(frozen=True)
@@ -107,13 +115,12 @@ class CoverAdapter:
     async def async_move(self, position: int, automatic: bool = True) -> bool:
         if self.on_send is not None:
             self.on_send(position, self.module_position(), automatic)
+        service, data = SERVICE_SET_COVER_POSITION, {ATTR_ENTITY_ID: self.entity_id, ATTR_POSITION: position}
+        end = ENDS.get(position)
+        if end is not None and self.supported_features() & end[1]:
+            service, data = end[0], {ATTR_ENTITY_ID: self.entity_id}
         try:
-            await self.hass.services.async_call(
-                COVER_DOMAIN,
-                SERVICE_SET_COVER_POSITION,
-                {ATTR_ENTITY_ID: self.entity_id, ATTR_POSITION: position},
-                blocking=True,
-            )
+            await self.hass.services.async_call(COVER_DOMAIN, service, data, blocking=True)
         except HomeAssistantError as err:
             _LOGGER.warning("Could not move %s to %s: %s", self.entity_id, position, err)
             return False

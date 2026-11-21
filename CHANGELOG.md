@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- Fully open and fully closed are sent as the module's open and close (its arrows) instead of position
+  100 and 0, so the module runs until it stops at its limit switch. A module whose travel-time estimate
+  had drifted stopped short of fully open (#46).
+
 ## [2026.11.8] - 2026-11-21
 
 ### Changed
