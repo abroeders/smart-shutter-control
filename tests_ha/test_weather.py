@@ -176,3 +176,30 @@ async def test_winter_cold_day_and_evening(hass: HomeAssistant, covers, amsterda
     await tick(hass, entry)
     assert hass.states.get(eid(hass, entry, "sensor", "phase")).state == "dusk"
     assert not calls
+
+
+async def test_pausing_everything_stops_all_moves_also_in_a_storm(
+    hass: HomeAssistant, covers, amsterdam
+) -> None:
+    amsterdam.move_to("2026-11-18 23:00:00+01:00")  # night: the schedule wants closed
+    report(hass, 100)
+    entry = await setup(hass)
+    await add_shutter(hass, entry, LIVING)
+    calls = mock_moves(hass)
+    switch = eid(hass, entry, "switch", "automatic_all", shutter=False)
+    await hass.services.async_call("switch", "turn_off", {"entity_id": switch}, blocking=True)
+    calls.clear()
+    gust(hass, 90)
+    await tick(hass, entry)
+    assert not calls
+    reason = hass.states.get(eid(hass, entry, "sensor", "reason"))
+    assert reason.state == "paused" and reason.attributes["decision"] == []
+    assert hass.states.get(eid(hass, entry, "switch", "automatic")).state == "on"  # its own switch is kept
+
+    assert await hass.config_entries.async_reload(entry.entry_id)  # kept over a reload
+    await hass.async_block_till_done()
+    assert hass.states.get(switch).state == "off"
+    calls = mock_moves(hass)
+    gust(hass, 20)
+    await hass.services.async_call("switch", "turn_on", {"entity_id": switch}, blocking=True)
+    assert calls[-1].data["position"] == 0  # at once to what the night wants

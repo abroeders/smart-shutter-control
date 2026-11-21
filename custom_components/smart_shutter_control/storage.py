@@ -46,10 +46,10 @@ class RuntimeStore:
         self._due = due
         self._store.async_delay_save(self._payload, delay)
 
-    def set_global(self, key: str, value: Any) -> None:
-        """Base controller data such as the learned clear-sky reference."""
+    def set_global(self, key: str, value: Any, setting: bool = False) -> None:
+        """Base controller data such as the learned clear-sky reference; a setting is saved within seconds."""
         self.globals[key] = value
-        self._save_within(GLOBAL_SAVE_DELAY)
+        self._save_within(SAVE_DELAY if setting else GLOBAL_SAVE_DELAY)
 
     def get(self, shutter_id: str, key: str, default: Any = None) -> Any:
         return self.data.get(shutter_id, {}).get(key, default)

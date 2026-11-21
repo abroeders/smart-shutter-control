@@ -20,6 +20,9 @@ proposal is not changed by lower rules.
 | 50 | winter | closed all day in severe cold; at dusk, never raise a closed shutter (cap) |
 | 60 | schedule | the position of the current phase |
 
+With the switch *Automatic control (all shutters)* off, no rule is asked at all (storm included): the
+*Reason* is *paused* and nothing moves by itself.
+
 Afterwards the **maximum position** limits every automatic target (except fully closing). The sensor
 *Reason* says which rule decided; its attribute `decision` lists what **every** rule said, in priority order:
 the position it proposed (`target`, `cap` or `final`), whether that one decided (`applied`), or why it

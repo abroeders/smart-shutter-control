@@ -475,6 +475,9 @@
       },
       "sleep_in_all": {
         "name": "Sleep in (all shutters)"
+      },
+      "automatic_all": {
+        "name": "Automatic control (all shutters)"
       }
     },
     "number": {
@@ -500,6 +503,7 @@
         "state": {
           "idle": "Idle",
           "off": "Automatic control off",
+          "paused": "Automatic control paused",
           "manual": "Manual",
           "calibrating": "Calibrating",
           "sun": "Sun",

@@ -475,6 +475,9 @@
       },
       "sleep_in_all": {
         "name": "Uitslapen (alle rolluiken)"
+      },
+      "automatic_all": {
+        "name": "Automatische sturing (alle rolluiken)"
       }
     },
     "number": {
@@ -500,6 +503,7 @@
         "state": {
           "idle": "Geen actie",
           "off": "Automatisch uit",
+          "paused": "Automatische sturing gepauzeerd",
           "manual": "Handmatig",
           "calibrating": "Kalibreren",
           "sun": "Zon",

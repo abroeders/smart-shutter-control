@@ -1,4 +1,4 @@
-"""Automatic control on/off per shutter."""
+"""Automatic control on/off per shutter, and for the whole integration (#53)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,12 @@ from .entity import BaseEntity, ShutterEntity, add_per_shutter
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities([SleepInAllSwitch(entry.runtime_data, "sleep_in_all")])
+    async_add_entities(
+        [
+            SleepInAllSwitch(entry.runtime_data, "sleep_in_all"),
+            AutomaticAllSwitch(entry.runtime_data, "automatic_all"),
+        ]
+    )
     add_per_shutter(
         entry.runtime_data,
         async_add_entities,
@@ -105,4 +110,20 @@ class SleepInAllSwitch(BaseEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self.coordinator.set_sleep_in_all(False)
+        await self.coordinator.async_tick()
+
+
+class AutomaticAllSwitch(BaseEntity, SwitchEntity):
+    """Off: no shutter moves by itself, not even in a storm (#53); on again: all go where they are wanted."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.automatic_all
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        self.coordinator.set_automatic_all(True)
+        await self.coordinator.async_tick()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        self.coordinator.set_automatic_all(False)
         await self.coordinator.async_tick()

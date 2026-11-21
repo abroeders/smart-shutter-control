@@ -15,6 +15,7 @@ class Reason(StrEnum):
 
     IDLE = "idle"  # no rule wants anything
     OFF = "off"  # automatic control switched off
+    PAUSED = "paused"  # automatic control of the whole integration switched off (#53)
     MANUAL = "manual"
     CALIBRATING = "calibrating"  # the calibration assistant is moving the shutter
     SUN = "sun"  # heat protection (#3)
