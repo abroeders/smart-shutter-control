@@ -7,6 +7,15 @@ from dataclasses import dataclass
 from .model import Decision, Reason, ShutterContext
 
 
+def cloud_coverage(attributes: dict) -> float | None:
+    """The weather entity's cloud coverage in %, or None when it has none (for the view in the card, #34)."""
+    try:
+        value = float(attributes["cloud_coverage"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return max(0.0, min(100.0, value))
+
+
 @dataclass
 class StormDetector:
     """Storm while any source is at or above its own limit, until `release` seconds after the last time."""

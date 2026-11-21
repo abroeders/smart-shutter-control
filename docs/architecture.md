@@ -773,19 +773,61 @@ classDiagram
 are stored under `clear_sky` (PV) and `clear_sky_lux` (light), a facade sensor's with its shutter. A shutter
 with a facade sensor replaces `sunny` and `sun_factor` in its copy of the inputs before the rules run.
 
-## 12. The view through the window (#30)
+## 12. The view through the window (#30, #34)
 
-Design: [`design/2026-11-20-window-view.md`](design/2026-11-20-window-view.md).
+Designs: [`design/2026-11-20-window-view.md`](design/2026-11-20-window-view.md),
+[`design/2026-11-21-window-view-sky.md`](design/2026-11-21-window-view-sky.md).
 
 ```mermaid
 flowchart LR
-  A["attributes: sun azimuth/elevation, weather (Sun factor), wind/gust (Storm), window direction (Sun on the window)"] --> I["viewmodel.outsideInputs"]
+  A["attributes: sun azimuth/elevation, weather, cloud_coverage, state (Sun factor), wind/gust (Storm), window direction and facade sun_factor (Sun on the window)"] --> I["viewmodel.outsideInputs"]
   T["time, location (hass.config)"] --> I
   I --> S["scene.sceneFor → Scene (pure)"]
   M["moon.moonPhase / moonPosition (pure)"] --> S
+  U["sun.sunPosition (pure)"] --> S
   S --> V["view.renderView: SVG layers under the slats"]
 ```
 
-`scene.ts` decides what is visible (light, sun and moon place, weather, season, sway); `view.ts` only draws
-it, in the glass area of `ssc-drawing`, under the curtain. The closed slat pattern is opaque; the open
+```mermaid
+classDiagram
+    class scene {
+        <<module, pure>>
+        +sceneFor(inputs) Scene
+        +cloudCover(weather, cloudCoverage, sunFactor) number
+        +veil(sunFactor, cover) Veil
+        +sunPath(date, lat, lon, windowAzimuth) Place[][]
+        +sideLight(sunAzimuth, sunElevation, windowAzimuth, cover) SideLight
+        +landscape(windowAzimuth) Landscape
+        +placeInWindow(azimuth, elevation, windowAzimuth) Place
+    }
+    class Scene {
+        +sun Place
+        +glow number
+        +veil Veil
+        +path Place[][]
+        +cover number
+        +cloudCount number
+        +overcast bool
+        +sideLight SideLight
+        +landscape Landscape
+    }
+    class sun {
+        <<module, pure>>
+        +sunPosition(date, lat, lon)
+    }
+    class moon {
+        <<module, pure>>
+        +moonPhase(date)
+        +moonPosition(date, lat, lon)
+    }
+    scene ..> sun
+    scene ..> moon
+    scene --> Scene : builds
+```
+
+`scene.ts` decides what is visible (light, sun and moon place, the sun's path, cloud cover and the cloud in
+front of the sun, the landscape and side light of this window direction, weather, season, sway); `view.ts`
+only draws it, in the glass area of `ssc-drawing`, under the curtain. The cloud cover mixes the weather
+entity (cloud coverage or condition) with the measured sun factor (the facade sensor's when the shutter has
+one), the latter weighing three times as much by day. The closed slat pattern is opaque; the open
 pattern's slots are transparent, so the view shows through them.

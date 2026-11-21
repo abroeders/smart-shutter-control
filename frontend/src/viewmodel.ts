@@ -78,19 +78,26 @@ export function shutterModel(hass: HomeAssistant, deviceId: string): ShutterMode
   };
 }
 
-/** The inputs of the view through the window: sun and weather from the base controller, the window's direction. */
+/**
+ * The inputs of the view through the window: sun and weather from the base controller, the window's direction,
+ * and the measured light (the shutter's own facade sensor when it has one, else the base controller's).
+ */
 export function outsideInputs(hass: HomeAssistant, base: Record<string, string>, own: Record<string, string>, now = new Date()): SceneInputs {
   const attrs = (id?: string) => (id ? hass.states[id]?.attributes ?? {} : {});
   const sun = attrs(base.sun_factor);
   const storm = base.storm ? hass.states[base.storm] : undefined;
+  const window = attrs(own.sun_on_window);
+  const factor = num(window.sun_factor) ?? num(base.sun_factor ? hass.states[base.sun_factor]?.state : undefined);
   return {
     now,
     latitude: hass.config?.latitude ?? 52,
     longitude: hass.config?.longitude ?? 5,
     sunAzimuth: num(sun.sun_azimuth),
     sunElevation: num(sun.sun_elevation),
-    windowAzimuth: num(attrs(own.sun_on_window).window_azimuth),
+    windowAzimuth: num(window.window_azimuth),
     weather: sun.weather ?? null,
+    cloudCoverage: num(sun.cloud_coverage),
+    sunFactor: factor === null ? null : Math.max(0, Math.min(1, factor / 100)),
     wind: num(storm?.attributes.wind),
     gust: num(storm?.attributes.gust),
     storm: storm?.state === "on",

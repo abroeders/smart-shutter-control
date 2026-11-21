@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { landscape } from "../src/scene";
 import "../src/index";
 import { BASE, KITCHEN, LIVING, fakeHass } from "./fixtures";
 
@@ -75,8 +76,19 @@ describe("card", () => {
     const view = card.shadowRoot.querySelector("ssc-drawing").shadowRoot.querySelector("g.view");
     expect(view).not.toBeNull();
     expect(view.querySelector("g.precip line")).not.toBeNull(); // rain
-    expect(view.querySelector("g.sun")).toBeNull(); // behind the clouds
-    expect(view.querySelectorAll("g.tree").length).toBe(3);
+    // rain, but the panels see 80 % of clear sky: a broken sky, the sun behind a thin cloud
+    expect(view.querySelector("g.sun")).not.toBeNull();
+    expect(view.querySelector("g.veil")).not.toBeNull();
+    expect(view.querySelector("g.clouds .cloud")).not.toBeNull();
+    expect(view.querySelectorAll("g.tree").length).toBe(landscape(180).trees.length);
+
+    // a facade light sensor on this window decides instead: 10 % gives a closed layer
+    hass.states["binary_sensor.living_sun_on_window"].attributes.sun_factor = 10;
+    card.hass = { ...hass };
+    await card.updateComplete;
+    const drawing = card.shadowRoot.querySelector("ssc-drawing");
+    await drawing.updateComplete;
+    expect(drawing.scene.overcast).toBe(true);
   });
 
   it("drags the shutter to a position", async () => {
