@@ -1,7 +1,7 @@
 // What the cartoon scene looks like through the window glass.
 
 import { css, svg, type CSSResult, type SVGTemplateResult } from "lit";
-import type { Scene } from "./scene";
+import type { Place, Scene } from "./scene";
 
 export interface Box { x: number; y: number; w: number; h: number }
 
@@ -58,10 +58,26 @@ function moonPath(cx: number, cy: number, r: number, phase: number): SVGTemplate
   return svg`<path class="moon-disc" d=${d} fill="#fff8e1"></path>`;
 }
 
+function cloud(cx: number, cy: number, scale: number, color: string, cls: string, opacity = 0.95): SVGTemplateResult {
+  return svg`<g class=${cls} opacity=${opacity}>
+    <ellipse cx=${cx - 8 * scale} cy=${cy} rx=${10 * scale} ry=${5 * scale} fill=${color}></ellipse>
+    <ellipse cx=${cx + 2 * scale} cy=${cy - 4 * scale} rx=${12 * scale} ry=${8 * scale} fill=${color}></ellipse>
+    <ellipse cx=${cx + 14 * scale} cy=${cy} rx=${11 * scale} ry=${5 * scale} fill=${color}></ellipse>
+  </g>`;
+}
+
+/** Fixed places for up to six clouds, spread over the sky; filled in this order. */
+const CLOUD_SLOTS = [
+  { x: 0.18, y: 0.18 }, { x: 0.68, y: 0.28 }, { x: 0.45, y: 0.12 },
+  { x: 0.86, y: 0.15 }, { x: 0.3, y: 0.34 }, { x: 0.06, y: 0.3 },
+];
+
 export function renderView(scene: Scene, box: Box, animated: boolean): SVGTemplateResult {
   const gradientId = "ssc-view-sky";
+  const sideId = "ssc-view-side";
   const clipId = "ssc-view-precip";
   const hillTop = box.y + 0.72 * box.h;
+  const at = (place: Place) => ({ x: box.x + place.x * box.w, y: box.y + place.y * box.h });
 
   const stars = seededRandom(20261124);
   const starTemplates: SVGTemplateResult[] = [];
@@ -79,13 +95,12 @@ export function renderView(scene: Scene, box: Box, animated: boolean): SVGTempla
     : scene.season === "summer" ? "#7cb342"
     : scene.season === "autumn" ? "#9e9d24"
     : "#a1887f";
-  const hillD = `M ${box.x} ${hillTop} C ${box.x + 0.22 * box.w} ${hillTop - 0.08 * box.h}, ${box.x + 0.42 * box.w} ${hillTop + 0.03 * box.h}, ${box.x + 0.58 * box.w} ${hillTop - 0.05 * box.h} S ${box.x + 0.82 * box.w} ${hillTop + 0.02 * box.h}, ${box.x + box.w} ${hillTop - 0.02 * box.h} L ${box.x + box.w} ${box.y + box.h} L ${box.x} ${box.y + box.h} Z`;
+  const [h1, h2, h3, h4] = scene.landscape.hill.map((offset) => hillTop + offset * box.h);
+  const hillD = `M ${box.x} ${hillTop} C ${box.x + 0.22 * box.w} ${h1}, ${box.x + 0.42 * box.w} ${h2}, ${box.x + 0.58 * box.w} ${h3} S ${box.x + 0.82 * box.w} ${h4}, ${box.x + box.w} ${hillTop - 0.02 * box.h} L ${box.x + box.w} ${box.y + box.h} L ${box.x} ${box.y + box.h} Z`;
 
-  const treeSpecs = [
-    { fx: 0.25, base: hillTop + 0.01 * box.h, height: 0.19 * box.h },
-    { fx: 0.72, base: hillTop + 0.015 * box.h, height: 0.22 * box.h },
-    { fx: 0.50, base: hillTop - 0.025 * box.h, height: 0.13 * box.h },
-  ];
+  // a tree stands on the hill: the hill's height at its place, roughly
+  const hillAt = (fx: number) => hillTop + (fx < 0.5 ? scene.landscape.hill[0] : scene.landscape.hill[2]) * box.h * 0.5 + 0.01 * box.h;
+  const treeSpecs = scene.landscape.trees.map((tree) => ({ fx: tree.x, base: hillAt(tree.x), height: tree.height * box.h }));
   const treeTemplates: SVGTemplateResult[] = treeSpecs.map((tree) => {
     const tx = box.x + tree.fx * box.w;
     const ty = tree.base - tree.height;
@@ -148,30 +163,22 @@ export function renderView(scene: Scene, box: Box, animated: boolean): SVGTempla
     }
   }
 
-  const cloudTemplates: SVGTemplateResult[] = [];
-  if (scene.clouds === "few") {
-    const cloudData = [{ x: 0.18, y: 0.18 }, { x: 0.68, y: 0.28 }];
-    for (const cloud of cloudData) {
-      const cx = box.x + cloud.x * box.w;
-      const cy = box.y + cloud.y * box.h;
-      cloudTemplates.push(svg`<g class=${animated ? "cloud drift" : "cloud"} opacity="0.95">
-        <ellipse cx=${cx - 8} cy=${cy} rx="10" ry="5" fill="#fff"></ellipse>
-        <ellipse cx=${cx + 2} cy=${cy - 4} rx="12" ry="8" fill="#fff"></ellipse>
-        <ellipse cx=${cx + 14} cy=${cy} rx="11" ry="5" fill="#fff"></ellipse>
-      </g>`);
-    }
-  } else if (scene.clouds === "overcast") {
+  const drift = animated ? "cloud drift" : "cloud";
+  const cloudTemplates: SVGTemplateResult[] = CLOUD_SLOTS.slice(0, scene.cloudCount).map((slot) =>
+    cloud(box.x + slot.x * box.w, box.y + slot.y * box.h, 1, scene.cover >= 0.55 ? "#eceff1" : "#fff", drift));
+  if (scene.overcast) {
     const colors = ["#90a4ae", "#78909c"];
     for (let i = 0; i < 4; i++) {
       const cx = box.x + (0.08 + i * 0.28) * box.w;
       const cy = box.y + (0.12 + (i % 2) * 0.06) * box.h;
-      cloudTemplates.push(svg`<g class=${animated ? "cloud drift" : "cloud"} opacity="0.95">
-        <ellipse cx=${cx - 10} cy=${cy} rx="13" ry="7" fill=${colors[i % 2]}></ellipse>
-        <ellipse cx=${cx + 2} cy=${cy - 5} rx="16" ry="11" fill=${colors[i % 2]}></ellipse>
-        <ellipse cx=${cx + 16} cy=${cy} rx="14" ry="7" fill=${colors[i % 2]}></ellipse>
-      </g>`);
+      cloudTemplates.push(cloud(cx, cy, 1.3, colors[i % 2], drift));
     }
   }
+
+  const sun = scene.sun ? at(scene.sun) : null;
+  const sunRadius = 0.08 * box.w;
+  const veilScale = sunRadius / 12; // the cloud is about 3.5 sun radii wide
+  const paths = scene.path.map((piece) => piece.map((place) => { const p = at(place); return `${p.x.toFixed(1)},${p.y.toFixed(1)}`; }).join(" "));
 
   return svg`
     <defs>
@@ -179,19 +186,26 @@ export function renderView(scene: Scene, box: Box, animated: boolean): SVGTempla
         <stop offset="0" stop-color=${scene.sky[0]}></stop>
         <stop offset="1" stop-color=${scene.sky[1]}></stop>
       </linearGradient>
+      ${scene.sideLight ? svg`<radialGradient id=${sideId} gradientUnits="userSpaceOnUse" cx=${box.x + scene.sideLight.x * box.w} cy=${hillTop} r=${0.75 * box.w}>
+        <stop offset="0" stop-color="#ffe0b2" stop-opacity=${scene.sideLight.strength}></stop>
+        <stop offset="1" stop-color="#ffe0b2" stop-opacity="0"></stop>
+      </radialGradient>` : ""}
       <clipPath id=${clipId}><rect x=${box.x} y=${box.y} width=${box.w} height=${box.h}></rect></clipPath>
     </defs>
-    <g class="sky"><rect x=${box.x} y=${box.y} width=${box.w} height=${box.h} fill=${`url(#${gradientId})`}></rect></g>
-    ${scene.stars > 0 && scene.clouds !== "overcast" ? svg`<g class="stars" opacity=${scene.stars}>${starTemplates}</g>` : ""}
+    <g class="sky"><rect x=${box.x} y=${box.y} width=${box.w} height=${box.h} fill=${`url(#${gradientId})`}></rect>
+      ${scene.sideLight ? svg`<rect class="side-light" x=${box.x} y=${box.y} width=${box.w} height=${box.h} fill=${`url(#${sideId})`}></rect>` : ""}</g>
+    ${paths.length ? svg`<g class="sun-path" clip-path=${`url(#${clipId})`}>${paths.map((points) => svg`<polyline points=${points} fill="none" stroke="#fff8e1" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="1.5 3" stroke-linecap="round"></polyline>`)}</g>` : ""}
+    ${scene.stars > 0 && !scene.overcast ? svg`<g class="stars" opacity=${scene.stars}>${starTemplates}</g>` : ""}
     ${scene.moon ? svg`<g class="moon">
       <circle cx=${box.x + scene.moon.x * box.w} cy=${box.y + scene.moon.y * box.h} r=${0.095 * box.w} fill="#fff8e1" opacity="0.15"></circle>
       ${moonPath(box.x + scene.moon.x * box.w, box.y + scene.moon.y * box.h, 0.07 * box.w, scene.moon.phase)}
     </g>` : ""}
-    ${scene.sun ? svg`<g class="sun">
-      <circle cx=${box.x + scene.sun.x * box.w} cy=${box.y + scene.sun.y * box.h} r=${0.13 * box.w} fill="#ffd54f" opacity="0.25"></circle>
-      <circle class="sun-disc" cx=${box.x + scene.sun.x * box.w} cy=${box.y + scene.sun.y * box.h} r=${0.08 * box.w} fill="#ffd54f"></circle>
+    ${sun ? svg`<g class="sun">
+      ${scene.glow > 0 ? svg`<circle class="sun-glow" cx=${sun.x} cy=${sun.y} r=${0.13 * box.w} fill="#ffd54f" opacity=${scene.glow}></circle>` : ""}
+      <circle class="sun-disc" cx=${sun.x} cy=${sun.y} r=${sunRadius} fill="#ffd54f" opacity=${scene.veil ? (1 - 0.45 * scene.veil.opacity).toFixed(2) : 1}></circle>
     </g>` : ""}
-    ${scene.clouds !== "none" ? svg`<g class="clouds">${cloudTemplates}</g>` : ""}
+    ${cloudTemplates.length ? svg`<g class="clouds">${cloudTemplates}</g>` : ""}
+    ${sun && scene.veil ? svg`<g class="veil">${cloud(sun.x + scene.veil.offset * sunRadius - 3.5 * veilScale, sun.y + 2 * veilScale, veilScale, "#b0bec5", "veil-cloud", scene.veil.opacity)}</g>` : ""}
     <g class="land" style=${scene.dim > 0 ? `filter: brightness(${(1 - scene.dim).toFixed(2)})` : ""}>
       <path class="hill" d=${hillD} fill=${hillColor}></path>
       ${treeTemplates}
