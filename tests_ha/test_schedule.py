@@ -6,9 +6,9 @@ import pytest
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import async_fire_time_changed, async_mock_service
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from .conftest import LIVING, add_shutter, setup_base
+from .conftest import LIVING, add_shutter, mock_moves, setup_base
 
 
 def eid(hass: HomeAssistant, entry, domain: str, key: str, shutter: bool = True) -> str:
@@ -42,7 +42,7 @@ async def test_a_weekday_morning(hass: HomeAssistant, covers, amsterdam) -> None
     amsterdam.move_to("2026-11-18 07:50:00+01:00")
     report(hass, 0)
     entry = await setup_base(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     assert not calls and hass.states.get(eid(hass, entry, "sensor", "phase")).state == "night"
     next_action = hass.states.get(eid(hass, entry, "sensor", "next_action"))
@@ -177,7 +177,7 @@ async def test_holidays_from_a_calendar_and_the_list(hass: HomeAssistant, covers
 async def test_manual_pause_and_back_to_automatic_by_hand(hass: HomeAssistant, covers, amsterdam) -> None:
     amsterdam.move_to("2026-11-18 12:00:00+01:00")
     entry = await setup_base(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     report(hass, 40)  # someone lowers it by hand
     await hass.async_block_till_done()
@@ -196,7 +196,7 @@ async def test_manual_pause_and_back_to_automatic_by_hand(hass: HomeAssistant, c
 async def test_resume_button_moves_at_once(hass: HomeAssistant, covers, amsterdam) -> None:
     amsterdam.move_to("2026-11-18 12:00:00+01:00")
     entry = await setup_base(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     report(hass, 40)
     await hass.async_block_till_done()
@@ -216,7 +216,7 @@ async def test_ignore_mode_moves_back(hass: HomeAssistant, covers, amsterdam) ->
         entry, options={**entry.options, "schedule": {"manual_mode": "ignore"}}
     )
     await hass.async_block_till_done()
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     report(hass, 40)
     await hass.async_block_till_done()
@@ -228,7 +228,7 @@ async def test_sleep_in(hass: HomeAssistant, covers, amsterdam) -> None:
     amsterdam.move_to("2026-11-17 22:00:00+01:00")
     report(hass, 0)
     entry = await setup_base(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     await hass.services.async_call(
         "switch",

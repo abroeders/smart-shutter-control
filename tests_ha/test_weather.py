@@ -9,12 +9,11 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_time_changed,
-    async_mock_service,
 )
 
 from custom_components.smart_shutter_control.const import DEFAULT_OPTIONS, DOMAIN
 
-from .conftest import LIVING, OUTDOOR, add_shutter
+from .conftest import LIVING, OUTDOOR, add_shutter, mock_moves
 
 GUST = "sensor.gust"
 
@@ -67,7 +66,7 @@ async def test_storm_only_ends_and_the_evening(hass: HomeAssistant, covers, amst
     amsterdam.move_to("2026-11-18 12:00:00+01:00")
     report(hass, 100)
     entry = await setup(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     gust(hass, 75)  # storm
     await tick(hass, entry)
@@ -103,7 +102,7 @@ async def test_locked_open_closes_when_the_evening_starts(hass: HomeAssistant, c
     amsterdam.move_to("2026-11-18 16:00:00+01:00")
     report(hass, 100)
     entry = await setup(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     gust(hass, 80)
     await tick(hass, entry)
@@ -135,7 +134,7 @@ async def test_frost_does_not_move(hass: HomeAssistant, covers, amsterdam) -> No
     report(hass, 100)
     hass.states.async_set(OUTDOOR, "-3", {"device_class": "temperature", "unit_of_measurement": "°C"})
     entry = await setup(hass)
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     await tick(hass, entry)
     assert not calls
@@ -158,7 +157,7 @@ async def test_winter_cold_day_and_evening(hass: HomeAssistant, covers, amsterda
     report(hass, 100)
     hass.states.async_set(OUTDOOR, "-6", {"device_class": "temperature", "unit_of_measurement": "°C"})
     entry = await setup(hass, frost_limit=-20)  # no frost lock for this test
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING)
     select = eid(hass, entry, "select", "winter_mode", shutter=False)
     await hass.services.async_call(

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smart_shutter_control.const import DEFAULT_OPTIONS, DOMAIN
@@ -57,3 +59,27 @@ async def setup_base(hass: HomeAssistant) -> MockConfigEntry:
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     return entry
+
+
+ENDS = {"open_cover": 100, "close_cover": 0}  # the ends go by the module's own open/close
+
+
+def position_of(call: ServiceCall) -> int:
+    """The position a move of the physical cover asks for."""
+    return ENDS[call.service] if call.service in ENDS else int(call.data["position"])
+
+
+def register_moves(hass: HomeAssistant, handler) -> None:
+    for service in ("set_cover_position", *ENDS):
+        hass.services.async_register("cover", service, handler)
+
+
+def mock_moves(hass: HomeAssistant) -> list[SimpleNamespace]:
+    """Records the moves of the physical cover; an end by open/close is recorded as position 100 or 0."""
+    calls: list[SimpleNamespace] = []
+
+    async def record(call: ServiceCall) -> None:
+        calls.append(SimpleNamespace(service=call.service, data={**call.data, "position": position_of(call)}))
+
+    register_moves(hass, record)
+    return calls

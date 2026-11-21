@@ -3,11 +3,10 @@
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import async_mock_service
 
 from custom_components.smart_shutter_control.core.sun import SunPosition
 
-from .conftest import BEDROOM, LIVING, OUTDOOR, add_shutter, setup_base
+from .conftest import BEDROOM, LIVING, OUTDOOR, add_shutter, mock_moves, setup_base
 
 
 def entity_id(hass: HomeAssistant, entry, subentry_id: str | None, domain: str, key: str) -> str:
@@ -44,7 +43,7 @@ async def test_sunny_afternoon(hass: HomeAssistant, covers, monkeypatch, freezer
     entry = await setup_base(hass)
     hass.config_entries.async_update_entry(entry, options={**entry.options, "close_delay": 0})
     await hass.async_block_till_done()
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING, azimuth=190, shading_position=30)
     await add_shutter(hass, entry, BEDROOM, azimuth=10)
     await entry.runtime_data.async_tick()
@@ -79,7 +78,7 @@ async def test_glare_in_the_cold(hass: HomeAssistant, covers, monkeypatch, freez
     entry = await setup_base(hass)
     hass.config_entries.async_update_entry(entry, options={**entry.options, "close_delay": 0})
     await hass.async_block_till_done()
-    calls = async_mock_service(hass, "cover", "set_cover_position")
+    calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING, azimuth=180, glare_position=45)
     await entry.runtime_data.async_tick()
     south = next(s.subentry_id for s in entry.subentries.values() if s.data["cover"] == LIVING)
