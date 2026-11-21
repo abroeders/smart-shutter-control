@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.4] - 2026-11-21
+
 ### Added
 
 - Glare protection: per shutter a switch *Glare protection* (off by default), *Glare position* and *Glare
@@ -244,7 +246,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.3...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.4...HEAD
+[2026.11.4]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.3...2026.11.4
 [2026.11.3]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.2...2026.11.3
 [2026.11.2]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.1...2026.11.2
 [2026.11.1]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.0...2026.11.1
