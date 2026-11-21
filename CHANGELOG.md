@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.3] - 2026-11-21
+
 ### Added
 
 - Card: every window direction has its own landscape and light on the sun's side, and a dotted arc shows
@@ -19,6 +21,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 - Card: the sun stays visible, dimmed, under a closed cloud layer; a station reporting *cloudy* while the
   panels measure sunshine no longer turns the view grey (#34).
+- Help text of *Sunny from* and the documentation: light sensors (lux) as the sun source next to PV power
+  (#26).
 
 ## [2026.11.2] - 2026-11-20
 
@@ -233,7 +237,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.2...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.3...HEAD
+[2026.11.3]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.2...2026.11.3
 [2026.11.2]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.1...2026.11.2
 [2026.11.1]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.0...2026.11.1
 [2026.11.0]: https://github.com/abroeders/smart-shutter-control/compare/v0.6.1...2026.11.0
