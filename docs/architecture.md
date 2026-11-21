@@ -54,7 +54,7 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover |
 | **Observer** | the entities listen to `BaseCoordinator` |
-| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux) |
+| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
 
 ## 3. Scaffold (#1)
 
@@ -464,6 +464,7 @@ sequenceDiagram
 stateDiagram-v2
     [*] --> Open
     Open --> Pending: sun on window, sunny, warm
+    Open --> Shading: the same, at the first evaluation after a start
     Pending --> Open: a condition falls away
     Pending --> Shading: held for close_delay
     Shading --> Leaving: a condition falls away
@@ -874,6 +875,7 @@ classDiagram
 stateDiagram-v2
     [*] --> Open
     Open --> Pending: day phase, sun on window, sun factor ≥ glare_from
+    Open --> Shading: the same, at the first evaluation after a start
     Pending --> Open: a condition falls away
     Pending --> Shading: held for close_delay
     Shading --> Leaving: sun factor < glare_from − 15 points (or not sunny)

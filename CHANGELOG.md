@@ -6,6 +6,15 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- Settings changed through entities (switches such as *Glare protection* and *Heat protection*, positions,
+  maximum position) and the learned data were lost when the integration was reloaded: the learned data,
+  updated every minute, kept postponing the save. Settings are now saved within seconds, and everything is
+  written when the integration unloads (#38).
+- After a restart or reload, heat and glare protection act at once when their conditions already hold,
+  instead of opening the shutter for the close delay first (#38).
+
 ## [2026.11.4] - 2026-11-21
 
 ### Added

@@ -36,6 +36,7 @@ class HeatProtectionRule:
         self.settings = settings
         self.phase = Phase.OPEN
         self.since = 0.0
+        self.started = False  # the first evaluation after a (re)start acts without the close delay
         self.incidence: float | None = None
         self.sun_on: bool = False
 
@@ -62,7 +63,9 @@ class HeatProtectionRule:
         self.sun_on = window.sun_on(sun, self.settings.max_incidence)
         wanted = self.sun_on and ctx.inputs.sunny and self._warm(ctx)
         if self.phase is Phase.OPEN and wanted:
-            self._go(Phase.PENDING, now)
+            # after a restart the conditions held already: no need to wait (and to open meanwhile)
+            self._go(Phase.SHADING if not self.started else Phase.PENDING, now)
+        self.started = True
         if self.phase is Phase.PENDING:
             if not wanted:
                 self._go(Phase.OPEN, now)

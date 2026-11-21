@@ -26,6 +26,7 @@ class GlareProtectionRule:
         self.day_phase = day_phase
         self.phase = Phase.OPEN
         self.since = 0.0
+        self.started = False  # the first evaluation after a (re)start acts without the close delay
 
     def _go(self, phase: Phase, now: float) -> None:
         if phase is not self.phase:
@@ -50,7 +51,9 @@ class GlareProtectionRule:
         day = self.day_phase(now) is DayPhase.DAY
         wanted = sun_on and day and self._bright(ctx, active)
         if self.phase is Phase.OPEN and wanted:
-            self._go(Phase.PENDING, now)
+            # after a restart the conditions held already: no need to wait (and to open meanwhile)
+            self._go(Phase.SHADING if not self.started else Phase.PENDING, now)
+        self.started = True
         if self.phase is Phase.PENDING:
             if not wanted:
                 self._go(Phase.OPEN, now)

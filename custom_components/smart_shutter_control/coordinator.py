@@ -232,6 +232,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.data = None
 
     async def async_stop(self) -> None:
+        await self.store.async_flush()
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()

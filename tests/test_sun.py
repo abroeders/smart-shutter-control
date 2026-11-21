@@ -109,6 +109,7 @@ def sun_ctx(now, sunny=True, outdoor=25.0, sun=NOON, heat=True):
 
 def test_heat_rule_delays_and_passing_clouds():
     rule = HeatProtectionRule(SunSettings(close_delay=300, open_delay=1200))
+    assert rule.propose(sun_ctx(-60, sunny=False)) is None  # running: the sun comes out later
     assert rule.propose(sun_ctx(0)) is None and rule.phase is Phase.PENDING
     assert rule.propose(sun_ctx(299)) is None
     assert rule.propose(sun_ctx(300)) == Decision(30, "sun", Kind.CAP)
@@ -154,3 +155,9 @@ def test_lux_without_value_falls_back_to_the_weather():
 
     d = SunnyDetector(baseline=LuxBaseline())
     assert d.update(SunPosition(180, 30), None, "sunny", 0) and d.source == "weather"
+
+
+def test_heat_rule_after_a_restart_acts_at_once():
+    """The conditions held already before the restart: shading at once, not open for the close delay."""
+    rule = HeatProtectionRule(SunSettings(close_delay=300))
+    assert rule.propose(sun_ctx(0)) == Decision(30, "sun", Kind.CAP)
