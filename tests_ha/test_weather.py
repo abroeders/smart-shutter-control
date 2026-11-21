@@ -124,9 +124,9 @@ async def test_no_calibration_during_a_storm(hass: HomeAssistant, covers, amster
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, "shutter"), context={"source": "reconfigure", "subentry_id": sub}
     )
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"next_step_id": "calibrate"}
-    )
+    flow_id = result["flow_id"]
+    await hass.config_entries.subentries.async_configure(flow_id, {"next_step_id": "calibrate"})
+    result = await hass.config_entries.subentries.async_configure(flow_id, {"next_step_id": "cal_assistant"})
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "storm"
 
 

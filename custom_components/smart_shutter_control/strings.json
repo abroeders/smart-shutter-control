@@ -297,13 +297,6 @@
             "schedule_reset": "Reset to the base schedule"
           }
         },
-        "calibrate": {
-          "title": "Calibrate",
-          "description": "First the assistant looks for the point where the bottom bar leaves the sill: from closed it moves up in small steps and asks whether the bar has lifted. Then it measures four points spread over the travel above that point, from closed and from open, and asks each time how far the window is open below the bottom bar. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm, or leave it empty to estimate in % of the window.",
-          "data": {
-            "window_height_cm": "Window height"
-          }
-        },
         "add_point": {
           "title": "Add a calibration point",
           "description": "The shutter first moves to closed (↑) or open (↓), then to the module position, and asks for the opening.",
@@ -379,12 +372,50 @@
             "winter": "Base schedule: {base_winter}",
             "winter_closed_below": "Base schedule: {base_winter_closed_below}"
           }
+        },
+        "calibrate": {
+          "title": "Calibrate",
+          "description": "Let the assistant move the shutter and ask for measurements, or edit the measured points yourself.",
+          "menu_options": {
+            "cal_assistant": "Assistant",
+            "cal_table": "Edit table"
+          }
+        },
+        "cal_assistant": {
+          "title": "Calibrate",
+          "description": "First the assistant looks for the point where the bottom bar leaves the sill: from closed it moves up in small steps and asks whether the bar has lifted. Then it measures four points spread over the travel above that point, from closed and from open, and asks each time how far the window is open below the bottom bar. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm, or leave it empty to estimate in % of the window.",
+          "data": {
+            "window_height_cm": "Window height"
+          }
+        },
+        "cal_table": {
+          "title": "Calibration table",
+          "description": "A row per module position (the position the module reports, %), with the measured opening below the bottom bar in % of the window: going up (the shutter came from below) and going down (it came from above). A cell may stay empty. At least two points in one direction are needed; a direction with fewer uses the other one.",
+          "data": {
+            "rows": "Measured points",
+            "slit_up": "Slit going up",
+            "slit_down": "Slit going down"
+          },
+          "data_description": {
+            "rows": "Add, change or remove rows.",
+            "slit_up": "Module position with the slat gaps open and the bottom bar still on the sill. Optional.",
+            "slit_down": "Module position with the slat gaps open and the bottom bar still on the sill. Optional."
+          }
+        },
+        "cal_table_review": {
+          "title": "Result",
+          "description": "Module position for 50 % open: {summary}\n\nDifference between the directions: {difference} %.\n\nSave this calibration?"
         }
       },
       "error": {
         "no_position": "This cover cannot be set to a position.",
         "already_configured": "This cover already has a shutter controller.",
-        "elevation_order": "The highest sun elevation must be above the lowest."
+        "elevation_order": "The highest sun elevation must be above the lowest.",
+        "module_range": "A module position must be between 1 and 99 %.",
+        "module_twice": "A module position appears twice.",
+        "opening_range": "An opening must be between 0 and 100 %.",
+        "too_few_points": "At least two points are needed in one direction.",
+        "opening_falls": "In one direction the opening falls while the module position rises; check the values."
       },
       "abort": {
         "reconfigure_successful": "The shutter was saved.",
