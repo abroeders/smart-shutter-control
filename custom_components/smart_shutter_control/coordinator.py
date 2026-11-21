@@ -110,6 +110,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, _LOGGER, config_entry=entry, name=DOMAIN)
         self.entry = entry
+        self._quiet_update = False
         self.sources = dict(entry.data)
         self.options = {**DEFAULT_OPTIONS, **entry.options}
         if OPT_STORM_LIMIT in entry.options and OPT_STORM_GUST_LIMIT not in entry.options:
@@ -299,6 +300,24 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             wind=self._number(self.sources.get(CONF_WIND_SPEED)),
             gust=self._number(self.sources.get(CONF_WIND_GUST)),
         )
+
+    async def async_record_horizon(self, controller: ShutterController) -> None:
+        """Store where the sun leaves this window now as a horizon point, without a reload (#54)."""
+        sun = self.inputs.sun
+        if sun is None or sun.elevation <= 0:
+            raise HomeAssistantError("The sun is down: there is nothing to record")
+        horizon = controller.horizon_with(sun)
+        controller.set_horizon(horizon)
+        self._quiet_update = True  # the update listener reloads on every change; this one is applied
+        self.hass.config_entries.async_update_subentry(
+            self.entry, self.entry.subentries[controller.id], data=dict(controller.subentry_data)
+        )
+        await self.async_tick()
+
+    def quiet_update(self) -> bool:
+        """Whether the last change was applied already and needs no reload (and forget it)."""
+        quiet, self._quiet_update = self._quiet_update, False
+        return quiet
 
     async def async_tick(self) -> None:
         self.inputs = self.read_inputs()

@@ -44,7 +44,8 @@ device_id: <the shutter's device>
   frost, winter), and the next two actions of the schedule. **Why?** unfolds what every rule said, with
   the one that decided in bold: *Glare protection: at most 40 % (sun factor 100 % ≥ 55 %)*, *Heat
   protection: not warm (9.5 °C < 22 °C)*.
-- **Switches:** *Automatic* and *Sleep in*; *Resume* during a manual pause.
+- **Switches:** *Automatic* and *Sleep in*; *Resume* during a manual pause; *Sun has left the window* while
+  the sun is on the window (records a point of the window's horizon).
 
 Below 360 px wide the status moves under the drawing.
 

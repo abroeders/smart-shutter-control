@@ -116,8 +116,8 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 ## A shutter
 
 *Reconfigure* opens a menu: **Settings**, **Schedule overrides**, **Reset to the base schedule**,
-**Calibrate** (the assistant, or a table of the measured points; see [Calibration](calibration.md)) and
-**Add a calibration point**.
+**Calibrate** (the assistant, or a table of the measured points; see [Calibration](calibration.md)),
+**Add a calibration point** and **Horizon**.
 
 ### Settings
 
@@ -127,7 +127,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Name | the cover's name | the name of the shutter's device |
 | Window direction | required | degrees, 0 = north, 90 = east, 180 = south, 270 = west |
 | Window tilt | 90° | 90 = vertical; less for a roof window |
-| Lowest sun elevation | 0° | below this the sun is blocked (buildings, trees) |
+| Lowest sun elevation | 0° | below this the sun is blocked (buildings, trees); a [horizon](#horizon) can raise it per direction |
 | Highest sun elevation | 90° | above this the sun is blocked (an overhang, a balcony) |
 | Room temperature sensor | – | for *Heat protection from (room)* |
 | Motor power sensor | found on the cover's device | tells when the motor runs: used by the calibration and to recognise manual moves at once |
@@ -141,6 +141,12 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Glare position | 40 % | position during glare protection |
 | Glare from | 70 % | sun factor from which the sun counts as bright |
 | Facade light sensor | – | only with the sun source *Light sensors*: a light sensor at this window that decides for this shutter whether it is sunny |
+
+### Horizon
+
+A table with a row per point: *Sun direction (°)* and *Lowest elevation (°)*. The button *Sun has left the
+window* adds points; here you can correct, add or remove them. Leave the table empty for no horizon. See
+[Sun on the window](how-it-works.md#sun-on-the-window).
 
 ### Schedule overrides
 

@@ -412,9 +412,19 @@ classDiagram
         +tilt float
         +min_elevation float
         +max_elevation float
+        +horizon Horizon
         +incidence(sun) float
+        +lowest_elevation(sun) float
         +sun_on(sun, max_incidence) bool
+        +why_not(sun, max_incidence) tuple|None
     }
+    class Horizon {
+        <<frozen>>
+        +points tuple
+        +elevation_at(azimuth) float|None
+        +with_point(azimuth, elevation) Horizon
+    }
+    WindowGeometry o-- Horizon
     class ClearSkyReference {
         +cells dict
         +observe(sun, pv_power, now)
@@ -983,4 +993,27 @@ sequenceDiagram
     RC-->>SC: Decision
     S->>SC: trace()
     SC-->>S: [entry.as_dict()] (empty while automatic control is off)
+```
+
+## 16. Horizon per window (#54)
+
+`Horizon` (`core/horizon.py`, pure) holds `(azimuth, elevation)` points of a window; `WindowGeometry` uses
+the higher of the horizon in the sun's direction and the lowest elevation. The points live in the shutter's
+subentry (`horizon`). The button *Sun has left the window* stores a point without a reload: the coordinator
+applies it to the running controller and marks the subentry update as quiet, so the update listener skips
+the reload once. The table step *Horizon* saves like the other settings (with a reload).
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as SunLeftButton
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant HA as ConfigEntries
+    U->>B: press
+    B->>C: async_record_horizon(controller)
+    C->>SC: horizon_with(sun) → set_horizon
+    C->>HA: async_update_subentry (quiet)
+    HA-->>C: update listener: quiet_update() → no reload
+    C->>C: async_tick: the sun is off the window
 ```

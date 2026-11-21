@@ -56,6 +56,10 @@ class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):
             "window_azimuth": self.controller.config.azimuth,
             "window_tilt": self.controller.config.tilt,
         }
+        sun = self.coordinator.inputs.sun
+        if sun is not None and self.controller.config.horizon.points:  # (#54)
+            window = self.controller.window()
+            attributes["horizon"] = round(window.lowest_elevation(sun), 1)
         facade = self.controller.facade
         if facade is not None:  # this shutter's own light sensor decides "sunny"
             attributes |= {

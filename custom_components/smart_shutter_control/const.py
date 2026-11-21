@@ -81,6 +81,7 @@ CONF_TRAVEL_TIME = "travel_time"  # s from fully open to fully closed (#18)
 CONF_MOTOR_POWER = "motor_power"  # optional; found on the cover's device when left empty
 CONF_MAX_POSITION = "max_position"
 CONF_CALIBRATION = "calibration"
+CONF_HORIZON = "horizon"  # [[azimuth, elevation], …]: the lowest sun elevation per direction (#54)
 CONF_SCHEDULE = "schedule"  # per-shutter overrides of the base schedule (#4)
 CONF_HEAT_PROTECTION = "heat_protection"
 CONF_SHADING_POSITION = "shading_position"

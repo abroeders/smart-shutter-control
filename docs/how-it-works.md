@@ -77,6 +77,14 @@ with sun elevation `α`, sun azimuth `γ`, window direction `A` and window tilt 
 window** when it is above the horizon, between the lowest and highest sun elevation of the shutter, and
 `i` is below the largest angle of incidence (85°).
 
+**Horizon.** Buildings and trees block a low sun at different heights in different directions. Press the
+button *Sun has left the window* (on the shutter's device, or in the card while the sun is on the window) at
+the moment the sun disappears behind something: the sun's current direction and elevation become a point of
+the window's horizon, and the sun is off the window at once. A point within 3° of direction replaces an older
+one. Between points the horizon is interpolated; the outermost points hold 15° further; elsewhere only
+*Lowest sun elevation* applies. The higher of the two counts. View and edit the points under
+*Reconfigure → Horizon*.
+
 ## Is it sunny?
 
 The base controller uses **one** sun source: PV power or light sensors (lux), never both.

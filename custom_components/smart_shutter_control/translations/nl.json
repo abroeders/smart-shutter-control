@@ -293,8 +293,19 @@
             "settings": "Instellingen",
             "calibrate": "Kalibreren",
             "add_point": "Kalibratiepunt toevoegen",
+            "horizon": "Horizon",
             "schedule": "Schema-overrides",
             "schedule_reset": "Terug naar het standaardschema"
+          }
+        },
+        "horizon": {
+          "title": "Horizon",
+          "description": "Stel voor elke zonrichting de laagste zonshoogte in. Waarden tussen punten worden geïnterpoleerd. Druk op ‘Zon is weg van het raam’ als de zon achter een obstakel verdwijnt om een punt vast te leggen.",
+          "data": {
+            "rows": "Horizonpunten"
+          },
+          "data_description": {
+            "rows": "Rijen toevoegen, aanpassen of verwijderen. Laat de tabel leeg voor geen horizonprofiel."
           }
         },
         "add_point": {
@@ -415,7 +426,10 @@
         "module_twice": "Een modulestand komt twee keer voor.",
         "opening_range": "Een opening moet tussen 0 en 100 % liggen.",
         "too_few_points": "In één richting zijn minstens twee punten nodig.",
-        "opening_falls": "In één richting neemt de opening af terwijl de modulestand stijgt; controleer de waarden."
+        "opening_falls": "In één richting neemt de opening af terwijl de modulestand stijgt; controleer de waarden.",
+        "azimuth_range": "Een zonrichting moet tussen 0 en 360° liggen.",
+        "azimuth_twice": "Een zonrichting komt twee keer voor.",
+        "elevation_range": "Een laagste zonshoogte moet tussen 0 en 60° liggen."
       },
       "abort": {
         "reconfigure_successful": "Het rolluik is opgeslagen.",
@@ -545,6 +559,9 @@
     "button": {
       "resume": {
         "name": "Automaat hervatten"
+      },
+      "sun_left": {
+        "name": "Zon is weg van het raam"
       }
     },
     "select": {

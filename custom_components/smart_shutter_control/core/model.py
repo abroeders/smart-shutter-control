@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from .horizon import Horizon
 from .sun import SunPosition
 
 
@@ -46,6 +47,7 @@ class ShutterConfig:
     min_elevation: float = 0.0  # below: the sun is blocked
     max_elevation: float = 90.0  # above: the sun is blocked (overhang)
     room_temperature: str | None = None
+    horizon: Horizon = Horizon()  # below it in a sun direction: the sun is blocked (#54)
 
 
 @dataclass(frozen=True)

@@ -94,6 +94,29 @@ async def test_glare_in_the_cold(hass: HomeAssistant, covers, monkeypatch, freez
     assert attributes["glare_phase"] == "shading"
 
 
+async def test_sun_left_button_records_horizon_without_reloading(
+    hass: HomeAssistant, covers, monkeypatch, freezer
+) -> None:
+    freezer.move_to("2026-11-18 13:00:00+01:00")
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    monkeypatch.setattr(SunPosition, "at", classmethod(lambda cls, *args: SunPosition(200, 35)))
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING, azimuth=190)
+    subentry_id = next(iter(entry.subentries))
+    controller = entry.runtime_data.shutters[subentry_id]
+    sun = entity_id(hass, entry, subentry_id, "binary_sensor", "sun_on_window")
+    button = entity_id(hass, entry, subentry_id, "button", "sun_left")
+
+    await entry.runtime_data.async_tick()
+    assert hass.states.get(sun).state == "on"
+    await hass.services.async_call("button", "press", {"entity_id": button}, blocking=True)
+    await hass.async_block_till_done()
+
+    assert entry.runtime_data.shutters[subentry_id] is controller
+    assert entry.subentries[subentry_id].data["horizon"] == [[200, 35.1]]
+    assert hass.states.get(sun).state == "off"
+
+
 async def test_settings_survive_a_reload(hass: HomeAssistant, covers) -> None:
     """A switch turned on is kept, although the learned data postpones saving every tick."""
     entry = await setup_base(hass)

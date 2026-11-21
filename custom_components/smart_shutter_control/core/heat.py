@@ -61,7 +61,7 @@ class HeatProtectionRule:
             self.why = ("off", {}) if not ctx.heat_protection else ("night", {})
             return None
         cfg = ctx.config
-        window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation)
+        window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation, cfg.horizon)
         self.incidence = window.incidence(sun)
         self.sun_on = window.sun_on(sun, self.settings.max_incidence)
         wanted = self.sun_on and ctx.inputs.sunny and self._warm(ctx)

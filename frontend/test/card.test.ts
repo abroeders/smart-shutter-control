@@ -160,6 +160,53 @@ describe("card", () => {
     expect(hass.calls[0]).toMatchObject({ domain: "button", service: "press", data: { entity_id: "button.living_resume" } });
   });
 
+  it("offers to record the horizon only while the sun is on the window", async () => {
+    const hass = fakeHass({
+      "binary_sensor.living_sun_on_window": { state: "on", attributes: {} },
+    });
+    hass.entities["binary_sensor.living_sun_on_window"] = {
+      entity_id: "binary_sensor.living_sun_on_window",
+      device_id: LIVING,
+      platform: "smart_shutter_control",
+      translation_key: "sun_on_window",
+    };
+    hass.entities["button.living_sun_left"] = {
+      entity_id: "button.living_sun_left",
+      device_id: LIVING,
+      platform: "smart_shutter_control",
+      translation_key: "sun_left",
+    };
+    const card = await mount(hass);
+    const button = card.shadowRoot.querySelector(".sun-left") as HTMLButtonElement;
+    expect(button.textContent).toBe("Sun has left the window");
+    button.click();
+    expect(hass.calls[0]).toMatchObject({
+      domain: "button",
+      service: "press",
+      data: { entity_id: "button.living_sun_left" },
+    });
+
+    hass.states["binary_sensor.living_sun_on_window"].state = "off";
+    card.hass = { ...hass };
+    await card.updateComplete;
+    expect(card.shadowRoot.querySelector(".sun-left")).toBeNull();
+
+    hass.states["binary_sensor.living_sun_on_window"].state = "on";
+    delete hass.entities["button.living_sun_left"];
+    card.hass = { ...hass };
+    await card.updateComplete;
+    expect(card.shadowRoot.querySelector(".sun-left")).toBeNull();
+
+    hass.entities["button.living_sun_left"] = {
+      entity_id: "button.living_sun_left",
+      device_id: LIVING,
+      platform: "smart_shutter_control",
+      translation_key: "sun_left",
+    };
+    document.body.innerHTML = "";
+    expect(text(await mount(hass, { language: "nl" }))).toContain("Zon is weg van het raam");
+  });
+
   it("follows the integration's language, and the card's own option", async () => {
     const hass = fakeHass({ "sensor.living_reason": { state: "sun", attributes: { target_position: 30, max_position: 80, language: "nl" } } });
     expect(text(await mount(hass))).toContain("Zon op het raam");
