@@ -15,6 +15,8 @@ shutter by hand.
 - **Heat protection:** the sun's position against the window direction, with PV power or light sensors
   (lux) as a measure of clouds (learned clear-sky reference), and delays so passing clouds do not move the
   shutters.
+- **Glare protection:** bright sun on the window lowers the shutter to its own position, whatever the
+  temperature, also in winter.
 - **Calibrated positions:** an assistant measures each shutter, so 50 % is half way down the window from
   either direction; fully open and closed use the module's own ends.
 - **Manual operation is respected:** a manual move pauses automatic control until the next phase (or for a

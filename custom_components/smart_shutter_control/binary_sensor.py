@@ -51,6 +51,7 @@ class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):
         attributes = {
             "incidence": None if incidence is None else round(incidence, 1),
             "phase": str(self.controller.heat_rule.phase),
+            "glare_phase": str(self.controller.glare_rule.phase),
             # for the view through the window in the card (#30)
             "window_azimuth": self.controller.config.azimuth,
             "window_tilt": self.controller.config.tilt,

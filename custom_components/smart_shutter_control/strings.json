@@ -220,6 +220,9 @@
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
+            "glare_protection": "Glare protection",
+            "glare_position": "Glare position",
+            "glare_from": "Glare from",
             "motor_power": "Motor power sensor",
             "travel_time": "Travel time",
             "light_sensor": "Facade light sensor"
@@ -235,6 +238,9 @@
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
+            "glare_protection": "Lower the shutter while bright sun shines on this window, whatever the temperature (also in winter).",
+            "glare_position": "Position while the sun dazzles.",
+            "glare_from": "Sun factor (PV power or light as a share of its clear-sky value) from which the sun counts as bright.",
             "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
             "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand.",
             "light_sensor": "Optional. A light sensor at this window: it then decides for this shutter whether it is sunny."
@@ -255,6 +261,9 @@
             "shading_position": "Shading position",
             "heat_outdoor": "Heat protection from (outdoor)",
             "heat_room": "Heat protection from (room)",
+            "glare_protection": "Glare protection",
+            "glare_position": "Glare position",
+            "glare_from": "Glare from",
             "motor_power": "Motor power sensor",
             "travel_time": "Travel time",
             "light_sensor": "Facade light sensor"
@@ -270,6 +279,9 @@
             "shading_position": "Position while the sun shines on the window.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
+            "glare_protection": "Lower the shutter while bright sun shines on this window, whatever the temperature (also in winter).",
+            "glare_position": "Position while the sun dazzles.",
+            "glare_from": "Sun factor (PV power or light as a share of its clear-sky value) from which the sun counts as bright.",
             "motor_power": "Optional. Tells when the motor runs, so the calibration knows when the shutter has stopped. Left empty, a power sensor on the same device as the shutter is used.",
             "travel_time": "Seconds from fully open to fully closed. Measured by the calibration assistant when there is no motor power sensor; can be entered by hand.",
             "light_sensor": "Optional. A light sensor at this window: it then decides for this shutter whether it is sunny."
@@ -398,6 +410,9 @@
       "heat_protection": {
         "name": "Heat protection"
       },
+      "glare_protection": {
+        "name": "Glare protection"
+      },
       "sleep_in": {
         "name": "Sleep in"
       },
@@ -411,6 +426,12 @@
       },
       "shading_position": {
         "name": "Shading position"
+      },
+      "glare_position": {
+        "name": "Glare position"
+      },
+      "glare_from": {
+        "name": "Glare from"
       },
       "opening": {
         "name": "Opening"
@@ -431,7 +452,8 @@
           "frost": "Frost",
           "heat_limit": "Heat limit",
           "cold_limit": "Cold limit",
-          "winter": "Winter"
+          "winter": "Winter",
+          "glare": "Glare"
         }
       },
       "next_action": {

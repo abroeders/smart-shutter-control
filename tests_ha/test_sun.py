@@ -68,3 +68,28 @@ async def test_sunny_afternoon(hass: HomeAssistant, covers, monkeypatch, freezer
     # without heat protection the day phase wants it open; the (mocked) shutter never left 100 %
     assert not calls
     assert hass.states.get(entity_id(hass, entry, south, "sensor", "reason")).state == "schedule"
+
+
+async def test_glare_in_the_cold(hass: HomeAssistant, covers, monkeypatch, freezer) -> None:
+    """A low, bright winter sun on a south window: glare protection lowers it, heat protection does not."""
+    freezer.move_to("2026-11-18 13:00:00+01:00")  # the day phase
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    monkeypatch.setattr(SunPosition, "at", classmethod(lambda cls, *args: SunPosition(185, 16)))
+    hass.states.async_set(OUTDOOR, "6.0", {"device_class": "temperature", "unit_of_measurement": "°C"})
+    entry = await setup_base(hass)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "close_delay": 0})
+    await hass.async_block_till_done()
+    calls = async_mock_service(hass, "cover", "set_cover_position")
+    await add_shutter(hass, entry, LIVING, azimuth=180, glare_position=45)
+    await entry.runtime_data.async_tick()
+    south = next(s.subentry_id for s in entry.subentries.values() if s.data["cover"] == LIVING)
+    assert not calls  # glare protection is off by default
+    assert hass.states.get(entity_id(hass, entry, south, "sensor", "reason")).state == "schedule"
+
+    switch = entity_id(hass, entry, south, "switch", "glare_protection")
+    await hass.services.async_call("switch", "turn_on", {"entity_id": switch}, blocking=True)
+    await entry.runtime_data.async_tick()
+    assert calls and calls[-1].data["position"] == 45
+    assert hass.states.get(entity_id(hass, entry, south, "sensor", "reason")).state == "glare"
+    attributes = hass.states.get(entity_id(hass, entry, south, "binary_sensor", "sun_on_window")).attributes
+    assert attributes["glare_phase"] == "shading"
