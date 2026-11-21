@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- Calibration assistant: it sometimes kept waiting for a position the shutter had reached long before,
+  because the module did not report it. While waiting, the assistant now also asks the module for its
+  position every 5 seconds, and goes on as soon as the target is reported with the motor stopped (#42).
+
 ## [2026.11.6] - 2026-11-21
 
 ### Added
