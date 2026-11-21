@@ -140,12 +140,41 @@ async def test_reconfigure_and_remove_a_shutter(hass: HomeAssistant, covers) -> 
             "min_elevation": 5,
             "max_elevation": 90,
             "max_position": 80,
+            "window_sill": 90,
+            "window_height": 140,
+            "sun_depth": 2.5,
         },
     )
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "reconfigure_successful"
     await hass.async_block_till_done()
     assert entry.subentries[living.subentry_id].data["azimuth"] == 135
+    assert entry.subentries[living.subentry_id].data["window_sill"] == 90
+    assert entry.subentries[living.subentry_id].data["window_height"] == 140
+    assert entry.subentries[living.subentry_id].data["sun_depth"] == 2.5
     assert entry.runtime_data.shutters[living.subentry_id].config.azimuth == 135
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "shutter"), context={"source": "reconfigure", "subentry_id": living.subentry_id}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "cover": LIVING,
+            "azimuth": 135,
+            "tilt": 90,
+            "min_elevation": 5,
+            "max_elevation": 90,
+            "max_position": 80,
+        },
+    )
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+    assert "window_sill" not in entry.subentries[living.subentry_id].data
+    assert "window_height" not in entry.subentries[living.subentry_id].data
+    assert "sun_depth" not in entry.subentries[living.subentry_id].data
 
     hass.config_entries.async_remove_subentry(entry, living.subentry_id)
     await hass.async_block_till_done()

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from .model import Decision, Kind, Reason, ShutterContext
+from .shading import DepthShading
 from .sun import WindowGeometry
 
 PRIORITY = 40
@@ -36,6 +37,7 @@ class HeatProtectionRule:
     def __init__(self, settings: SunSettings) -> None:
         self.settings = settings
         self.why: tuple[str, dict] | None = None  # (#56)
+        self.shade = DepthShading()  # the position from the sun with a room geometry (#55)
         self.phase = Phase.OPEN
         self.since = 0.0
         self.started = False  # the first evaluation after a (re)start acts without the close delay
@@ -83,7 +85,9 @@ class HeatProtectionRule:
                 self._go(Phase.OPEN, now)
         self.why = self._why(ctx, window, sun, now)
         if self.phase in (Phase.SHADING, Phase.LEAVING):
-            return Decision(ctx.shading_position, Reason.SUN, Kind.CAP)
+            position = self.shade(now, cfg.room, sun, cfg.azimuth, cfg.tilt, ctx.shading_position)
+            return Decision(position, Reason.SUN, Kind.CAP)
+        self.shade.reset()
         return None
 
     def _why(self, ctx: ShutterContext, window: WindowGeometry, sun, now: float) -> tuple[str, dict] | None:

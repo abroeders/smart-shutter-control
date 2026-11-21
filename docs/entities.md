@@ -36,5 +36,5 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | sensor *Phase* | night, slit, day or dusk |
 | sensor *State* | closed, slit (gaps open, bar on the sill), partly open, open; attributes `opening`, `module_position` |
 | sensor *Calibration* (diagnostic) | calibrated or not; the points, the model and the fit per direction |
-| binary_sensor *Sun on the window* | the sun is in front of the window and not blocked (geometry only); attributes `incidence`, `horizon` (the lowest elevation in the sun's current direction, with a horizon); with a facade light sensor also `sunny`, `sun_factor`, `lux`, `source` |
+| binary_sensor *Sun on the window* | the sun is in front of the window and not blocked (geometry only); attributes `incidence`, `shading_from_depth` (with the room fields), `horizon` (the lowest elevation in the sun's current direction, with a horizon); with a facade light sensor also `sunny`, `sun_factor`, `lux`, `source` |
 | binary_sensor *Manual pause* | automatic control is paused after a manual action; attributes `since`, `until`, `source` |

@@ -31,8 +31,11 @@ from .const import (
     CONF_ROOM_TEMPERATURE,
     CONF_SCHEDULE,
     CONF_SHADING_POSITION,
+    CONF_SUN_DEPTH,
     CONF_TILT,
     CONF_TRAVEL_TIME,
+    CONF_WINDOW_HEIGHT,
+    CONF_WINDOW_SILL,
     DEFAULT_SHUTTER,
 )
 from .core.calibration import Calibration, DirectionTracker, RollerCalibration
@@ -45,6 +48,7 @@ from .core.manual import ManualDetector, ManualPause, ManualPauseRule, matches
 from .core.model import Decision, Direction, Inputs, Reason, ShutterConfig, ShutterContext
 from .core.rules import RuleChain
 from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, merged, overridden
+from .core.shading import RoomGeometry
 from .core.sun import SunPosition, WindowGeometry
 from .core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
 from .core.weather import FrostRule, StormRule, TemperatureLimitRule
@@ -74,7 +78,18 @@ def shutter_config(data: dict) -> ShutterConfig:
         max_elevation=float(values[CONF_MAX_ELEVATION]),
         room_temperature=values.get(CONF_ROOM_TEMPERATURE),
         horizon=Horizon.from_data(values.get(CONF_HORIZON)),
+        room=room_geometry(values),
     )
+
+
+def room_geometry(values: dict) -> RoomGeometry | None:
+    """The room behind the window (#55), when all three are known; the window height may come from the
+    calibration."""
+    sill, depth = values.get(CONF_WINDOW_SILL), values.get(CONF_SUN_DEPTH)
+    height = values.get(CONF_WINDOW_HEIGHT) or (values.get(CONF_CALIBRATION) or {}).get("window_height_cm")
+    if sill is None or depth is None or not height:
+        return None
+    return RoomGeometry(float(sill), float(height), float(depth))
 
 
 class ShutterController:
