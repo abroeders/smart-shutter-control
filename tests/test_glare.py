@@ -32,6 +32,7 @@ def rule(phase=DayPhase.DAY, close_delay=300.0, open_delay=1200.0):
 
 def test_bright_sun_in_the_cold_lowers_to_the_glare_position_after_the_delay():
     r = rule()
+    assert r.propose(glare_ctx(-60, factor=0.3)) is None  # running: the sun breaks through later
     assert r.propose(glare_ctx(0)) is None and r.phase is Phase.PENDING
     assert r.propose(glare_ctx(299)) is None
     assert r.propose(glare_ctx(300)) == Decision(40, Reason.GLARE, Kind.CAP)
@@ -94,3 +95,7 @@ def test_heat_and_glare_together_the_lower_wins():
     assert chain.decide(glare_ctx(0, outdoor=25.0, heat_protection=True, shading_position=30)).position == 30
     chain = RuleChain([HeatProtectionRule(SunSettings(close_delay=0)), rule(close_delay=0)])
     assert chain.decide(glare_ctx(0, outdoor=25.0, heat_protection=True, shading_position=60)).position == 40
+
+
+def test_after_a_restart_it_acts_at_once():
+    assert rule().propose(glare_ctx(0)) == Decision(40, Reason.GLARE, Kind.CAP)

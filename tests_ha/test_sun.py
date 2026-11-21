@@ -93,3 +93,17 @@ async def test_glare_in_the_cold(hass: HomeAssistant, covers, monkeypatch, freez
     assert hass.states.get(entity_id(hass, entry, south, "sensor", "reason")).state == "glare"
     attributes = hass.states.get(entity_id(hass, entry, south, "binary_sensor", "sun_on_window")).attributes
     assert attributes["glare_phase"] == "shading"
+
+
+async def test_settings_survive_a_reload(hass: HomeAssistant, covers) -> None:
+    """A switch turned on is kept, although the learned data postpones saving every tick."""
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING, azimuth=180)
+    south = next(s.subentry_id for s in entry.subentries.values() if s.data["cover"] == LIVING)
+    switch = entity_id(hass, entry, south, "switch", "glare_protection")
+    await hass.services.async_call("switch", "turn_on", {"entity_id": switch}, blocking=True)
+    for _ in range(3):  # ticks keep the learned data changing
+        await entry.runtime_data.async_tick()
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id(hass, entry, south, "switch", "glare_protection")).state == "on"

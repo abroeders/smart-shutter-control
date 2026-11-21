@@ -17,29 +17,51 @@ class RuntimeStore:
     """Per shutter (subentry id): automatic on/off, maximum position, last command."""
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+        self.hass = hass
         self._store: Store[dict[str, Any]] = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry_id}")
         self.data: dict[str, dict[str, Any]] = {}
         self.globals: dict[str, Any] = {}
+        self._due: float | None = None  # loop time of the pending save
+        self._loaded = False
 
     async def async_load(self) -> None:
         stored = await self._store.async_load() or {}
         self.data = stored.get("shutters", {})
         self.globals = stored.get("globals", {})
+        self._loaded = True
 
     def _payload(self) -> dict[str, Any]:
+        self._due = None
         return {"shutters": self.data, "globals": self.globals}
+
+    def _save_within(self, delay: float) -> None:
+        """Save within `delay` seconds; never push a save that is already due sooner further out.
+
+        The learned data changes every tick: without this, its long delay would postpone a changed setting's
+        save again and again, and a reload would lose the setting.
+        """
+        due = self.hass.loop.time() + delay
+        if self._due is not None and self._due <= due:
+            return
+        self._due = due
+        self._store.async_delay_save(self._payload, delay)
 
     def set_global(self, key: str, value: Any) -> None:
         """Base controller data such as the learned clear-sky reference."""
         self.globals[key] = value
-        self._store.async_delay_save(self._payload, GLOBAL_SAVE_DELAY)
+        self._save_within(GLOBAL_SAVE_DELAY)
 
     def get(self, shutter_id: str, key: str, default: Any = None) -> Any:
         return self.data.get(shutter_id, {}).get(key, default)
 
     def set(self, shutter_id: str, key: str, value: Any) -> None:
         self.data.setdefault(shutter_id, {})[key] = value
-        self._store.async_delay_save(self._payload, SAVE_DELAY)
+        self._save_within(SAVE_DELAY)
+
+    async def async_flush(self) -> None:
+        """Write now: on unload (a reload, or the integration removed), before the state is gone."""
+        if self._loaded:  # never overwrite the stored state with an empty one after a failed start
+            await self._store.async_save(self._payload())
 
     def forget(self, keep: set[str]) -> None:
         """Drop the state of shutters that no longer exist."""
