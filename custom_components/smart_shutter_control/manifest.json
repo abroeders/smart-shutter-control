@@ -1,10 +1,6 @@
 {
   "domain": "smart_shutter_control",
   "name": "Smart Shutter Control",
-  "categories": [
-    "blinds_curtains",
-    "climate"
-  ],
   "after_dependencies": [
     "calendar",
     "frontend",
@@ -13,6 +9,10 @@
     "recorder",
     "sun",
     "weather"
+  ],
+  "categories": [
+    "blinds_curtains",
+    "climate"
   ],
   "codeowners": [
     "@abroeders"
