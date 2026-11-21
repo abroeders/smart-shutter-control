@@ -136,6 +136,9 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Shading position | 30 % | position during heat protection |
 | Heat protection from (outdoor) | the base value | override for this shutter |
 | Heat protection from (room) | the base value | override for this shutter |
+| Glare protection | off | lower the shutter when bright sun shines on the window, whatever the temperature (see [Glare protection](how-it-works.md#glare-protection)) |
+| Glare position | 40 % | position during glare protection |
+| Glare from | 70 % | sun factor from which the sun counts as bright |
 | Facade light sensor | – | only with the sun source *Light sensors*: a light sensor at this window that decides for this shutter whether it is sunny |
 
 ### Schedule overrides

@@ -220,6 +220,9 @@
             "shading_position": "Schaduwstand",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
+            "glare_protection": "Verblinding",
+            "glare_position": "Verblindingsstand",
+            "glare_from": "Verblinding vanaf",
             "motor_power": "Motorvermogensensor",
             "travel_time": "Looptijd",
             "light_sensor": "Gevel-lichtsensor"
@@ -235,6 +238,9 @@
             "shading_position": "Stand terwijl de zon op het raam staat.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
+            "glare_protection": "Laat het rolluik zakken zolang felle zon op dit raam schijnt, ongeacht de temperatuur (ook in de winter).",
+            "glare_position": "Stand terwijl de zon verblindt.",
+            "glare_from": "Zonfactor (pv-vermogen of licht als deel van de waarde bij heldere lucht) vanaf welke de zon als fel telt.",
             "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt.",
             "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen.",
             "light_sensor": "Optioneel. Een lichtsensor bij dit raam: die bepaalt dan voor dit rolluik of het zonnig is."
@@ -255,6 +261,9 @@
             "shading_position": "Schaduwstand",
             "heat_outdoor": "Hittewering vanaf (buiten)",
             "heat_room": "Hittewering vanaf (kamer)",
+            "glare_protection": "Verblinding",
+            "glare_position": "Verblindingsstand",
+            "glare_from": "Verblinding vanaf",
             "motor_power": "Motorvermogensensor",
             "travel_time": "Looptijd",
             "light_sensor": "Gevel-lichtsensor"
@@ -270,6 +279,9 @@
             "shading_position": "Stand terwijl de zon op het raam staat.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
+            "glare_protection": "Laat het rolluik zakken zolang felle zon op dit raam schijnt, ongeacht de temperatuur (ook in de winter).",
+            "glare_position": "Stand terwijl de zon verblindt.",
+            "glare_from": "Zonfactor (pv-vermogen of licht als deel van de waarde bij heldere lucht) vanaf welke de zon als fel telt.",
             "motor_power": "Optioneel. Geeft aan wanneer de motor draait, zodat de kalibratie weet wanneer het rolluik stilstaat. Leeg gelaten wordt een vermogenssensor van hetzelfde apparaat als het rolluik gebruikt.",
             "travel_time": "Seconden van helemaal open tot helemaal dicht. De kalibratie-assistent meet hem als er geen motorvermogensensor is; je kunt hem ook zelf invullen.",
             "light_sensor": "Optioneel. Een lichtsensor bij dit raam: die bepaalt dan voor dit rolluik of het zonnig is."
@@ -398,6 +410,9 @@
       "heat_protection": {
         "name": "Hittewering"
       },
+      "glare_protection": {
+        "name": "Verblinding"
+      },
       "sleep_in": {
         "name": "Uitslapen"
       },
@@ -411,6 +426,12 @@
       },
       "shading_position": {
         "name": "Schaduwstand"
+      },
+      "glare_position": {
+        "name": "Verblindingsstand"
+      },
+      "glare_from": {
+        "name": "Verblinding vanaf"
       },
       "opening": {
         "name": "Opening raam"
@@ -431,7 +452,8 @@
           "frost": "Vorst",
           "heat_limit": "Hittegrens",
           "cold_limit": "Koudegrens",
-          "winter": "Winter"
+          "winter": "Winter",
+          "glare": "Verblinding"
         }
       },
       "next_action": {

@@ -86,6 +86,9 @@ CONF_HEAT_PROTECTION = "heat_protection"
 CONF_SHADING_POSITION = "shading_position"
 CONF_HEAT_OUTDOOR = "heat_outdoor"  # optional override of the base controller's value
 CONF_HEAT_ROOM = "heat_room"
+CONF_GLARE_PROTECTION = "glare_protection"  # (#36)
+CONF_GLARE_POSITION = "glare_position"
+CONF_GLARE_FROM = "glare_from"  # % sun factor from which the sun dazzles
 CONF_FACADE_LIGHT = "light_sensor"  # optional facade light sensor (sun source light only)
 DEFAULT_SHUTTER = {
     CONF_TILT: 90,
@@ -94,6 +97,9 @@ DEFAULT_SHUTTER = {
     CONF_MAX_POSITION: 100,
     CONF_HEAT_PROTECTION: True,
     CONF_SHADING_POSITION: 30,
+    CONF_GLARE_PROTECTION: False,
+    CONF_GLARE_POSITION: 40,
+    CONF_GLARE_FROM: 70,
 }
 
 TICK_SECONDS = 60

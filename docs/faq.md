@@ -44,6 +44,7 @@ limits from those. A gust value from a weather service is often more representat
 | The shutter does not move | sensor *Reason*: off (switch *Automatic control*), manual (button *Resume*), frost, or the shutter is already at the target |
 | It moves back after I moved it | *After a manual action* is *ignore*, or a storm is active |
 | It goes up and down with clouds | raise *Open after*, or lower *Sunny from* |
+| The low winter sun shines into the room | switch on *Glare protection* for that shutter; set *Glare position* and *Glare from* |
 | Heat protection never acts | binary sensor *Sun on the window* (window direction, elevations); sensor *Sun factor*; the heat limits |
 | Holidays are missing | *Configure → Holidays*: choose the calendar, then the second step lists its days. A calendar that loads late is read again when it becomes available |
 | Calibration stops early or waits long | set or check the *Motor power sensor* (it must read about 0 W at rest), or measure the *Travel time* |

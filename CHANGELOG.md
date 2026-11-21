@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Glare protection: per shutter a switch *Glare protection* (off by default), *Glare position* and *Glare
+  from*. Bright sun on this window (sun factor at or above the limit, the window's direction and sun
+  elevations) during the day phase lowers the shutter to the glare position, whatever the temperature and
+  also in winter. New reason *Glare*; attribute `glare_phase` on *Sun on the window* (#36).
+
 ## [2026.11.3] - 2026-11-21
 
 ### Added
