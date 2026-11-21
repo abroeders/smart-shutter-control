@@ -39,7 +39,9 @@ while the assistant runs. It does not run during a storm.
    more than about 5 % between the directions means the motor is faster one way.
 
 With a **motor power sensor** the assistant sees when the motor stops; without one it first measures the
-**travel time** (open fully, then close fully) and waits the expected time for each move.
+**travel time** (open fully, then close fully) and waits the expected time for each move. While it waits it
+also asks the module for its position every 5 seconds, so a module that does not report by itself is still
+seen to arrive, and the assistant goes on as soon as the position is there.
 
 **Add a calibration point** moves the shutter from closed (↑) or from open (↓) to a module position you
 choose, and asks for the opening. Use it to improve a curve without measuring everything again.

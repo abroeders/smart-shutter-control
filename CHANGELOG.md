@@ -6,6 +6,14 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.7] - 2026-11-21
+
+### Fixed
+
+- Calibration assistant: it sometimes kept waiting for a position the shutter had reached long before,
+  because the module did not report it. While waiting, the assistant now also asks the module for its
+  position every 5 seconds, and goes on as soon as the target is reported with the motor stopped (#42).
+
 ## [2026.11.6] - 2026-11-21
 
 ### Added
@@ -265,7 +273,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.6...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.7...HEAD
+[2026.11.7]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.6...2026.11.7
 [2026.11.6]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.5...2026.11.6
 [2026.11.5]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.4...2026.11.5
 [2026.11.4]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.3...2026.11.4
