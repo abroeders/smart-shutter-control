@@ -8,6 +8,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ### Added
 
+- Shading position from the sun: with the window's height above the floor, its height and how far direct sun
+  may reach into the room, heat and glare protection lower the shutter only as far as needed (in steps of
+  10 %, at most once per quarter of an hour, never below the fixed position), so a high sun leaves more
+  daylight (#55).
+
 - Horizon per window: buildings and trees block a low sun at different heights in different directions.
   The button *Sun has left the window* (also in the card) records the sun's direction and elevation as a
   horizon point, and *Reconfigure → Horizon* shows the points as a table. Heat and glare protection stop when

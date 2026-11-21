@@ -7,6 +7,7 @@ from collections.abc import Callable
 from .heat import Phase, SunSettings
 from .model import Decision, Kind, Reason, ShutterContext
 from .schedule import Phase as DayPhase
+from .shading import DepthShading
 from .sun import WindowGeometry
 
 PRIORITY = 41
@@ -25,6 +26,7 @@ class GlareProtectionRule:
     def __init__(self, settings: SunSettings, day_phase: Callable[[float], DayPhase]) -> None:
         self.settings = settings
         self.why: tuple[str, dict] | None = None  # (#56)
+        self.shade = DepthShading()  # the position from the sun with a room geometry (#55)
         self.day_phase = day_phase
         self.phase = Phase.OPEN
         self.since = 0.0
@@ -71,7 +73,9 @@ class GlareProtectionRule:
                 self._go(Phase.OPEN, now)
         self.why = self._why(ctx, window, sun, day, self.phase in (Phase.SHADING, Phase.LEAVING), now)
         if self.phase in (Phase.SHADING, Phase.LEAVING):
-            return Decision(ctx.glare_position, Reason.GLARE, Kind.CAP)
+            position = self.shade(now, cfg.room, sun, cfg.azimuth, cfg.tilt, ctx.glare_position)
+            return Decision(position, Reason.GLARE, Kind.CAP)
+        self.shade.reset()
         return None
 
     def _why(self, ctx, window: WindowGeometry, sun, day: bool, active: bool, now: float):

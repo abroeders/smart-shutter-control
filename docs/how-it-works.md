@@ -115,6 +115,21 @@ limit), the shutter goes down to its shading position after 5 minutes. It goes u
 one of these stops, or at once when the sun has moved past the window. Passing clouds do not make it move up
 and down.
 
+**Shading position from the sun.** With *Window bottom above the floor*, *Window height* (or the
+calibration's) and *Sun into the room* set, heat and glare protection lower the shutter only as far as needed
+to keep direct sun within that depth over the floor. For a vertical window, with sun elevation `e` and `γ`
+the sun's horizontal angle to the window normal, the profile angle is `tan φ = tan e / cos γ`; light through
+the top of an opening `o` above the glass's lower edge `s` reaches `(s + o) / tan φ` into the room, so
+
+```
+o = depth · tan φ − s          position = 100 · o / window height
+```
+
+The position is rounded down to 10 %, never below the fixed *Shading position* / *Glare position*, and
+changes at most once per 15 minutes. A high summer sun thus leaves most of the window open; a low sun closes
+it to the fixed position. A sloped window keeps the fixed position. *Sun on the window* shows the computed
+position as `shading_from_depth`.
+
 ## Glare protection
 
 Heat protection needs warmth; a low winter sun can dazzle on a cold day. **Glare protection** (switch per

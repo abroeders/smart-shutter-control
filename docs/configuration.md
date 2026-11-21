@@ -134,11 +134,14 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Travel time | – | seconds from fully open to fully closed; measured by the calibration when there is no motor power sensor |
 | Maximum position | 100 % | automatic control never opens the shutter further; by hand it can. Below 100 % the shutter closes in a storm |
 | Heat protection | on | lower the shutter when the sun shines on the window and it is warm |
-| Shading position | 30 % | position during heat protection |
+| Shading position | 30 % | position during heat protection; with the three room fields below the lowest it uses |
+| Window bottom above the floor | – | cm; with *Window height* and *Sun into the room*: the [shading position follows the sun](how-it-works.md#heat-protection) |
+| Window height | the calibration's | cm; the height of the glass |
+| Sun into the room | – | m; direct sun may reach this far over the floor |
 | Heat protection from (outdoor) | the base value | override for this shutter |
 | Heat protection from (room) | the base value | override for this shutter |
 | Glare protection | off | lower the shutter when bright sun shines on the window, whatever the temperature (see [Glare protection](how-it-works.md#glare-protection)) |
-| Glare position | 40 % | position during glare protection |
+| Glare position | 40 % | position during glare protection; with the room fields the lowest it uses |
 | Glare from | 70 % | sun factor from which the sun counts as bright |
 | Facade light sensor | – | only with the sun source *Light sensors*: a light sensor at this window that decides for this shutter whether it is sunny |
 

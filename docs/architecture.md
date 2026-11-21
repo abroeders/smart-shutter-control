@@ -1017,3 +1017,37 @@ sequenceDiagram
     HA-->>C: update listener: quiet_update() → no reload
     C->>C: async_tick: the sun is off the window
 ```
+
+## 17. Shading position from the sun (#55)
+
+`core/shading.py` (pure): `depth_position(room, sun, window_azimuth)` computes the highest real position that
+keeps direct sun within the depth, in steps of 10 %; `DepthShading` (one per heat and glare rule) returns it,
+never below the fixed position, held for 15 minutes, and falls back to the fixed position without a
+`RoomGeometry` or on a sloped window. `ShutterConfig.room` comes from the subentry (`window_sill`,
+`window_height` or the calibration's `window_height_cm`, `sun_depth`).
+
+```mermaid
+classDiagram
+    class RoomGeometry {
+        <<frozen>>
+        +sill_cm float
+        +window_cm float
+        +depth_m float
+    }
+    class DepthShading {
+        +position int|None
+        +at float
+        +reset()
+        +__call__(now, room, sun, azimuth, tilt, fixed) int
+    }
+    class HeatProtectionRule {
+        +shade DepthShading
+    }
+    class GlareProtectionRule {
+        +shade DepthShading
+    }
+    HeatProtectionRule o-- DepthShading
+    GlareProtectionRule o-- DepthShading
+    DepthShading ..> RoomGeometry
+    ShutterConfig o-- RoomGeometry
+```
