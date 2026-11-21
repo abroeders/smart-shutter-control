@@ -167,6 +167,17 @@ Automatic control **resumes**:
 
 A manual action also ends sleep-in. Storm still acts during a pause.
 
+## Did the move arrive?
+
+After every position the integration sends (automatic, or through its own entities), it checks that the
+shutter got there: with a motor power sensor when the motor has stopped (at the earliest after 10 s, so a
+command that never started the motor is noticed too), without one after 1.5 × the travel time + 30 s
+(180 s when the travel time is not known). It asks the module for its position and accepts ±2 %. If the
+shutter is not there, the same command is sent **once more**. If that does not arrive either, the binary
+sensor *Stuck* turns on and a repair issue appears under *Settings → Repairs*; both clear at the next move
+that arrives. A manual move in between (wall switch, remote) cancels the check. Automatic control goes on as
+usual: being stuck does not block the next decision.
+
 ## Storm
 
 Storm while the wind speed or the gusts are at or above their limit, until 15 minutes after the last value

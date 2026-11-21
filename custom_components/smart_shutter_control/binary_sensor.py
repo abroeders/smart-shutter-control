@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -29,7 +30,11 @@ async def async_setup_entry(
     add_per_shutter(
         entry.runtime_data,
         async_add_entities,
-        lambda c, s: [SunOnWindowSensor(c, s, "sun_on_window"), ManualPauseSensor(c, s, "manual_pause")],
+        lambda c, s: [
+            SunOnWindowSensor(c, s, "sun_on_window"),
+            ManualPauseSensor(c, s, "manual_pause"),
+            StuckSensor(c, s, "stuck"),
+        ],
     )
 
 
@@ -97,6 +102,24 @@ class ManualPauseSensor(ShutterEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return self.controller.pause_info()
+
+
+class StuckSensor(ShutterEntity, BinarySensorEntity):
+    """The shutter did not reach its target after the command was retried."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.stuck
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "target": self.controller.arrival.target,
+            "position": self.controller.adapter.module_position(),
+        }
 
 
 def _iso(epoch: float | None) -> str | None:

@@ -454,6 +454,12 @@
       }
     }
   },
+  "issues": {
+    "stuck": {
+      "title": "{name} did not reach its position",
+      "description": "{name} did not reach {target} % (it is at {position} %), also not after a second try. Check the shutter and its module. This message disappears at the next move that arrives."
+    }
+  },
   "entity": {
     "cover": {
       "shutter": {
@@ -552,6 +558,9 @@
     "binary_sensor": {
       "sunny": {
         "name": "Sunny"
+      },
+      "stuck": {
+        "name": "Stuck"
       },
       "sun_on_window": {
         "name": "Sun on the window"
