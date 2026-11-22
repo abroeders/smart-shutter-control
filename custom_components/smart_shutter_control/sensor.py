@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, EntityCategory
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -18,7 +18,12 @@ from .entity import BaseEntity, ShutterEntity, add_per_shutter
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities([SunFactorSensor(entry.runtime_data, "sun_factor")])
+    async_add_entities(
+        [
+            SunFactorSensor(entry.runtime_data, "sun_factor"),
+            ForecastSensor(entry.runtime_data, "forecast_max"),
+        ]
+    )
     add_per_shutter(
         entry.runtime_data,
         async_add_entities,
@@ -122,6 +127,22 @@ class SunFactorSensor(BaseEntity, SensorEntity):
             "sun_azimuth": None if sun is None else round(sun.azimuth, 1),
             "sun_elevation": None if sun is None else round(sun.elevation, 1),
         }
+
+
+class ForecastSensor(BaseEntity, SensorEntity):
+    """Today's maximum temperature from the weather entity's daily forecast (#50)."""
+
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    @property
+    def native_value(self) -> float | None:
+        return self.coordinator.forecast_max
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        day = self.coordinator.forecast.day
+        return {"date": None if day is None else day.isoformat()}
 
 
 class StandSensor(ShutterEntity, SensorEntity):
