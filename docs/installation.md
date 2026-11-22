@@ -11,7 +11,20 @@
   and a power sensor on each shutter module (calibration and manual-operation detection). Optionally a light
   sensor at a window, which decides for that shutter alone whether it is sunny.
 
-## Install with HACS
+## Install from the Marketplace (Home Assistant 2026.11 and later)
+
+[![Open your Home Assistant instance and add a repository to the Marketplace.](https://my.home-assistant.io/badges/marketplace_repositories.svg)](https://my.home-assistant.io/redirect/marketplace_repositories/)
+
+1. *Settings → Marketplace*, upper right **Add from link** (the button above opens it).
+2. Under *GitHub link* enter `abroeders/smart-shutter-control` and select **Add**; if asked for the type,
+   choose *Integration* and select **Add** again.
+3. Open **Smart Shutter Control** and select **Install**, check the version, **Install**.
+4. Restart Home Assistant.
+
+The Marketplace needs a GitHub account connected to it (it asks for one the first time). The repository is
+not in the Marketplace's own catalog yet, which is why it is added from its link.
+
+## Install with HACS (Home Assistant 2026.3 to 2026.10)
 
 1. HACS → ⋮ → *Custom repositories* → add `https://github.com/abroeders/smart-shutter-control`, type
    *Integration*.
@@ -55,5 +68,6 @@ commands count as manual at once. Moves by a wall switch or the module's own app
 
 ## Update and remove
 
-- Update through HACS and restart. After an update, reload the browser so the new card is used.
+- Update: the Marketplace (or HACS) shows the new version under *Settings → Updates*; install it and
+  restart. After an update, reload the browser so the new card is used.
 - Remove: *Settings → Devices & services → Smart Shutter Control → ⋮ → Delete*. Your covers stay as they are.
