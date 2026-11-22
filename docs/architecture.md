@@ -278,11 +278,24 @@ classDiagram
         +xs, ys, slopes
         +fit(points)$ MonotoneCurve|None
     }
-    class DirectionTracker {
+    class PositionMemory {
+        +sent SentCommand|None
         +direction Direction|None
-        +expect(direction)
+        +anchor int|None
+        +command(module, real, direction, start)
+        +expect(direction, start)
+        +forget_sent()
         +observe(module_position)
         +current(module_position) Direction
+        +real(module_position, calibration) int|None
+        +to_dict() dict
+        +from_dict(data)$ PositionMemory
+    }
+    class SentCommand {
+        <<dataclass>>
+        +module int
+        +real int|None
+        +direction Direction
     }
     class CalibrationSession {
         +controller ShutterController
@@ -316,7 +329,9 @@ classDiagram
     Curve <|.. QuadraticCurve
     Curve <|.. MonotoneCurve
     ShutterController o-- Calibration
-    ShutterController o-- DirectionTracker
+    ShutterController o-- PositionMemory
+    PositionMemory o-- SentCommand
+    ShutterController ..> RuntimeStore : position (#75)
     ShutterSubentryFlow o-- CalibrationSession
     CalibrationSession ..> ShutterController : pauses, moves through its adapter
 ```
@@ -327,16 +342,22 @@ classDiagram
 sequenceDiagram
     participant SC as ShutterController
     participant K as RollerCalibration
-    participant D as DirectionTracker
+    participant D as PositionMemory
     participant A as CoverAdapter
     SC->>SC: target real position, current real position
     SC->>K: to_module(target, up or down)
     K-->>SC: module position
-    SC->>D: expect(direction)
+    SC->>D: command(module, target, direction, start)
     SC->>A: async_move(module position)
     A-->>D: reports while moving (observe)
-    SC->>K: from_module(reported, D.current) for the entities
+    SC->>D: real(reported, K) for the entities
+    D-->>SC: the sent real position while the module is within 1 of the command
+    D->>K: otherwise from_module(reported, direction of the last movement)
 ```
+
+The memory is stored per shutter (key `position`), so the sent position and the direction survive a reload
+or restart. A report on the way to the command keeps it; a report moving away, or a manual move, clears it.
+The direction only changes after a movement of at least 3 module points (#75).
 
 ### 5.3 The assistant
 

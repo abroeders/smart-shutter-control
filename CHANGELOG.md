@@ -6,6 +6,14 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- A calibrated shutter could show a wrong position (for example 12 % or 31 % instead of 20 %) after a reload
+  or restart, or after a command that needed a small step the other way: the position was read back with the
+  curve of the wrong direction. The integration now remembers the last command and shows its real position
+  while the module stays there, also after a restart; a movement of less than 3 module points no longer
+  changes the direction (#75).
+
 ## [2026.11.18] - 2026-11-22
 
 ### Changed

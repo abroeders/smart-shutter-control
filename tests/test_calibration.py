@@ -1,13 +1,13 @@
-"""Calibration: the roller model, the monotone fallback, both directions and the direction tracker."""
+"""Calibration: the roller model, the monotone fallback, both directions and the position memory."""
 
 import math
 import random
 
 import pytest
 from core.calibration import (
-    DirectionTracker,
     IdentityCalibration,
     MonotoneCurve,
+    PositionMemory,
     QuadraticCurve,
     RollerCalibration,
     fit_curve,
@@ -101,13 +101,78 @@ def test_no_data_is_identity():
     assert isinstance(RollerCalibration.from_data({"points": {"up": [(0.5, 0.4)]}}), IdentityCalibration)
 
 
-def test_direction_tracker():
-    t = DirectionTracker()
-    assert t.current(20) is Direction.DOWN and t.current(80) is Direction.UP  # unknown after a restart
-    t.observe(100)
-    t.observe(60)
-    assert t.direction is Direction.DOWN
-    t.observe(60)  # standing still keeps it
-    assert t.direction is Direction.DOWN
-    t.expect(Direction.UP)
-    assert t.current(60) is Direction.UP
+def position_calibration():
+    return RollerCalibration.from_data(
+        {
+            "points": {
+                "up": [[0.25, 0.05], [0.5, 0.5], [0.75, 0.95]],
+                "down": [[0.25, 0.1], [0.5, 0.45], [0.75, 0.8]],
+            }
+        }
+    )
+
+
+def test_sent_real_position_is_used_until_module_leaves_tolerance():
+    calibration = position_calibration()
+    memory = PositionMemory()
+    memory.command(50, 20, Direction.UP, 40)
+
+    assert memory.real(49, calibration) == 20
+    assert memory.real(51, calibration) == 20
+    assert memory.real(52, calibration) == calibration.from_module(52, Direction.UP)
+    assert memory.real(52, calibration) != 20
+
+
+def test_reports_on_the_way_keep_sent_and_reports_away_clear_it():
+    memory = PositionMemory()
+    memory.command(60, 40, Direction.UP, 30)
+
+    memory.observe(45)
+    assert memory.sent is not None
+    memory.observe(40)
+    assert memory.sent is None
+
+
+def test_small_reports_do_not_flip_direction_until_three_points():
+    memory = PositionMemory(direction=Direction.UP, anchor=50)
+
+    memory.observe(49)
+    assert memory.direction is Direction.UP and memory.anchor == 50
+    memory.observe(48)
+    assert memory.direction is Direction.UP and memory.anchor == 50
+    memory.observe(47)
+    assert memory.direction is Direction.DOWN and memory.anchor == 47
+
+
+def test_module_command_uses_the_curve():
+    calibration = position_calibration()
+    memory = PositionMemory()
+    memory.command(50, None, Direction.DOWN, 70)
+
+    assert memory.real(50, calibration) == calibration.from_module(50, Direction.DOWN)
+
+
+def test_forget_sent_clears_the_remembered_command():
+    memory = PositionMemory()
+    memory.command(50, 20, Direction.UP, 40)
+
+    memory.forget_sent()
+
+    assert memory.sent is None
+
+
+def test_position_memory_round_trip_and_bad_data():
+    memory = PositionMemory()
+    memory.command(65, 42, Direction.UP, 50)
+    restored = PositionMemory.from_dict(memory.to_dict())
+    assert restored.to_dict() == memory.to_dict()
+
+    bad = PositionMemory.from_dict({"sent": [65, None, "sideways"], "direction": "up", "anchor": 50})
+    assert bad.to_dict() == {"sent": None, "direction": None, "anchor": None}
+
+
+def test_identity_calibration_ignores_sent_position():
+    memory = PositionMemory()
+    memory.command(50, 20, Direction.UP, 40)
+
+    assert memory.real(50, IdentityCalibration()) == 50

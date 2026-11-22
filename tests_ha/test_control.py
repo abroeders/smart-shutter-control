@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.smart_shutter_control.core.model import Decision
+from custom_components.smart_shutter_control.core.model import Decision, Direction
 from custom_components.smart_shutter_control.core.rules import RuleChain
 
 from .conftest import LIVING, add_shutter, mock_moves, setup_base
@@ -25,6 +25,32 @@ def entity(hass: HomeAssistant, entry, domain: str, key: str) -> str:
     return er.async_get(hass).async_get_entity_id(
         domain, "smart_shutter_control", f"{entry.entry_id}_{subentry_id}_{key}"
     )
+
+
+async def calibrated_shutter(hass: HomeAssistant, initial_module: int):
+    entry = await setup_base(hass)
+    hass.states.async_set(
+        LIVING,
+        "closed" if initial_module == 0 else "open",
+        {"current_position": initial_module, "supported_features": 15},
+    )
+    await add_shutter(hass, entry, LIVING)
+    subentry_id = next(iter(entry.subentries))
+    hass.config_entries.async_update_subentry(
+        entry,
+        entry.subentries[subentry_id],
+        data={
+            **entry.subentries[subentry_id].data,
+            "calibration": {
+                "points": {
+                    "up": [[0.25, 0.1], [0.5, 0.3], [0.75, 0.6]],
+                    "down": [[0.25, 0.05], [0.5, 0.5], [0.75, 0.95]],
+                }
+            },
+        },
+    )
+    await hass.async_block_till_done()
+    return entry
 
 
 async def test_schedule_leaves_an_open_shutter_by_day(hass: HomeAssistant, covers, freezer) -> None:
@@ -116,6 +142,45 @@ async def test_opening_number_moves_to_the_real_position(hass: HomeAssistant, co
     assert float(hass.states.get(number).state) == 0
     assert hass.states.get(entity(hass, entry, "cover", "shutter")).state == "open"
     assert hass.states.get(entity(hass, entry, "sensor", "stand")).state == "slit"
+
+
+async def test_sent_real_position_survives_entry_reload(hass: HomeAssistant, covers) -> None:
+    entry = await calibrated_shutter(hass, 0)
+    calls = mock_moves(hass)
+    opening = entity(hass, entry, "number", "opening")
+    await hass.services.async_call("number", "set_value", {"entity_id": opening, "value": 20}, blocking=True)
+    module = calls[-1].data["position"]
+
+    hass.states.async_set(LIVING, "open", {"current_position": module, "supported_features": 15})
+    await hass.async_block_till_done()
+    entry.runtime_data.async_update_listeners()
+    await hass.async_block_till_done()
+    cover = entity(hass, entry, "cover", "shutter")
+    assert hass.states.get(cover).attributes["current_position"] == 20
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(cover).attributes["current_position"] == 20
+
+
+async def test_down_curve_command_one_point_up_shows_sent_position(hass: HomeAssistant, covers) -> None:
+    entry = await calibrated_shutter(hass, 100)
+    controller = next(iter(entry.runtime_data.shutters.values()))
+    calls = mock_moves(hass)
+    opening = entity(hass, entry, "number", "opening")
+    await hass.services.async_call("number", "set_value", {"entity_id": opening, "value": 50}, blocking=True)
+
+    module = calls[-1].data["position"]
+    assert controller.memory.sent is not None
+    assert controller.memory.sent.direction is Direction.DOWN
+    assert module == controller.calibration.to_module(50, Direction.DOWN)
+    assert controller.calibration.from_module(module + 1, Direction.DOWN) != 50
+
+    hass.states.async_set(LIVING, "open", {"current_position": module + 1, "supported_features": 15})
+    await hass.async_block_till_done()
+    entry.runtime_data.async_update_listeners()
+    await hass.async_block_till_done()
+    assert hass.states.get(entity(hass, entry, "cover", "shutter")).attributes["current_position"] == 50
 
 
 async def test_motor_power_sensor_is_found_on_the_device(hass: HomeAssistant, covers) -> None:
