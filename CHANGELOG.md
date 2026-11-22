@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.15] - 2026-11-22
+
+### Fixed
+
+- After a restart the forecast maximum was unknown for up to 30 minutes when the weather integration started
+  later; it is now read again once Home Assistant has started and when the weather entity appears (#67).
+
 ## [2026.11.14] - 2026-11-22
 
 ### Added
@@ -357,7 +364,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.14...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.15...HEAD
+[2026.11.15]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.14...2026.11.15
 [2026.11.14]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.13...2026.11.14
 [2026.11.13]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.12...2026.11.13
 [2026.11.12]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.11...2026.11.12

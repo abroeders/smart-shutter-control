@@ -1187,8 +1187,8 @@ sequenceDiagram
 
 ## 21. Heat protection from the weather forecast (#50)
 
-`BaseCoordinator.async_refresh_forecast` calls `weather.get_forecasts` (`type: daily`) at start and every 30
-minutes; `today_max` (`core/forecast.py`, pure) takes the `temperature` of the entry whose local date is
+`BaseCoordinator.async_refresh_forecast` calls `weather.get_forecasts` (`type: daily`) at start, once Home
+Assistant has started, when the weather entity appears or becomes available (#67), and every 30 minutes; `today_max` (`core/forecast.py`, pure) takes the `temperature` of the entry whose local date is
 today, and `ForecastMaximum` keeps it for that day only (a failed call keeps today's value, never
 yesterday's). `Inputs.forecast_max` carries it to every shutter. `HeatProtectionRule._warm` is true on a hot
 day, when `forecast_max ≥ SunSettings.hot_day` (the base option, or the shutter's override; `None` is off),
@@ -1240,7 +1240,7 @@ sequenceDiagram
     participant W as weather.get_forecasts
     participant SC as ShutterController
     participant H as HeatProtectionRule
-    C->>W: type daily (start, every 30 min)
+    C->>W: type daily (start, started, entity appears, every 30 min)
     W-->>C: forecast list
     C->>C: today_max → ForecastMaximum
     C->>SC: async_evaluate(Inputs(forecast_max))
