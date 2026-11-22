@@ -1,7 +1,7 @@
 """Temperatures and wind speeds in any unit count as °C and km/h (#64)."""
 
 import pytest
-from homeassistant.const import UnitOfSpeed, UnitOfTemperature
+from homeassistant.const import UnitOfLength, UnitOfSpeed, UnitOfTemperature
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import SpeedConverter, TemperatureConverter
@@ -11,6 +11,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.smart_shutter_control.const import DEFAULT_OPTIONS, DOMAIN
 from custom_components.smart_shutter_control.units import (
     DisplayUnit,
+    length_unit,
     speed_unit,
     to_celsius,
     to_kmh,
@@ -85,6 +86,35 @@ def test_display_unit_keeps_unchanged_and_rounds_changed_values() -> None:
     assert fahrenheit.stored(78, previous=25) == pytest.approx(25.6)
     assert mph.stored(None) is None
     assert fahrenheit.stored(None) is None
+
+
+def test_length_units_us_and_metric(hass: HomeAssistant) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    cm = length_unit(hass, UnitOfLength.CENTIMETERS)
+    m = length_unit(hass, UnitOfLength.METERS, 0.5)
+    assert cm.shown(150) == 59
+    assert m.shown(3) == 10
+    assert cm.selector_config(0, 152.4, 1) == {
+        "min": 0,
+        "max": 60,
+        "step": 1,
+        "unit_of_measurement": "in",
+    }
+    assert m.selector_config(0, 3.05, 0.5) == {
+        "min": 0,
+        "max": 10.5,
+        "step": 0.5,
+        "unit_of_measurement": "ft",
+    }
+    assert cm.stored(59, previous=150) == 150
+    assert cm.stored(60, previous=150) == pytest.approx(152.4)
+    assert m.stored(10, previous=2.5) == pytest.approx(3.05)
+    assert cm.stored(None) is None
+    assert m.stored(None) is None
+
+    hass.config.units = METRIC_SYSTEM
+    assert length_unit(hass, UnitOfLength.CENTIMETERS).unit == UnitOfLength.CENTIMETERS
+    assert length_unit(hass, UnitOfLength.METERS).unit == UnitOfLength.METERS
 
 
 def test_speed_unit_us_mph_and_metric_kmh(hass: HomeAssistant) -> None:

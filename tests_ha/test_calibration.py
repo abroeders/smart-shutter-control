@@ -6,6 +6,7 @@ import pytest
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 
 from custom_components.smart_shutter_control import assistant
 
@@ -150,6 +151,43 @@ async def test_full_calibration(hass: HomeAssistant, covers, fast) -> None:
     up = controller.calibration.to_module(50, controller.direction().UP)
     down = controller.calibration.to_module(50, controller.direction().DOWN)
     assert up > 50 and down > 50 and up != down
+
+
+async def test_us_customary_calibration_uses_inches(hass: HomeAssistant, covers, fast) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    physical(hass)
+    subentry_id = next(iter(entry.subentries))
+
+    result = await open_menu(hass, entry, subentry_id, "calibrate")
+    assert result["step_id"] == "cal_assistant"
+
+    flow_id = result["flow_id"]
+    result = await run(
+        hass,
+        flow_id,
+        await hass.config_entries.subentries.async_configure(flow_id, {"window_height_cm": 60}),
+    )
+    session = controller_flow_session(hass, flow_id)
+    assert session.height_cm == pytest.approx(152.4)
+
+    while result["step_id"] == "cal_lift":
+        lifted = int(result["description_placeholders"]["position"]) >= 6
+        result = await run(
+            hass, flow_id, await hass.config_entries.subentries.async_configure(flow_id, {"lifted": lifted})
+        )
+    while result["step_id"] == "cal_measure":
+        opening_field = next(k for k in result["data_schema"].schema if str(k) == "opening")
+        assert result["data_schema"].schema[opening_field].config["unit_of_measurement"] == "in"
+        assert result["data_schema"].schema[opening_field].config["step"] == 0.25
+        result = await run(
+            hass,
+            flow_id,
+            await hass.config_entries.subentries.async_configure(flow_id, {"opening": 30}),
+        )
+    assert result["step_id"] == "cal_review"
+    assert any(pytest.approx(0.5) == opening for _, opening in session.points["up"] + session.points["down"])
 
 
 async def test_cancel_resumes_automatic_control(hass: HomeAssistant, covers, fast) -> None:

@@ -1293,14 +1293,17 @@ classDiagram
     SmartShutterControlOptionsFlow ..> units : 30-day wind maxima
 ```
 
-## 23. Settings in the user's units (#65)
+## 23. Settings in the user's units (#65, #71)
 
-The settings stay stored in °C and km/h. `DisplayUnit` (in `units.py`) shows them in the user's unit system:
-`temperature_unit(hass)` follows `hass.config.units.temperature_unit`, `speed_unit(hass)` gives mph with US
-customary units and km/h otherwise. The flows mark the fields in `TEMPERATURE_FIELDS` and `SPEED_FIELDS`;
-`_shown_form` replaces their number selectors (range rounded outwards, step 1 in °F and mph) and converts the
-stored values, `_stored_input` converts the input back. A value the user left unchanged keeps its stored value
-exactly, so saving a form never shifts a setting by rounding. The card converts the temperatures of the
+The settings stay stored in °C, km/h, cm and m. `DisplayUnit` (in `units.py`) shows them in the user's unit
+system: `temperature_unit(hass)` follows `hass.config.units.temperature_unit`, `speed_unit(hass)` gives mph with
+US customary units and km/h otherwise, `length_unit(hass, stored_unit, step)` gives inches for cm and feet for m
+with US customary units. The flows mark the fields in `TEMPERATURE_FIELDS`, `SPEED_FIELDS` and `LENGTH_FIELDS`
+(window sill and height in whole inches, sun depth in steps of 0.5 ft); `_shown_form` replaces their number
+selectors (range rounded outwards to the shown `step`) and converts the stored values, `_stored_input` converts
+the input back, rounded to `digits` decimals. A value the user left unchanged keeps its stored value exactly, so
+saving a form never shifts a setting by rounding. The calibration assistant asks the window height in inches and
+each measured opening in steps of a quarter inch, and converts them to cm with `to_stored`. The card converts the temperatures of the
 decision trace (which stays in °C) to `hass.config.unit_system.temperature`.
 
 ```mermaid
@@ -1310,19 +1313,23 @@ classDiagram
         +converter
         +stored_unit str
         +unit str
+        +step float
+        +digits int
         +converts bool
         +selector_config(low, high, step) dict
         +shown(stored) float|None
         +stored(shown, previous) float|None
+        +to_stored(shown) float
     }
     class units {
         <<module units.py>>
         +temperature_unit(hass) DisplayUnit
         +speed_unit(hass) DisplayUnit
+        +length_unit(hass, stored_unit, step) DisplayUnit
     }
     units ..> DisplayUnit : creates
     SmartShutterControlOptionsFlow ..> DisplayUnit : sun, storm, winter, schedule
-    ShutterSubentryFlow ..> DisplayUnit : settings, schedule
+    ShutterSubentryFlow ..> DisplayUnit : settings, schedule, calibration assistant
 ```
 
 ```mermaid
@@ -1330,11 +1337,11 @@ sequenceDiagram
     participant U as User
     participant F as Flow step
     participant D as DisplayUnit
-    F->>D: shown(stored °C / km/h)
-    F->>U: form in °F / mph
+    F->>D: shown(stored °C / km/h / cm / m)
+    F->>U: form in °F / mph / in / ft
     U->>F: input
     F->>D: stored(input, previous)
-    D-->>F: previous if unchanged, else converted (0.1)
-    F->>F: save in °C / km/h
+    D-->>F: previous if unchanged, else converted (digits)
+    F->>F: save in °C / km/h / cm / m
 ```
 

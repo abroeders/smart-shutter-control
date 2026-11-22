@@ -6,6 +6,15 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.20] - 2026-11-22
+
+### Added
+
+- Lengths in the user's units: with US customary units the window sill and window height are shown and entered
+  in inches and the sun depth in feet, and the calibration assistant asks the window height and the measured
+  openings in inches (quarter-inch steps). Values stay stored in cm and m; a value left unchanged keeps its
+  stored value (#71).
+
 ## [2026.11.19] - 2026-11-22
 
 ### Fixed
@@ -397,7 +406,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.19...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.20...HEAD
+[2026.11.20]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.19...2026.11.20
 [2026.11.19]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.18...2026.11.19
 [2026.11.18]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.17...2026.11.18
 [2026.11.17]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.16...2026.11.17

@@ -126,6 +126,85 @@ async def test_us_sun_options_keep_stored_celsius(hass: HomeAssistant, covers) -
     assert entry.options["hot_day"] == 28
 
 
+async def test_us_shutter_lengths_show_and_store_unchanged_or_changed(hass: HomeAssistant, covers) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING)
+    subentry = next(s for s in entry.subentries.values() if s.data["cover"] == LIVING)
+    hass.config_entries.async_update_subentry(
+        entry,
+        subentry,
+        data={**subentry.data, "window_sill": 150, "window_height": 140, "sun_depth": 2.5},
+    )
+    await hass.async_block_till_done()
+    subentry = entry.subentries[subentry.subentry_id]
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "shutter"),
+        context={"source": "reconfigure", "subentry_id": subentry.subentry_id},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    suggested = {str(k): (k.description or {}).get("suggested_value") for k in result["data_schema"].schema}
+    validators = {str(k): v for k, v in result["data_schema"].schema.items()}
+    assert suggested["window_sill"] == 59
+    assert suggested["window_height"] == 55
+    assert suggested["sun_depth"] == 8
+    assert validators["window_sill"].config["unit_of_measurement"] == "in"
+    assert validators["window_height"].config["unit_of_measurement"] == "in"
+    assert validators["sun_depth"].config["unit_of_measurement"] == "ft"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "cover": LIVING,
+            "azimuth": 180,
+            "tilt": 90,
+            "min_elevation": 0,
+            "max_elevation": 90,
+            "max_position": 100,
+            "window_sill": suggested["window_sill"],
+            "window_height": suggested["window_height"],
+            "sun_depth": suggested["sun_depth"],
+        },
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    data = entry.subentries[subentry.subentry_id].data
+    assert data["window_sill"] == 150
+    assert data["window_height"] == 140
+    assert data["sun_depth"] == 2.5
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "shutter"),
+        context={"source": "reconfigure", "subentry_id": subentry.subentry_id},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "cover": LIVING,
+            "azimuth": 180,
+            "tilt": 90,
+            "min_elevation": 0,
+            "max_elevation": 90,
+            "max_position": 100,
+            "window_sill": 40,
+            "window_height": 60,
+            "sun_depth": 10,
+        },
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    data = entry.subentries[subentry.subentry_id].data
+    assert data["window_sill"] == pytest.approx(101.6)
+    assert data["window_height"] == pytest.approx(152.4)
+    assert data["sun_depth"] == pytest.approx(3.05)
+
+
 async def test_us_shutter_heat_limits_and_schedule_override_use_fahrenheit(
     hass: HomeAssistant, covers
 ) -> None:

@@ -413,7 +413,7 @@
         },
         "cal_assistant": {
           "title": "Calibrate",
-          "description": "First the assistant looks for the point where the bottom bar leaves the sill: from closed it moves up in small steps and asks whether the bar has lifted. Then it measures four points spread over the travel above that point, from closed and from open, and asks each time how far the window is open below the bottom bar. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm, or leave it empty to estimate in % of the window.",
+          "description": "First the assistant looks for the point where the bottom bar leaves the sill: from closed it moves up in small steps and asks whether the bar has lifted. Then it measures four points spread over the travel above that point, from closed and from open, and asks each time how far the window is open below the bottom bar. Automatic control of this shutter is paused meanwhile.\n\nEnter the window height to measure in cm or inches, or leave it empty to estimate in % of the window.",
           "data": {
             "window_height_cm": "Window height"
           }

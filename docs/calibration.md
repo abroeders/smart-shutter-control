@@ -30,7 +30,8 @@ limit even when its own travel-time estimate has drifted.
 *Reconfigure → Calibrate → Assistant* on the shutter. Have a tape measure ready. Automatic control of that shutter pauses
 while the assistant runs. It does not run during a storm.
 
-1. **Window height** in cm (or leave it empty and give openings in % of the window).
+1. **Window height** in cm, or in inches with US customary units (or leave it empty and give openings in % of
+   the window). The openings are then measured in the same unit, in inches to a quarter inch.
 2. The shutter **closes**.
 3. **Lift point:** the shutter moves up in steps of 2 % and asks *Has the bottom bar left the sill?* until you
    say yes. The step before is the **slit**: all gaps open, bar still on the sill.
