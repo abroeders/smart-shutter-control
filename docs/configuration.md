@@ -21,7 +21,9 @@ override any setting of the base schedule.
 
 Sensors may report in any unit Home Assistant knows: temperatures (outdoor, room, the weather forecast) are
 converted to °C and wind speeds to km/h when read, so a sensor in °F or mph works. A value without a unit
-counts as °C or km/h. The settings themselves are entered in °C and km/h.
+counts as °C or km/h. The settings are shown and entered in your unit system: in °C and km/h with metric
+units, in °F and mph with US customary units (they are stored in °C and km/h, so switching unit systems keeps
+them). The defaults below are given in °C and km/h.
 
 Sun source *PV power*:
 

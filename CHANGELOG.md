@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- With US customary units, every temperature and wind setting is shown and entered in °F and mph: the base
+  options, the shutter settings and the schedule. The settings stay stored in °C and km/h, and a value left
+  unchanged keeps its exact value. The 30-day wind maxima and the card's *Why?* list use the same units (#65).
+
 ## [2026.11.16] - 2026-11-22
 
 ### Changed

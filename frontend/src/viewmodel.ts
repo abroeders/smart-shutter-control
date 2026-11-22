@@ -182,6 +182,17 @@ function decisionDuration(seconds: unknown, language: string, t: Translate): str
   return decisionTemplate(t(minutes ? "decision_minutes" : "decision_seconds"), { duration }, language, t);
 }
 
+// reasons whose values are temperatures, in °C in the trace (#65)
+const TEMPERATURE_WHY = new Set(["too_cold", "within_limits", "not_cold"]);
+const TEMPERATURE_KEYS = ["outdoor", "limit", "room", "room_limit", "forecast", "forecast_limit"];
+
+/** A temperature from the trace (°C) in the user's unit, with the unit (#65). */
+function decisionTemperature(value: unknown, unit: string, language: string): string {
+  const n = num(value);
+  if (n === null) return "–";
+  return `${decisionNumber(unit === "°F" ? (n * 9) / 5 + 32 : n, language)} ${unit === "°F" ? "°F" : "°C"}`;
+}
+
 /** Turns the reason sensor's decision trace into localized lines for the card. */
 const RESULT_KEYS: Partial<Record<Decision["result"], string>> = {
   cap: "decision_at_most",
@@ -189,11 +200,16 @@ const RESULT_KEYS: Partial<Record<Decision["result"], string>> = {
   floor: "decision_at_least",
 };
 
-export function decisionLines(decisions: Decision[], t: Translate, language = "en"): DecisionLine[] {
+export function decisionLines(decisions: Decision[], t: Translate, language = "en", temperatureUnit = "°C"): DecisionLine[] {
   return decisions.map((entry) => {
     const values = entry.values ?? {};
     const whyValues = { ...values };
     if (entry.why === "waiting" || entry.why === "leaving") whyValues.duration = decisionDuration(values.seconds, language, t);
+    if (entry.why && TEMPERATURE_WHY.has(entry.why)) {
+      for (const key of TEMPERATURE_KEYS) {
+        if (values[key] !== undefined && values[key] !== null) whyValues[key] = decisionTemperature(values[key], temperatureUnit, language);
+      }
+    }
     let whyKey = `why_${entry.why}`;
     if (entry.why === "too_cold") {
       if (values.room !== undefined && values.room_limit !== undefined) whyKey += "_room";

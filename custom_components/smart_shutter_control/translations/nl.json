@@ -94,8 +94,8 @@
           "close_below": "Dicht onder"
         },
         "data_description": {
-          "storm_wind_limit": "Hoogste in de afgelopen 30 dagen: {wind_max} km/h. Leeg: niet gebruiken.",
-          "storm_gust_limit": "Hoogste in de afgelopen 30 dagen: {gust_max} km/h. Leeg: niet gebruiken.",
+          "storm_wind_limit": "Hoogste in de afgelopen 30 dagen: {wind_max}. Leeg: niet gebruiken.",
+          "storm_gust_limit": "Hoogste in de afgelopen 30 dagen: {gust_max}. Leeg: niet gebruiken.",
           "storm_release": "Minuten na de laatste waarde boven een grens.",
           "frost_limit": "Bij vorst bewegen de rolluiken niet automatisch (ze kunnen vastgevroren zijn).",
           "close_above": "Buitentemperatuur; leeg: uit.",
