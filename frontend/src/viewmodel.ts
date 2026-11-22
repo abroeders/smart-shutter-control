@@ -194,9 +194,11 @@ export function decisionLines(decisions: Decision[], t: Translate, language = "e
     const values = entry.values ?? {};
     const whyValues = { ...values };
     if (entry.why === "waiting" || entry.why === "leaving") whyValues.duration = decisionDuration(values.seconds, language, t);
-    const whyKey = entry.why === "too_cold" && values.room !== undefined && values.room_limit !== undefined
-      ? "why_too_cold_room"
-      : `why_${entry.why}`;
+    let whyKey = `why_${entry.why}`;
+    if (entry.why === "too_cold") {
+      if (values.room !== undefined && values.room_limit !== undefined) whyKey += "_room";
+      if (values.forecast !== undefined && values.forecast_limit !== undefined) whyKey += "_forecast";
+    }
     const why = entry.why ? decisionTemplate(t(whyKey), whyValues, language, t) : "";
     const position = entry.position === undefined ? null : entry.position;
     const result = position === null

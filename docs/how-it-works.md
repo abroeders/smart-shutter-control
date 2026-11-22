@@ -118,6 +118,12 @@ limit), the shutter goes down to its shading position after 5 minutes. It goes u
 one of these stops, or at once when the sun has moved past the window. Passing clouds do not make it move up
 and down.
 
+**Hot day.** With a weather entity, the integration reads today's maximum from its daily forecast at start
+and every 30 minutes. When it reaches *Hot day from (forecast)* (28 °C; a shutter may use its own value),
+heat protection no longer waits for the outdoor or room temperature: on such a day the shutter goes down as
+soon as the sun is on the window and it is sunny, after the same 5 minutes, even on a cool morning. Empty in
+the base options switches this off; without a weather entity or a daily forecast nothing changes.
+
 **Shading position from the sun.** With *Window bottom above the floor*, *Window height* (or the
 calibration's) and *Sun into the room* set, heat and glare protection lower the shutter only as far as needed
 to keep direct sun within that depth over the floor. For a vertical window, with sun elevation `e` and `γ`

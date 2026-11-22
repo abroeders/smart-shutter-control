@@ -1184,3 +1184,89 @@ sequenceDiagram
     C->>C: async_call_later(release_at)
     C->>SC: async_evaluate: the rules' position
 ```
+
+## 21. Heat protection from the weather forecast (#50)
+
+`BaseCoordinator.async_refresh_forecast` calls `weather.get_forecasts` (`type: daily`) at start and every 30
+minutes; `today_max` (`core/forecast.py`, pure) takes the `temperature` of the entry whose local date is
+today, and `ForecastMaximum` keeps it for that day only (a failed call keeps today's value, never
+yesterday's). `Inputs.forecast_max` carries it to every shutter. `HeatProtectionRule._warm` is true on a hot
+day, when `forecast_max ≥ SunSettings.hot_day` (the base option, or the shutter's override; `None` is off),
+so the outdoor and room limits do not apply; sun on the window, sunny and the delays still do. The base
+entities *Forecast maximum* (sensor) and *Hot day* (binary sensor) show the value and the base limit.
+
+```mermaid
+classDiagram
+    class ForecastMaximum {
+        <<core/forecast.py>>
+        +day date|None
+        +value float|None
+        +update(value, today)
+        +today(today) float|None
+    }
+    class BaseCoordinator {
+        +forecast ForecastMaximum
+        +forecast_max float|None
+        +hot_day bool
+        +async_refresh_forecast()
+    }
+    class Inputs {
+        +forecast_max float|None
+    }
+    class SunSettings {
+        +hot_day float|None
+    }
+    class HeatProtectionRule {
+        -_hot_day(ctx) bool
+        -_warm(ctx) bool
+    }
+    class ForecastSensor {
+        <<SensorEntity, temperature>>
+    }
+    class HotDaySensor {
+        <<BinarySensorEntity>>
+    }
+    BaseCoordinator o-- ForecastMaximum
+    BaseCoordinator ..> Inputs
+    HeatProtectionRule ..> Inputs
+    HeatProtectionRule o-- SunSettings
+    ForecastSensor ..> BaseCoordinator
+    HotDaySensor ..> BaseCoordinator
+```
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant W as weather.get_forecasts
+    participant SC as ShutterController
+    participant H as HeatProtectionRule
+    C->>W: type daily (start, every 30 min)
+    W-->>C: forecast list
+    C->>C: today_max → ForecastMaximum
+    C->>SC: async_evaluate(Inputs(forecast_max))
+    SC->>H: propose(ctx)
+    H->>H: hot day? then warm without the outdoor and room limits
+```
+
+## 22. Temperatures and wind speeds in any unit (#64)
+
+`units.py` (Home Assistant side) converts every value it reads with Home Assistant's `TemperatureConverter`
+and `SpeedConverter`: the outdoor and room temperature (the sensor's `unit_of_measurement`) and the daily
+forecast (the weather entity's `temperature_unit`) to °C, wind and gust to km/h; a value without a unit or
+with an unknown one counts as °C or km/h. `core/` keeps working in °C and km/h. The 30-day wind maxima on the
+storm page are converted the same way.
+
+```mermaid
+classDiagram
+    class units {
+        <<module units.py>>
+        +temperature(state) float|None
+        +speed(state) float|None
+        +to_celsius(value, unit) float
+        +to_kmh(value, unit) float
+    }
+    BaseCoordinator ..> units : outdoor, wind, gust, forecast
+    ShutterController ..> units : room temperature
+    SmartShutterControlOptionsFlow ..> units : 30-day wind maxima
+```
+

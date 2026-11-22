@@ -13,6 +13,7 @@ from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
+from . import units
 from .adapter import CoverAdapter
 from .const import (
     CONF_AZIMUTH,
@@ -26,6 +27,7 @@ from .const import (
     CONF_HEAT_PROTECTION,
     CONF_HEAT_ROOM,
     CONF_HORIZON,
+    CONF_HOT_DAY,
     CONF_LOCKOUT_POSITION,
     CONF_MAX_ELEVATION,
     CONF_MAX_POSITION,
@@ -127,6 +129,7 @@ class ShutterController:
         overrides = {
             "heat_outdoor": subentry.data.get(CONF_HEAT_OUTDOOR),
             "heat_room": subentry.data.get(CONF_HEAT_ROOM),
+            "hot_day": subentry.data.get(CONF_HOT_DAY),
         }
         sun = SunSettings(**{**sun.__dict__, **{k: float(v) for k, v in overrides.items() if v is not None}})
         self.default_heat = bool(
@@ -300,12 +303,9 @@ class ShutterController:
         return replace(inputs, sunny=sunny, sun_factor=self.facade.factor)
 
     def room_temperature(self) -> float | None:
+        """In °C, whatever the sensor's unit (#64)."""
         entity_id = self.config.room_temperature
-        state = self.hass.states.get(entity_id) if entity_id else None
-        try:
-            return float(state.state) if state else None
-        except ValueError:
-            return None
+        return units.temperature(self.hass.states.get(entity_id) if entity_id else None)
 
     def slit_module(self) -> int:
         """Module position of the slit: from the calibration, else the schedule's setting."""

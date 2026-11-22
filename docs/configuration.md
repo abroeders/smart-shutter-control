@@ -19,6 +19,10 @@ override any setting of the base schedule.
 | Wind speed sensor | – | storm detection |
 | Wind gust sensor | – | storm detection |
 
+Sensors may report in any unit Home Assistant knows: temperatures (outdoor, room, the weather forecast) are
+converted to °C and wind speeds to km/h when read, so a sensor in °F or mph works. A value without a unit
+counts as °C or km/h. The settings themselves are entered in °C and km/h.
+
 Sun source *PV power*:
 
 | Setting | Default | Effect |
@@ -86,6 +90,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Largest angle of incidence | 85° | sun at a larger angle to the window does not count as shining on it |
 | Heat protection from (outdoor) | 22 °C | heat protection only acts at or above this outdoor temperature, or … |
 | Heat protection from (room) | 24 °C | … at or above this room temperature (shutters with a room sensor) |
+| Hot day from (forecast) | 28 °C | forecast maximum at or above which heat protection no longer waits for the outdoor or room temperature; empty: off |
 | Close after | 5 min | sun on the window this long before the shutter goes down |
 | Open after | 20 min | no sun this long before it goes up again |
 
@@ -140,6 +145,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Sun into the room | – | m; direct sun may reach this far over the floor |
 | Heat protection from (outdoor) | the base value | override for this shutter |
 | Heat protection from (room) | the base value | override for this shutter |
+| Hot day from (forecast) | the base value | override of the base forecast limit; empty: the base value |
 | Glare protection | off | lower the shutter when bright sun shines on the window, whatever the temperature (see [Glare protection](how-it-works.md#glare-protection)) |
 | Glare position | 40 % | position during glare protection; with the room fields the lowest it uses |
 | Glare from | 70 % | sun factor from which the sun counts as bright |

@@ -46,6 +46,7 @@ OPT_SUNNY_THRESHOLD = "sunny_threshold"  # % of the clear-sky PV power or lux
 OPT_MAX_INCIDENCE = "max_incidence"  # degrees
 OPT_HEAT_OUTDOOR = "heat_outdoor"  # °C
 OPT_HEAT_ROOM = "heat_room"  # °C
+OPT_HOT_DAY = "hot_day"  # °C forecast maximum; None: off (#50)
 OPT_CLOSE_DELAY = "close_delay"  # min
 OPT_OPEN_DELAY = "open_delay"  # min
 OPT_SCHEDULE = "schedule"  # the base schedule (#4), a dict
@@ -66,6 +67,7 @@ DEFAULT_OPTIONS = {
     OPT_MAX_INCIDENCE: 85,
     OPT_HEAT_OUTDOOR: 22,
     OPT_HEAT_ROOM: 24,
+    OPT_HOT_DAY: 28,
     OPT_CLOSE_DELAY: 5,
     OPT_OPEN_DELAY: 20,
 }
@@ -94,6 +96,7 @@ CONF_HEAT_PROTECTION = "heat_protection"
 CONF_SHADING_POSITION = "shading_position"
 CONF_HEAT_OUTDOOR = "heat_outdoor"  # optional override of the base controller's value
 CONF_HEAT_ROOM = "heat_room"
+CONF_HOT_DAY = "hot_day"  # optional override of the base controller's value (#50)
 CONF_GLARE_PROTECTION = "glare_protection"  # (#36)
 CONF_GLARE_POSITION = "glare_position"
 CONF_GLARE_FROM = "glare_from"  # % sun factor from which the sun dazzles
@@ -112,6 +115,7 @@ DEFAULT_SHUTTER = {
 }
 
 TICK_SECONDS = 60
+FORECAST_SECONDS = 1800  # the daily forecast is read every 30 minutes (#50)
 INPUT_DEBOUNCE = 5.0  # s: a burst of input changes gives one evaluation
 STORE_VERSION = 1
 

@@ -25,6 +25,7 @@ async def async_setup_entry(
             StormSensor(entry.runtime_data, "storm"),
             FrostSensor(entry.runtime_data, "frost"),
             WinterSensor(entry.runtime_data, "winter"),
+            HotDaySensor(entry.runtime_data, "hot_day"),
         ]
     )
     add_per_shutter(
@@ -170,3 +171,16 @@ class WinterSensor(BaseEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         mean = self.coordinator.outdoor_mean.mean(self.coordinator.inputs.now)
         return {"mean_24h": None if mean is None else round(mean, 1), "mode": self.coordinator.winter.mode}
+
+
+class HotDaySensor(BaseEntity, BinarySensorEntity):
+    """Today's forecast maximum reaches the base controller's "hot day from" (#50)."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.hot_day
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        coordinator = self.coordinator
+        return {"forecast_max": coordinator.forecast_max, "limit": coordinator.sun_settings().hot_day}

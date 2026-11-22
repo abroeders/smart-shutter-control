@@ -111,6 +111,18 @@ describe("view model", () => {
     ]);
   });
 
+  it("adds the forecast to the reason why it is not warm", () => {
+    const decisions = [
+      { rule: "heat", priority: 40, result: "none" as const, why: "too_cold", values: { outdoor: 18, limit: 22, forecast: 24, forecast_limit: 28 } },
+      { rule: "heat", priority: 40, result: "none" as const, why: "too_cold", values: { outdoor: 18, limit: 22, room: 21, room_limit: 24, forecast: 24, forecast_limit: 28 } },
+    ];
+    expect(decisionLines(decisions, localizer("en"), "en").map((l) => l.text)).toEqual([
+      "not warm (18 °C < 22 °C; forecast 24 °C < 28 °C)",
+      "not warm (18 °C < 22 °C; room 21 °C < 24 °C; forecast 24 °C < 28 °C)",
+    ]);
+    expect(decisionLines(decisions, localizer("nl"), "nl")[0].text).toBe("niet warm (18 °C < 22 °C; verwachting 24 °C < 28 °C)");
+  });
+
   it("formats the floor of the window and door contacts", () => {
     const decisions = [
       { rule: "contacts", priority: 0, result: "floor" as const, position: 100, applied: true, why: "opened" },

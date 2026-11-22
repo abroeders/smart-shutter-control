@@ -7,7 +7,9 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | Entity | Shows or does |
 |---|---|
 | sensor *Sun factor* | PV power or illuminance as % of its learned clear-sky value for this position of the sun; attributes `source` (`learned`, `pv_peak`, `lux_learned`, `lux_limit`, `weather`, `geometry`), `sun_source`, `weather`, `cloud_coverage` (%, from the weather entity, for the card), `lux`, `sun_azimuth`, `sun_elevation` |
+| sensor *Forecast maximum* | today's maximum temperature from the weather entity's daily forecast; attribute `date` |
 | binary_sensor *Sunny* | sun factor above the threshold (with hysteresis) |
+| binary_sensor *Hot day* | today's forecast maximum reaches the base hot-day limit; attributes `forecast_max`, `limit` |
 | binary_sensor *Weekend or holiday* | today uses the weekend times; attribute `holiday` (its name) |
 | binary_sensor *Storm* | storm (see [How it works](how-it-works.md#storm)) |
 | binary_sensor *Frost* | frost: no automatic moves |

@@ -1,0 +1,62 @@
+name: Release
+
+# A version tag (YEAR.MONTH.N) becomes a GitHub release only when that exact commit passes the HACS and
+# hassfest validation and its versions match the tag. Run by hand, or on a branch that changes this file, it
+# validates without releasing (path filters do not apply to tags).
+
+on:
+  push:
+    tags: ["[0-9][0-9][0-9][0-9].[0-9]*.[0-9]*"]
+    branches: ["**"]
+    paths: [".github/workflows/release.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Versions match the tag, the commit is on main
+        run: |
+          version=$(jq -r .version custom_components/smart_shutter_control/manifest.json)
+          card=$(jq -r .version frontend/package.json)
+          echo "manifest $version, card $card"
+          test "$version" = "$card"
+          grep -q "^## \[$version\]" CHANGELOG.md
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            test "$GITHUB_REF_NAME" = "$version"
+            git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          fi
+
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  release:
+    needs: [versions, hassfest, hacs]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: GitHub release with the changelog section
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          awk -v v="$GITHUB_REF_NAME" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag --latest
