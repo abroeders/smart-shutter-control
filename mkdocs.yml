@@ -30,6 +30,8 @@ nav:
 
 theme:
   name: material
+  logo: assets/icon.svg  # brand/icon.svg, added by docs/hooks.py (#81)
+  favicon: assets/icon.svg
   features:
     - navigation.sections
     - navigation.top
@@ -38,11 +40,13 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
+      primary: indigo
       toggle:
         icon: material/weather-night
         name: Dark theme
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
+      primary: indigo
       toggle:
         icon: material/weather-sunny
         name: Light theme

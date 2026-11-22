@@ -87,6 +87,8 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 ### Sun
 
+<img src="images/ha-config-sun.png" alt="Base controller Sun options" width="400">
+
 | Setting | Default | Effect |
 |---|---|---|
 | Sunny from | 60 % | PV power or light (lux) as a share of its clear-sky value above which it counts as sunny (−15 % hysteresis). With light sensors, the fixed *Sunny from (until learned)* limit in lux applies until the clear-sky value is learned |
@@ -99,6 +101,8 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 ### Storm and frost
 
+<img src="images/ha-config-storm.png" alt="Base controller Storm and frost options" width="400">
+
 | Setting | Default | Effect |
 |---|---|---|
 | Storm: wind speed from | 50 km/h | storm at or above this wind speed; empty: not used. The page shows the highest value of the last 30 days |
@@ -110,6 +114,8 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Close below | – | outdoor temperature below which shutters close; empty: off |
 
 ### Winter
+
+<img src="images/ha-config-winter.png" alt="Base controller Winter options" width="400">
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -128,6 +134,8 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 **Add a calibration point**, **Horizon** and **Contacts**.
 
 ### Settings
+
+<img src="images/ha-config-shutter.png" alt="A shutter's Settings" width="400">
 
 | Setting | Default | Effect |
 |---|---|---|

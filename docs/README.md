@@ -1,5 +1,11 @@
 # Documentation
 
+Smart Shutter Control is a Home Assistant integration that moves your roller shutters by the sun, the heat,
+the weather and the time of day, and leaves them alone when you move them by hand.
+
+![A dashboard with the card for all shutters and two single shutters](images/dashboard-light.png#gh-light-mode-only)
+![A dashboard with the card for all shutters and two single shutters](images/dashboard-dark.png#gh-dark-mode-only)
+
 | Page | What |
 |---|---|
 | [Installation](installation.md) | HACS, the base controller, adding shutters |

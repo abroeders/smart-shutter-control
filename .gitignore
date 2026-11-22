@@ -12,3 +12,4 @@ node_modules/
 
 # documentation site, built by mkdocs (#78)
 /site/
+/demo-hass.log

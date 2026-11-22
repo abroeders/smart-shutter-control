@@ -1356,6 +1356,35 @@ workflow builds and deploys the site on every push to `main`; the *docs* job in 
 `--strict` on every push and PR, so a broken link fails early. Design:
 [`design/2026-11-22-docs-site.md`](design/2026-11-22-docs-site.md).
 
+The hook also adds `brand/icon.svg` to the site as its logo and favicon, and turns GitHub's theme fragments
+(`#gh-light-mode-only`, `#gh-dark-mode-only`) into Material's (`#only-light`, `#only-dark`), so an image for
+one theme follows GitHub's theme on GitHub and the site's switch on the site (#81).
+
+### Screenshots (#81)
+
+`scripts/screenshot_card.py` draws the card alone with example states. `scripts/demo_screenshots.py` takes the
+screenshots of Home Assistant itself: it starts a made-up demo (`scripts/demo/configuration.yaml`: template
+covers and sensors) in a temporary directory, chooses the longitude so it is about 13:00 solar time, onboards
+and sets up the integration through the REST API, saves a dashboard through the websocket API and takes each
+screenshot with Playwright. Design: [`design/2026-11-22-ha-screenshots.md`](design/2026-11-22-ha-screenshots.md).
+
+```mermaid
+sequenceDiagram
+    participant S as demo_screenshots.py
+    participant H as Demo Home Assistant
+    participant B as Chromium (Playwright)
+    S->>S: copy scripts/demo, set longitude for 13:00 solar time
+    S->>H: start hass -c dir
+    S->>H: onboarding, token (REST)
+    S->>H: config flows: base controller, shutters (REST)
+    S->>H: lovelace/dashboards/create, lovelace/config/save (websocket)
+    loop each screenshot
+        B->>H: open page, dialog, steps
+        B-->>S: PNG to docs/images/
+    end
+    S->>H: stop, remove dir
+```
+
 ```mermaid
 flowchart LR
     docs["docs/*.md, docs/images"] --> mk["mkdocs build --strict"]
