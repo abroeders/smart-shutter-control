@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Screenshots of Home Assistant in the documentation: setting up, the settings, the calibration and the device
+  page, and a dashboard on the home page of the documentation site in its light or dark theme. The site shows
+  the integration's icon in its title bar and as favicon (#81).
+
 ## [2026.11.21] - 2026-11-22
 
 ### Added

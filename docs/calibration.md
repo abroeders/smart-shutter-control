@@ -25,18 +25,28 @@ limit even when its own travel-time estimate has drifted.
 - **Assistant:** moves the shutter and asks for measurements (below).
 - **Edit table:** edit the measured points yourself (see [Edit the table](#edit-the-table)).
 
+![Calibrate menu with Assistant and Edit table](images/ha-cal-menu.png)
+
 ## The assistant
 
 *Reconfigure → Calibrate → Assistant* on the shutter. Have a tape measure ready. Automatic control of that shutter pauses
 while the assistant runs. It does not run during a storm.
+
+![Assistant start asking for the window height](images/ha-cal-start.png)
 
 1. **Window height** in cm, or in inches with US customary units (or leave it empty and give openings in % of
    the window). The openings are then measured in the same unit, in inches to a quarter inch.
 2. The shutter **closes**.
 3. **Lift point:** the shutter moves up in steps of 2 % and asks *Has the bottom bar left the sill?* until you
    say yes. The step before is the **slit**: all gaps open, bar still on the sill.
+
+   ![Confirming that the bottom bar has lifted](images/ha-cal-lift.png)
+
 4. **Four points going up**, spread over the travel above the lift point. At each point: measure the opening
    below the bottom bar.
+
+   ![Measuring an opening at a calibration point](images/ha-cal-measure.png)
+
 5. The shutter **opens fully**, then the same points **going down**.
 6. **Result:** the module position for 50 % in each direction, and how well the model fits. A difference of
    more than about 5 % between the directions means the motor is faster one way.
@@ -54,6 +64,8 @@ choose, and asks for the opening. Use it to improve a curve without measuring ev
 *Reconfigure → Calibrate → Edit table* shows the stored points as a list of rows, ready to change, extend
 or remove. Use it to correct one value, to type in measurements taken earlier, or to give an identical
 window the same calibration.
+
+![Calibration points in the table](images/ha-cal-table.png)
 
 | Module position (%) | Going up: opening (%) | Going down: opening (%) |
 |---|---|---|
