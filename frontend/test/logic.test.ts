@@ -123,6 +123,17 @@ describe("view model", () => {
     expect(decisionLines(decisions, localizer("nl"), "nl")[0].text).toBe("niet warm (18 °C < 22 °C; verwachting 24 °C < 28 °C)");
   });
 
+  it("shows decision temperatures in Fahrenheit or the default Celsius", () => {
+    const decisions = [
+      { rule: "heat", priority: 40, result: "none" as const, why: "too_cold", values: { outdoor: 10, limit: 22 } },
+    ];
+    expect(decisionLines(decisions, localizer("en"), "en", "°F")[0]).toMatchObject({
+      rule: "Heat protection",
+      text: "not warm (50 °F < 71.6 °F)",
+    });
+    expect(decisionLines(decisions, localizer("en"), "en")[0].text).toBe("not warm (10 °C < 22 °C)");
+  });
+
   it("formats the floor of the window and door contacts", () => {
     const decisions = [
       { rule: "contacts", priority: 0, result: "floor" as const, position: 100, applied: true, why: "opened" },

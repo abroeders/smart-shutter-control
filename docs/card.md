@@ -43,7 +43,8 @@ device_id: <the shutter's device>
 - **Status:** position, why the shutter is where it is (sun, schedule, sleep-in, manual until …, storm,
   frost, winter, door open, window tilted), and the next two actions of the schedule. **Why?** unfolds what
   every rule said, with the one that decided in bold: *Glare protection: at most 40 % (sun factor 100 % ≥
-  55 %)*, *Heat protection: not warm (9.5 °C < 22 °C)*, *Window and door contacts: at least 100 % (open)*.
+  55 %)*, *Heat protection: not warm (9.5 °C < 22 °C)*
+  (temperatures in your unit system, e.g. *49.1 °F < 71.6 °F*), *Window and door contacts: at least 100 % (open)*.
 - **Switches:** *Automatic* and *Sleep in*; *Resume* during a manual pause; *Sun has left the window* while
   the sun is on the window (records a point of the window's horizon).
 

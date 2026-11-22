@@ -1,11 +1,15 @@
 """Adding the base controller, its options, and adding, changing and removing shutters."""
 
+from unittest.mock import patch
+
+import pytest
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smart_shutter_control.const import DOMAIN
@@ -53,6 +57,114 @@ async def test_storm_options(hass: HomeAssistant, covers) -> None:
     await hass.async_block_till_done()
     assert entry.options["storm_gust_limit"] == 70 and entry.options["storm_wind_limit"] is None
     assert entry.runtime_data.storm.gust_limit == 70 and entry.runtime_data.storm.wind_limit is None
+
+
+async def test_us_storm_options_show_and_store_mph(hass: HomeAssistant, covers) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    entry = await setup_base(hass)
+
+    async def max_wind(hass, entity_id, wind=False):
+        return "40 mph" if wind else "not used"
+
+    with patch("custom_components.smart_shutter_control.config_flow._max_30_days", new=max_wind):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "storm"}
+        )
+
+    assert result["step_id"] == "storm"
+    assert result["description_placeholders"] == {"wind_max": "40 mph", "gust_max": "40 mph"}
+    gust = next(k for k in result["data_schema"].schema if str(k) == "storm_gust_limit")
+    frost = next(k for k in result["data_schema"].schema if str(k) == "frost_limit")
+    assert frost.default() == 32
+    gust_validator = result["data_schema"].schema[gust]
+    gust_config = gust_validator.config
+    assert gust_config["unit_of_measurement"] == "mph"
+    assert gust_config["step"] == 1
+    assert (gust.description or {}).get("suggested_value") == 37
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "storm_gust_limit": 40,
+            "storm_release": 15,
+            "frost_limit": 32,
+            "frost_release": 60,
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options["storm_gust_limit"] == pytest.approx(64.4)
+    assert entry.options["frost_limit"] == 0
+
+
+async def test_us_sun_options_keep_stored_celsius(hass: HomeAssistant, covers) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    entry = await setup_base(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "sun"})
+    suggested = result["data_schema"]({})
+    assert suggested["heat_outdoor"] == 72
+    assert suggested["heat_room"] == 75
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            "sunny_threshold": suggested["sunny_threshold"] or 60,
+            "max_incidence": suggested["max_incidence"] or 85,
+            "heat_outdoor": suggested["heat_outdoor"],
+            "heat_room": suggested["heat_room"],
+            "hot_day": 82,
+            "close_delay": suggested["close_delay"] or 5,
+            "open_delay": suggested["open_delay"] or 20,
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options["heat_outdoor"] == 22
+    assert entry.options["heat_room"] == 24
+    assert entry.options["hot_day"] == 28
+
+
+async def test_us_shutter_heat_limits_and_schedule_override_use_fahrenheit(
+    hass: HomeAssistant, covers
+) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    entry = await setup_base(hass)
+    await add_shutter(hass, entry, LIVING, heat_outdoor=50, heat_room=68)
+    subentry = next(s for s in entry.subentries.values() if s.data["cover"] == LIVING)
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "shutter"),
+        context={"source": "reconfigure", "subentry_id": subentry.subentry_id},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    suggested = {str(k): (k.description or {}).get("suggested_value") for k in result["data_schema"].schema}
+    validators = {str(k): v for k, v in result["data_schema"].schema.items()}
+    assert suggested["heat_outdoor"] == 50
+    assert suggested["heat_room"] == 68
+    assert validators["heat_outdoor"].config["unit_of_measurement"] == "°F"
+    assert validators["heat_room"].config["unit_of_measurement"] == "°F"
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "shutter"),
+        context={"source": "reconfigure", "subentry_id": subentry.subentry_id},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "schedule"}
+    )
+    winter = next(k for k in result["data_schema"].schema if str(k) == "winter_closed_below")
+    winter_validator = result["data_schema"].schema[winter]
+    assert winter_validator.config["unit_of_measurement"] == "°F"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"winter_closed_below": 23}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    assert entry.subentries[subentry.subentry_id].data["schedule"]["winter_closed_below"] == pytest.approx(-5)
 
 
 async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, covers) -> None:
