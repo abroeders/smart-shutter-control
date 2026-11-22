@@ -87,7 +87,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 ### Sun
 
-<img src="images/ha-config-sun.png" alt="Base controller Sun options" width="400">
+![Base controller Sun options](images/ha-config-sun.png)
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -101,7 +101,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 ### Storm and frost
 
-<img src="images/ha-config-storm.png" alt="Base controller Storm and frost options" width="400">
+![Base controller Storm and frost options](images/ha-config-storm.png)
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -115,7 +115,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 ### Winter
 
-<img src="images/ha-config-winter.png" alt="Base controller Winter options" width="400">
+![Base controller Winter options](images/ha-config-winter.png)
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -135,7 +135,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 
 ### Settings
 
-<img src="images/ha-config-shutter.png" alt="A shutter's Settings" width="400">
+![A shutter's Settings](images/ha-config-shutter.png)
 
 | Setting | Default | Effect |
 |---|---|---|

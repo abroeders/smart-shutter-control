@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- Documentation site: the screenshots of the long settings forms were missing, screenshots were shown too
+  large, numbered lists started again after an image, and the list and table on *The card* were shown as
+  plain text. Dialog screenshots no longer show the page behind them (#81).
+
 ## [2026.11.22] - 2026-11-22
 
 ### Added
