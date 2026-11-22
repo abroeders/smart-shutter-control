@@ -23,7 +23,8 @@ Sensors may report in any unit Home Assistant knows: temperatures (outdoor, room
 converted to °C and wind speeds to km/h when read, so a sensor in °F or mph works. A value without a unit
 counts as °C or km/h. The settings are shown and entered in your unit system: in °C and km/h with metric
 units, in °F and mph with US customary units (they are stored in °C and km/h, so switching unit systems keeps
-them). The defaults below are given in °C and km/h.
+them). Length settings are also shown in your unit system: in cm and m with metric units, in inches and feet
+with US customary units (they are stored in cm and m). The defaults below are given in °C and km/h.
 
 Sun source *PV power*:
 
@@ -142,9 +143,9 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Maximum position | 100 % | automatic control never opens the shutter further; by hand it can. Below 100 % the shutter closes in a storm |
 | Heat protection | on | lower the shutter when the sun shines on the window and it is warm |
 | Shading position | 30 % | position during heat protection; with the three room fields below the lowest it uses |
-| Window bottom above the floor | – | cm; with *Window height* and *Sun into the room*: the [shading position follows the sun](how-it-works.md#heat-protection) |
-| Window height | the calibration's | cm; the height of the glass |
-| Sun into the room | – | m; direct sun may reach this far over the floor |
+| Window bottom above the floor | – | cm (inches with US customary units); with *Window height* and *Sun into the room*: the [shading position follows the sun](how-it-works.md#heat-protection) |
+| Window height | the calibration's | cm (inches with US customary units); the height of the glass |
+| Sun into the room | – | m (feet with US customary units); direct sun may reach this far over the floor |
 | Heat protection from (outdoor) | the base value | override for this shutter |
 | Heat protection from (room) | the base value | override for this shutter |
 | Hot day from (forecast) | the base value | override of the base forecast limit; empty: the base value |

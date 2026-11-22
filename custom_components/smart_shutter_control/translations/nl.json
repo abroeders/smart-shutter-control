@@ -413,7 +413,7 @@
         },
         "cal_assistant": {
           "title": "Kalibreren",
-          "description": "Eerst zoekt de assistent het punt waarop de onderlat loskomt van de dorpel: vanuit dicht gaat hij in kleine stappen omhoog en vraagt of de onderlat los is. Daarna meet hij vier punten, verdeeld over het stuk boven dat punt, vanuit dicht en vanuit open, en vraagt telkens hoe ver het raam onder de onderlat open is. De automaat voor dit rolluik staat zolang op pauze.\n\nVul de raamhoogte in om in cm te meten, of laat leeg om te schatten in % van het raam.",
+          "description": "Eerst zoekt de assistent het punt waarop de onderlat loskomt van de dorpel: vanuit dicht gaat hij in kleine stappen omhoog en vraagt of de onderlat los is. Daarna meet hij vier punten, verdeeld over het stuk boven dat punt, vanuit dicht en vanuit open, en vraagt telkens hoe ver het raam onder de onderlat open is. De automaat voor dit rolluik staat zolang op pauze.\n\nVul de raamhoogte in om in cm of inch te meten, of laat leeg om te schatten in % van het raam.",
           "data": {
             "window_height_cm": "Raamhoogte"
           }
