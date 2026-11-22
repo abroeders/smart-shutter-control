@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- After a restart the forecast maximum was unknown for up to 30 minutes when the weather integration started
+  later; it is now read again once Home Assistant has started and when the weather entity appears (#67).
+
 ## [2026.11.14] - 2026-11-22
 
 ### Added
