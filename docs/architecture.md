@@ -738,6 +738,8 @@ classDiagram
         <<module>>
         +shutterModel(hass, deviceId) ShutterModel
         +statusLines(model, t, time) StatusLines
+        +decisionLines(decisions, t, language, temperatureUnit) DecisionLine[]
+        +showSunLeft(model) bool
         +cardLanguage(hass, configured, model)
     }
     class geometry {

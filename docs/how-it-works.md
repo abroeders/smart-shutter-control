@@ -81,7 +81,7 @@ window** when it is above the horizon, between the lowest and highest sun elevat
 `i` is below the largest angle of incidence (85°).
 
 **Horizon.** Buildings and trees block a low sun at different heights in different directions. Press the
-button *Sun has left the window* (on the shutter's device, or in the card while the sun is on the window) at
+button *Sun has left the window* (on the shutter's device, or in the card while heat or glare protection has lowered the shutter) at
 the moment the sun disappears behind something: the sun's current direction and elevation become a point of
 the window's horizon, and the sun is off the window at once. A point within 3° of direction replaces an older
 one. Between points the horizon is interpolated; the outermost points hold 15° further; elsewhere only

@@ -146,6 +146,14 @@ export function formatTime(iso: string, hass: HomeAssistant, language: string): 
   }
 }
 
+// reasons that mean the sun lowered the shutter (#73)
+const SUN_REASONS = new Set(["heat", "glare"]);
+
+/** The card offers "Sun has left the window" only while the sun lowered the shutter (#73). */
+export function showSunLeft(model: ShutterModel): boolean {
+  return Boolean(model.entities.sun_left) && model.reason !== null && SUN_REASONS.has(model.reason);
+}
+
 export function positionText(position: number | "slit" | null, t: Translate): string {
   if (position === null) return "–";
   if (position === "slit") return t("slit");
