@@ -1248,3 +1248,25 @@ sequenceDiagram
     H->>H: hot day? then warm without the outdoor and room limits
 ```
 
+## 22. Temperatures and wind speeds in any unit (#64)
+
+`units.py` (Home Assistant side) converts every value it reads with Home Assistant's `TemperatureConverter`
+and `SpeedConverter`: the outdoor and room temperature (the sensor's `unit_of_measurement`) and the daily
+forecast (the weather entity's `temperature_unit`) to °C, wind and gust to km/h; a value without a unit or
+with an unknown one counts as °C or km/h. `core/` keeps working in °C and km/h. The 30-day wind maxima on the
+storm page are converted the same way.
+
+```mermaid
+classDiagram
+    class units {
+        <<module units.py>>
+        +temperature(state) float|None
+        +speed(state) float|None
+        +to_celsius(value, unit) float
+        +to_kmh(value, unit) float
+    }
+    BaseCoordinator ..> units : outdoor, wind, gust, forecast
+    ShutterController ..> units : room temperature
+    SmartShutterControlOptionsFlow ..> units : 30-day wind maxima
+```
+

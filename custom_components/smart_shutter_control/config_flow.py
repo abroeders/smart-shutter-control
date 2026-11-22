@@ -15,7 +15,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
     SubentryFlowResult,
 )
-from homeassistant.const import ATTR_SUPPORTED_FEATURES, CONF_NAME
+from homeassistant.const import ATTR_SUPPORTED_FEATURES, ATTR_UNIT_OF_MEASUREMENT, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
@@ -98,6 +98,7 @@ from .core.horizon import Horizon, from_rows, rows_from
 from .core.horizon import check as check_horizon
 from .core.model import Direction
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
+from .units import to_kmh
 
 
 def _sensor(device_class: str | None = None, multiple: bool = False) -> selector.EntitySelector:
@@ -142,8 +143,10 @@ def _phase_switch(base: bool) -> selector.Selector:
     )
 
 
-async def _max_30_days(hass, entity_id: str | None) -> str:
-    """The highest value of a sensor in the last 30 days (long-term statistics), as text; – when unknown."""
+async def _max_30_days(hass, entity_id: str | None, wind: bool = False) -> str:
+    """The highest value of a sensor in the last 30 days (long-term statistics), as text; – when unknown.
+
+    `wind`: in km/h, from the sensor's unit (#64)."""
     if not entity_id:
         return "–"
     try:
@@ -158,7 +161,13 @@ async def _max_30_days(hass, entity_id: str | None) -> str:
             statistics_during_period, hass, start, None, {entity_id}, "day", None, {"max"}
         )
         values = [row["max"] for row in stats.get(entity_id, []) if row.get("max") is not None]
-        return f"{max(values):.0f}" if values else "–"
+        if not values:
+            return "–"
+        top = max(values)
+        if wind:
+            state = hass.states.get(entity_id)
+            top = to_kmh(top, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) if state else None)
+        return f"{top:.0f}"
     except Exception:  # noqa: BLE001 - no recorder or no statistics: just do not show it
         return "–"
 
@@ -556,8 +565,8 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
             step_id="storm",
             data_schema=_with_defaults(schema, current),
             description_placeholders={
-                "wind_max": await _max_30_days(self.hass, sources.get(CONF_WIND_SPEED)),
-                "gust_max": await _max_30_days(self.hass, sources.get(CONF_WIND_GUST)),
+                "wind_max": await _max_30_days(self.hass, sources.get(CONF_WIND_SPEED), wind=True),
+                "gust_max": await _max_30_days(self.hass, sources.get(CONF_WIND_GUST), wind=True),
             },
         )
 

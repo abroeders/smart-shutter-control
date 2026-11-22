@@ -13,6 +13,7 @@ from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
+from . import units
 from .adapter import CoverAdapter
 from .const import (
     CONF_AZIMUTH,
@@ -302,12 +303,9 @@ class ShutterController:
         return replace(inputs, sunny=sunny, sun_factor=self.facade.factor)
 
     def room_temperature(self) -> float | None:
+        """In °C, whatever the sensor's unit (#64)."""
         entity_id = self.config.room_temperature
-        state = self.hass.states.get(entity_id) if entity_id else None
-        try:
-            return float(state.state) if state else None
-        except ValueError:
-            return None
+        return units.temperature(self.hass.states.get(entity_id) if entity_id else None)
 
     def slit_module(self) -> int:
         """Module position of the slit: from the calibration, else the schedule's setting."""

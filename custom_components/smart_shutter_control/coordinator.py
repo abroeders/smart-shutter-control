@@ -22,6 +22,7 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
+from . import units
 from .const import (
     CONF_LIGHT,
     CONF_LUX_LIMIT,
@@ -280,6 +281,16 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         except ValueError:
             return None
 
+    def _temperature(self, source: str) -> float | None:
+        """A temperature source in °C, whatever its unit (#64)."""
+        entity_id = self.sources.get(source)
+        return units.temperature(self.hass.states.get(entity_id) if entity_id else None)
+
+    def _speed(self, source: str) -> float | None:
+        """A wind source in km/h, whatever its unit (#64)."""
+        entity_id = self.sources.get(source)
+        return units.speed(self.hass.states.get(entity_id) if entity_id else None)
+
     def read_inputs(self) -> Inputs:
         now = time.time()
         sun = SunPosition.at(self.hass.config.latitude, self.hass.config.longitude, now)
@@ -290,10 +301,10 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         sunny = self.sunny.update(sun, value, self.weather_state, now)
         if value is not None:
             self.store.set_global(self.reference_key, self.sunny.reference.to_dict())
-        outdoor = self._number(self.sources.get(CONF_OUTDOOR))
+        outdoor = self._temperature(CONF_OUTDOOR)
         storm = self.storm.update(
-            self._number(self.sources.get(CONF_WIND_SPEED)),
-            self._number(self.sources.get(CONF_WIND_GUST)),
+            self._speed(CONF_WIND_SPEED),
+            self._speed(CONF_WIND_GUST),
             now,
         )
         frost = self.frost.update(outdoor, now)
@@ -311,10 +322,10 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             sun=sun,
             sunny=sunny,
             sun_factor=self.sunny.factor,
-            outdoor=self._number(self.sources.get(CONF_OUTDOOR)),
+            outdoor=outdoor,
             pv_power=value if self.sun_source == "pv" else None,
-            wind=self._number(self.sources.get(CONF_WIND_SPEED)),
-            gust=self._number(self.sources.get(CONF_WIND_GUST)),
+            wind=self._speed(CONF_WIND_SPEED),
+            gust=self._speed(CONF_WIND_GUST),
         )
 
     async def async_record_horizon(self, controller: ShutterController) -> None:
@@ -368,7 +379,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         entity_id = self.sources.get(CONF_WEATHER)
         today = dt_util.now().date()
         value = None
-        if entity_id and self.hass.states.get(entity_id) is not None:
+        weather = self.hass.states.get(entity_id) if entity_id else None
+        if weather is not None:
             try:
                 response = await self.hass.services.async_call(
                     "weather",
@@ -382,6 +394,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             else:
                 forecast = (response or {}).get(entity_id, {}).get("forecast") or []
                 value = today_max(forecast, today, dt_util.get_default_time_zone())
+                if value is not None:  # in the weather entity's unit (#64)
+                    value = units.to_celsius(value, weather.attributes.get("temperature_unit"))
         self.forecast.update(value, today)
 
     @property
