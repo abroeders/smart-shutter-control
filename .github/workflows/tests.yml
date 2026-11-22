@@ -28,6 +28,18 @@ jobs:
       - run: pip install pytest-homeassistant-custom-component
       - run: pytest tests_ha -p no:cacheprovider -o pythonpath=. -o testpaths=tests_ha -o asyncio_mode=auto
 
+  docs:  # the documentation site builds without broken links (#78)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements-docs.txt
+      - run: mkdocs build --strict
+        env:
+          NO_MKDOCS_2_WARNING: "1"
+
   diagrams:
     runs-on: ubuntu-latest
     steps:

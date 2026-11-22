@@ -1345,3 +1345,23 @@ sequenceDiagram
     F->>F: save in °C / km/h / cm / m
 ```
 
+
+## 24. Documentation site (#78)
+
+The pages in `docs/` are also published as a site on GitHub Pages, built with MkDocs and the Material theme.
+`mkdocs.yml` holds the navigation, the theme and the Markdown extensions (Mermaid through
+`pymdownx.superfences`). The designs in `docs/design/` stay out of the site; the hook `docs/hooks.py` turns
+links to them into links to GitHub, so the pages stay plain Markdown that reads the same on GitHub. The *Docs*
+workflow builds and deploys the site on every push to `main`; the *docs* job in *Tests* builds it with
+`--strict` on every push and PR, so a broken link fails early. Design:
+[`design/2026-11-22-docs-site.md`](design/2026-11-22-docs-site.md).
+
+```mermaid
+flowchart LR
+    docs["docs/*.md, docs/images"] --> mk["mkdocs build --strict"]
+    cfg[mkdocs.yml] --> mk
+    hook["docs/hooks.py: design links to GitHub"] --> mk
+    mk --> art[Pages artifact] --> site["abroeders.github.io/smart-shutter-control"]
+    main[push to main] --> wf[docs.yml] --> mk
+    pr[push / PR] --> tests["tests.yml: docs job"] --> mk
+```
