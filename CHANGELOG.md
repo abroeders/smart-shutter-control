@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.17] - 2026-11-22
+
 ### Added
 
 - With US customary units, every temperature and wind setting is shown and entered in °F and mph: the base
@@ -377,7 +379,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.16...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.17...HEAD
+[2026.11.17]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.16...2026.11.17
 [2026.11.16]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.15...2026.11.16
 [2026.11.15]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.14...2026.11.15
 [2026.11.14]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.13...2026.11.14
