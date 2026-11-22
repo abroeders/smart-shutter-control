@@ -79,4 +79,7 @@ When that does not fit within 3 % of the window, a smooth monotone curve through
 The sensor *Calibration* shows the model and the fit per direction.
 
 To send a real position the integration inverts the curve of the direction the shutter will move in, and
-picks the nearest whole module position.
+picks the nearest whole module position. It remembers that command: while the module stays at it (within 1),
+the shutter shows the real position that was sent, also after a restart. When the shutter is moved elsewhere,
+the real position follows the curve of that movement's direction; a movement of less than 3 module points
+does not change the direction.

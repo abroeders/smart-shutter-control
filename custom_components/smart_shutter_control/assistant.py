@@ -72,7 +72,7 @@ class CalibrationSession:
         """Fully open, then time the travel to fully closed (until the module reports 0)."""
         await self.move(100)
         start = time.monotonic()
-        self.controller.tracker.expect(Direction.DOWN)
+        self.controller.memory.expect(Direction.DOWN, self.controller.adapter.module_position())
         await self.controller.adapter.async_move(0)
         first = await self._wait_for_end(0)
         if first is not None:
@@ -183,7 +183,9 @@ class CalibrationSession:
             if there and not self._motor_running():
                 self.reached = True
                 break
-            self.controller.tracker.expect(Direction.UP if module > (current or 0) else Direction.DOWN)
+            self.controller.memory.expect(
+                Direction.UP if module > (current or 0) else Direction.DOWN, current
+            )
             await adapter.async_move(module)
             if end:
                 self.reached = await self._wait_for_end(module) is not None
