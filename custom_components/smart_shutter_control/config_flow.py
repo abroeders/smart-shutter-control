@@ -98,7 +98,7 @@ from .core.horizon import Horizon, from_rows, rows_from
 from .core.horizon import check as check_horizon
 from .core.model import Direction
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
-from .units import DisplayUnit, speed_unit, temperature_unit, to_kmh
+from .units import DisplayUnit, length_unit, speed_unit, temperature_unit, to_kmh
 
 
 def _sensor(device_class: str | None = None, multiple: bool = False) -> selector.EntitySelector:
@@ -142,6 +142,8 @@ TEMPERATURE_FIELDS = {
     "winter_closed_below",
 }
 SPEED_FIELDS = {OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT}
+# lengths stored in cm or m, shown in inches or feet with US customary units (#71): stored unit, shown step
+LENGTH_FIELDS = {CONF_WINDOW_SILL: ("cm", 1), CONF_WINDOW_HEIGHT: ("cm", 1), CONF_SUN_DEPTH: ("m", 0.5)}
 
 
 def _display_units(hass, schema: dict) -> dict[str, DisplayUnit]:
@@ -152,6 +154,8 @@ def _display_units(hass, schema: dict) -> dict[str, DisplayUnit]:
             out[name] = temperature_unit(hass)
         elif name in SPEED_FIELDS:
             out[name] = speed_unit(hass)
+        elif name in LENGTH_FIELDS:
+            out[name] = length_unit(hass, *LENGTH_FIELDS[name])
     return out
 
 
@@ -160,7 +164,7 @@ def _is_number(value: Any) -> bool:
 
 
 def _shown_form(hass, schema: dict, values: dict[str, Any]) -> vol.Schema:
-    """`_with_defaults` with the temperatures and wind speeds in the user's units (#65)."""
+    """`_with_defaults` with the temperatures, wind speeds and lengths in the user's units (#65, #71)."""
     shown_units = _display_units(hass, schema)
     out = {}
     for key, validator in schema.items():
@@ -181,7 +185,7 @@ def _shown_form(hass, schema: dict, values: dict[str, Any]) -> vol.Schema:
 
 
 def _stored_input(hass, schema: dict, user_input: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]:
-    """A form's input with the temperatures and wind speeds back in °C and km/h (#65)."""
+    """A form's input with the temperatures, wind speeds and lengths back in °C, km/h, cm and m (#65, #71)."""
     shown_units = _display_units(hass, schema)
     return {
         key: shown_units[key].stored(value, previous.get(key))
@@ -849,12 +853,14 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         if controller.storm:
             return self.async_abort(reason="storm")  # calibrating moves to intermediate positions
         if user_input is not None:
-            height = user_input.get("window_height_cm") or None
+            height = length_unit(self.hass, "cm").stored(user_input.get("window_height_cm") or None)
             travel = self._get_reconfigure_subentry().data.get(CONF_TRAVEL_TIME)
             self._start(CalibrationSession.full(controller, height, float(travel) if travel else None))
             return await self.async_step_cal_next()
-        schema = vol.Schema({vol.Optional("window_height_cm"): _number(10, 500, 1, "cm")})
-        return self.async_show_form(step_id="cal_assistant", data_schema=schema)
+        height_field = {vol.Optional("window_height_cm"): _number(10, 500, 1, "cm")}
+        return self.async_show_form(
+            step_id="cal_assistant", data_schema=_shown_form(self.hass, height_field, {})
+        )
 
     # --- calibration table (#40) --------------------------------------------------------------------
     _table: dict[str, Any] | None = None  # the calibration from the table, waiting for the review
@@ -1036,14 +1042,21 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
 
     async def async_step_cal_measure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         session, action = self._session, self._action
+        length = length_unit(self.hass, "cm", 0.25)
         if user_input and self._shown == "cal_measure":
             self._shown = None
-            session.add_point(action, float(user_input["opening"]))
+            opening = float(user_input["opening"])
+            session.add_point(action, length.to_stored(opening) if session.height_cm else opening)
             return await self.async_step_cal_next()
-        unit = "cm" if session.height_cm else "%"
-        top = session.height_cm or 100
+        if session.height_cm:  # in the user's length unit (#71)
+            config = length.selector_config(0, session.height_cm, 0.5)
+            unit = config["unit_of_measurement"]
+            field = _number(config["min"], config["max"], config["step"], unit)
+        else:
+            unit = "%"
+            field = _number(0, 100, 0.5, unit)
         self._shown = "cal_measure"
-        schema = vol.Schema({vol.Required("opening"): _number(0, top, 0.5, unit)})
+        schema = vol.Schema({vol.Required("opening"): field})
         return self.async_show_form(
             step_id="cal_measure",
             data_schema=schema,
