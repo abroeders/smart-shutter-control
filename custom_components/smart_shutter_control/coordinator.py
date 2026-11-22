@@ -243,6 +243,11 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
                 async_track_state_change_event(self.hass, [calendar_entity], self._on_calendar)
             )
             self._unsubs.append(async_at_started(self.hass, self._on_started))
+        weather_entity = self.sources.get(CONF_WEATHER)
+        if weather_entity:
+            # the weather integration may start after this one: read the forecast once it is there (#67)
+            self._unsubs.append(async_track_state_change_event(self.hass, [weather_entity], self._on_weather))
+            self._unsubs.append(async_at_started(self.hass, self._on_started_forecast))
         self.data = None
 
     async def async_stop(self) -> None:
@@ -459,6 +464,18 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
 
     async def _on_started(self, _hass: HomeAssistant) -> None:
         await self.async_refresh_holidays()
+
+    async def _on_started_forecast(self, _hass: HomeAssistant) -> None:
+        await self.async_refresh_forecast()
+        self.async_update_listeners()
+
+    async def _on_weather(self, event: Event[EventStateChangedData]) -> None:
+        """The weather entity appeared or became available again: read the forecast now (#67)."""
+        old, new = event.data.get("old_state"), event.data.get("new_state")
+        gone = old is None or old.state in (STATE_UNAVAILABLE, STATE_UNKNOWN)
+        if gone and new is not None and new.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+            await self.async_refresh_forecast()
+            self.async_update_listeners()
 
     async def _on_calendar(self, event: Event[EventStateChangedData]) -> None:
         old = event.data.get("old_state")

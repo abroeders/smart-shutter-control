@@ -119,7 +119,7 @@ one of these stops, or at once when the sun has moved past the window. Passing c
 and down.
 
 **Hot day.** With a weather entity, the integration reads today's maximum from its daily forecast at start
-and every 30 minutes. When it reaches *Hot day from (forecast)* (28 °C; a shutter may use its own value),
+(also once the weather entity is there) and every 30 minutes. When it reaches *Hot day from (forecast)* (28 °C; a shutter may use its own value),
 heat protection no longer waits for the outdoor or room temperature: on such a day the shutter goes down as
 soon as the sun is on the window and it is sunny, after the same 5 minutes, even on a cool morning. Empty in
 the base options switches this off; without a weather entity or a daily forecast nothing changes.

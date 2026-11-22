@@ -3,6 +3,7 @@
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smart_shutter_control.const import DEFAULT_OPTIONS, DOMAIN
@@ -101,3 +102,16 @@ async def test_empty_sun_option_stores_none_and_switches_hot_day_off(hass: HomeA
     assert entry.options["hot_day"] is None
     assert entry.runtime_data.sun_settings().hot_day is None
     assert hass.states.get(entity_id(hass, entry, None, "binary_sensor", "hot_day")).state == "off"
+
+
+async def test_forecast_read_when_the_weather_entity_appears(hass: HomeAssistant, covers) -> None:
+    """The weather integration may start later: the forecast is read once its entity is there (#67)."""
+    today = dt_util.now().date().isoformat()
+    entry = await setup_forecast(hass, [{"datetime": f"{today}T12:00:00", "temperature": 30}])
+    await hass.async_block_till_done()
+    assert entry.runtime_data.forecast_max is None  # no weather entity yet
+
+    hass.states.async_set(WEATHER, "sunny")
+    await hass.async_block_till_done()
+    assert entry.runtime_data.forecast_max == 30
+    assert hass.states.get(entity_id(hass, entry, None, "sensor", "forecast_max")).state == "30.0"
