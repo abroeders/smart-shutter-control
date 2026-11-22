@@ -124,7 +124,7 @@ export class SmartShutterCard extends LitElement {
     const m = shutterModel(hass, id);
     const { t, time, lang } = this.texts(hass, m);
     const s = statusLines(m, t, time);
-    const decisions = decisionLines(m.decision, t, lang);
+    const decisions = decisionLines(m.decision, t, lang, hass.config?.unit_system?.temperature);
     const dark = !!hass.themes?.darkMode;
     return html`<ha-card class=${this._narrow ? "narrow" : ""}>
       <div class="head">

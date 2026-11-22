@@ -98,7 +98,7 @@ from .core.horizon import Horizon, from_rows, rows_from
 from .core.horizon import check as check_horizon
 from .core.model import Direction
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
-from .units import to_kmh
+from .units import DisplayUnit, speed_unit, temperature_unit, to_kmh
 
 
 def _sensor(device_class: str | None = None, multiple: bool = False) -> selector.EntitySelector:
@@ -130,6 +130,67 @@ def _with_defaults(schema: dict, values: dict[str, Any]) -> vol.Schema:
     return vol.Schema(out)
 
 
+# settings stored in °C or km/h, shown and entered in the user's unit system (#65)
+TEMPERATURE_FIELDS = {
+    OPT_HEAT_OUTDOOR,
+    OPT_HEAT_ROOM,
+    OPT_HOT_DAY,
+    OPT_WINTER_LIMIT,
+    OPT_FROST_LIMIT,
+    OPT_CLOSE_ABOVE,
+    OPT_CLOSE_BELOW,
+    "winter_closed_below",
+}
+SPEED_FIELDS = {OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT}
+
+
+def _display_units(hass, schema: dict) -> dict[str, DisplayUnit]:
+    out = {}
+    for key in schema:
+        name = str(key)
+        if name in TEMPERATURE_FIELDS:
+            out[name] = temperature_unit(hass)
+        elif name in SPEED_FIELDS:
+            out[name] = speed_unit(hass)
+    return out
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _shown_form(hass, schema: dict, values: dict[str, Any]) -> vol.Schema:
+    """`_with_defaults` with the temperatures and wind speeds in the user's units (#65)."""
+    shown_units = _display_units(hass, schema)
+    out = {}
+    for key, validator in schema.items():
+        unit = shown_units.get(str(key))
+        if unit is not None:
+            config = validator.config
+            validator = selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    **{**config, **unit.selector_config(config["min"], config["max"], config["step"])}
+                )
+            )
+        out[key] = validator
+    shown = {
+        key: shown_units[key].shown(value) if key in shown_units and _is_number(value) else value
+        for key, value in values.items()
+    }
+    return _with_defaults(out, shown)
+
+
+def _stored_input(hass, schema: dict, user_input: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]:
+    """A form's input with the temperatures and wind speeds back in °C and km/h (#65)."""
+    shown_units = _display_units(hass, schema)
+    return {
+        key: shown_units[key].stored(value, previous.get(key))
+        if key in shown_units and _is_number(value)
+        else value
+        for key, value in user_input.items()
+    }
+
+
 def _time() -> selector.TimeSelector:
     return selector.TimeSelector()
 
@@ -146,7 +207,7 @@ def _phase_switch(base: bool) -> selector.Selector:
 async def _max_30_days(hass, entity_id: str | None, wind: bool = False) -> str:
     """The highest value of a sensor in the last 30 days (long-term statistics), as text; – when unknown.
 
-    `wind`: in km/h, from the sensor's unit (#64)."""
+    `wind`: from the sensor's unit (#64) in the user's unit, with the unit (#65)."""
     if not entity_id:
         return "–"
     try:
@@ -166,7 +227,9 @@ async def _max_30_days(hass, entity_id: str | None, wind: bool = False) -> str:
         top = max(values)
         if wind:
             state = hass.states.get(entity_id)
-            top = to_kmh(top, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) if state else None)
+            unit = speed_unit(hass)
+            top = unit.shown(to_kmh(top, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) if state else None))
+            return f"{top:.0f} {unit.unit}"
         return f"{top:.0f}"
     except Exception:  # noqa: BLE001 - no recorder or no statistics: just do not show it
         return "–"
@@ -413,20 +476,22 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
 
     async def async_step_winter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
-        if user_input is not None:
-            return self.async_create_entry(data={**current, **user_input})
         schema = {vol.Required(OPT_WINTER_LIMIT): _number(0, 25, 0.5, "°C")}
-        return self.async_show_form(step_id="winter", data_schema=_with_defaults(schema, current))
+        if user_input is not None:
+            return self.async_create_entry(
+                data={**current, **_stored_input(self.hass, schema, user_input, current)}
+            )
+        return self.async_show_form(step_id="winter", data_schema=_shown_form(self.hass, schema, current))
 
     async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
         base = merged(current.get(OPT_SCHEDULE), None)
+        fields = schedule_fields(base=True)
         if user_input is not None:
+            user_input = _stored_input(self.hass, fields, user_input, base)
             schedule = {k: user_input.get(k) for k in DEFAULT_SCHEDULE}
             return self.async_create_entry(data={**current, OPT_SCHEDULE: schedule})
-        return self.async_show_form(
-            step_id="schedule", data_schema=_with_defaults(schedule_fields(base=True), base)
-        )
+        return self.async_show_form(step_id="schedule", data_schema=_shown_form(self.hass, fields, base))
 
     async def async_step_holidays(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Step 1: the calendar and the weekend days. The holidays of that calendar follow on step 2."""
@@ -527,9 +592,6 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
 
     async def async_step_sun(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
-        if user_input is not None:
-            # an emptied "hot day from" switches it off: keep None, not the old value (#50)
-            return self.async_create_entry(data={**current, OPT_HOT_DAY: None, **user_input})
         schema = {
             vol.Required(OPT_SUNNY_THRESHOLD): _number(10, 100, 5, "%"),
             vol.Required(OPT_MAX_INCIDENCE): _number(30, 90, 1, "°"),
@@ -539,18 +601,16 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
             vol.Required(OPT_CLOSE_DELAY): _number(0, 60, 1, "min"),
             vol.Required(OPT_OPEN_DELAY): _number(0, 120, 1, "min"),
         }
-        return self.async_show_form(step_id="sun", data_schema=_with_defaults(schema, current))
+        if user_input is not None:
+            user_input = _stored_input(self.hass, schema, user_input, current)
+            # an emptied "hot day from" switches it off: keep None, not the old value (#50)
+            return self.async_create_entry(data={**current, OPT_HOT_DAY: None, **user_input})
+        return self.async_show_form(step_id="sun", data_schema=_shown_form(self.hass, schema, current))
 
     async def async_step_storm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
         if OPT_STORM_LIMIT in current and OPT_STORM_GUST_LIMIT not in self.config_entry.options:
             current[OPT_STORM_GUST_LIMIT] = current[OPT_STORM_LIMIT]
-        if user_input is not None:
-            data = {**current, **user_input}
-            for key in (OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT, OPT_CLOSE_ABOVE, OPT_CLOSE_BELOW):
-                data[key] = user_input.get(key)  # empty = off
-            data.pop(OPT_STORM_LIMIT, None)
-            return self.async_create_entry(data=data)
         schema = {
             vol.Optional(OPT_STORM_WIND_LIMIT): _number(10, 200, 1, "km/h"),
             vol.Optional(OPT_STORM_GUST_LIMIT): _number(10, 250, 1, "km/h"),
@@ -560,10 +620,17 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
             vol.Optional(OPT_CLOSE_ABOVE): _number(15, 50, 0.5, "°C"),
             vol.Optional(OPT_CLOSE_BELOW): _number(-30, 10, 0.5, "°C"),
         }
+        if user_input is not None:
+            user_input = _stored_input(self.hass, schema, user_input, current)
+            data = {**current, **user_input}
+            for key in (OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT, OPT_CLOSE_ABOVE, OPT_CLOSE_BELOW):
+                data[key] = user_input.get(key)  # empty = off
+            data.pop(OPT_STORM_LIMIT, None)
+            return self.async_create_entry(data=data)
         sources = self.config_entry.data
         return self.async_show_form(
             step_id="storm",
-            data_schema=_with_defaults(schema, current),
+            data_schema=_shown_form(self.hass, schema, current),
             description_placeholders={
                 "wind_max": await _max_30_days(self.hass, sources.get(CONF_WIND_SPEED), wind=True),
                 "gust_max": await _max_30_days(self.hass, sources.get(CONF_WIND_GUST), wind=True),
@@ -665,6 +732,7 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
+            user_input = _stored_input(self.hass, self._schema(), user_input, DEFAULT_SHUTTER)
             errors = self._errors(user_input)
             if not errors:
                 return self.async_create_entry(
@@ -672,7 +740,7 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
                 )
         values = {**DEFAULT_SHUTTER, **(user_input or {})}
         return self.async_show_form(
-            step_id="user", data_schema=_with_defaults(self._schema(), values), errors=errors
+            step_id="user", data_schema=_shown_form(self.hass, self._schema(), values), errors=errors
         )
 
     # --- reconfigure: a menu ------------------------------------------------------------------------
@@ -699,6 +767,8 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         subentry = self._get_reconfigure_subentry()
         errors: dict[str, str] = {}
         if user_input is not None:
+            previous = {**DEFAULT_SHUTTER, **dict(subentry.data)}
+            user_input = _stored_input(self.hass, self._schema(), user_input, previous)
             errors = self._errors(user_input, subentry.subentry_id)
             if not errors:
                 return self.async_update_and_abort(
@@ -711,16 +781,27 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
                 )
         values = {**DEFAULT_SHUTTER, **dict(subentry.data), **(user_input or {})}
         return self.async_show_form(
-            step_id="settings", data_schema=_with_defaults(self._schema(), values), errors=errors
+            step_id="settings", data_schema=_shown_form(self.hass, self._schema(), values), errors=errors
         )
 
     # --- schedule overrides -----------------------------------------------------------------------
     def _base_schedule(self) -> dict[str, Any]:
         return merged(self._get_entry().options.get(OPT_SCHEDULE), None)
 
+    def _shown_base(self) -> dict[str, Any]:
+        """The base schedule with its temperature in the user's unit (#65)."""
+        base = self._base_schedule()
+        if _is_number(base.get("winter_closed_below")):
+            unit = temperature_unit(self.hass)
+            base["winter_closed_below"] = f"{unit.shown(base['winter_closed_below']):g} {unit.unit}"
+        return base
+
     async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         subentry = self._get_reconfigure_subentry()
+        fields = schedule_fields(base=False)
         if user_input is not None:
+            previous = dict(subentry.data.get(CONF_SCHEDULE) or {})
+            user_input = _stored_input(self.hass, fields, user_input, previous)
             overrides = {k: v for k, v in user_input.items() if v not in (None, "", "inherit")}
             return self.async_update_and_abort(
                 self._get_entry(), subentry, data_updates={CONF_SCHEDULE: overrides}
@@ -729,8 +810,8 @@ class ShutterSubentryFlow(ConfigSubentryFlow):
         shown = {**dict.fromkeys(INHERIT_CHOICES, "inherit"), **overrides}
         return self.async_show_form(
             step_id="schedule",
-            data_schema=_with_defaults(schedule_fields(base=False), shown),
-            description_placeholders=base_placeholders(self._base_schedule(), self.hass.config.language),
+            data_schema=_shown_form(self.hass, fields, shown),
+            description_placeholders=base_placeholders(self._shown_base(), self.hass.config.language),
         )
 
     async def async_step_schedule_reset(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:

@@ -94,8 +94,8 @@
           "close_below": "Close below"
         },
         "data_description": {
-          "storm_wind_limit": "Highest in the last 30 days: {wind_max} km/h. Empty: not used.",
-          "storm_gust_limit": "Highest in the last 30 days: {gust_max} km/h. Empty: not used.",
+          "storm_wind_limit": "Highest in the last 30 days: {wind_max}. Empty: not used.",
+          "storm_gust_limit": "Highest in the last 30 days: {gust_max}. Empty: not used.",
           "storm_release": "Minutes after the last value above a limit.",
           "frost_limit": "During frost the shutters do not move automatically (they may be frozen).",
           "close_above": "Outdoor temperature; empty: off.",

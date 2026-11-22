@@ -1,12 +1,20 @@
 """Temperatures and wind speeds in any unit count as °C and km/h (#64)."""
 
 import pytest
+from homeassistant.const import UnitOfSpeed, UnitOfTemperature
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.util import dt as dt_util
+from homeassistant.util.unit_conversion import SpeedConverter, TemperatureConverter
+from homeassistant.util.unit_system import METRIC_SYSTEM, US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smart_shutter_control.const import DEFAULT_OPTIONS, DOMAIN
-from custom_components.smart_shutter_control.units import to_celsius, to_kmh
+from custom_components.smart_shutter_control.units import (
+    DisplayUnit,
+    speed_unit,
+    to_celsius,
+    to_kmh,
+)
 
 from .conftest import LIVING, OUTDOOR, add_shutter
 
@@ -29,6 +37,61 @@ def test_to_celsius(value, unit, celsius) -> None:
 )
 def test_to_kmh(value, unit, kmh) -> None:
     assert to_kmh(value, unit) == pytest.approx(kmh, rel=1e-4)
+
+
+def test_display_unit_pass_through() -> None:
+    celsius = DisplayUnit(TemperatureConverter, UnitOfTemperature.CELSIUS, UnitOfTemperature.CELSIUS)
+    kmh = DisplayUnit(SpeedConverter, UnitOfSpeed.KILOMETERS_PER_HOUR, UnitOfSpeed.KILOMETERS_PER_HOUR)
+    assert celsius.shown(12.5) == 12.5
+    assert celsius.stored(12.5) == 12.5
+    assert kmh.shown(50) == 50
+    assert kmh.stored(50) == 50
+
+
+def test_display_unit_fahrenheit_and_mph_convert_both_ways() -> None:
+    fahrenheit = DisplayUnit(TemperatureConverter, UnitOfTemperature.CELSIUS, UnitOfTemperature.FAHRENHEIT)
+    mph = DisplayUnit(SpeedConverter, UnitOfSpeed.KILOMETERS_PER_HOUR, UnitOfSpeed.MILES_PER_HOUR)
+    assert fahrenheit.shown(25) == 77
+    assert fahrenheit.stored(77) == 25
+    assert mph.shown(50) == 31
+    assert mph.stored(40) == pytest.approx(64.4)
+
+
+def test_display_unit_selector_config_rounds_outwards() -> None:
+    fahrenheit = DisplayUnit(TemperatureConverter, UnitOfTemperature.CELSIUS, UnitOfTemperature.FAHRENHEIT)
+    mph = DisplayUnit(SpeedConverter, UnitOfSpeed.KILOMETERS_PER_HOUR, UnitOfSpeed.MILES_PER_HOUR)
+    assert fahrenheit.selector_config(-10, 40, 0.5) == {
+        "min": 14,
+        "max": 104,
+        "step": 1,
+        "unit_of_measurement": "°F",
+    }
+    assert mph.selector_config(10, 200, 1) == {
+        "min": 6,
+        "max": 125,
+        "step": 1,
+        "unit_of_measurement": "mph",
+    }
+
+
+def test_display_unit_keeps_unchanged_and_rounds_changed_values() -> None:
+    mph = DisplayUnit(SpeedConverter, UnitOfSpeed.KILOMETERS_PER_HOUR, UnitOfSpeed.MILES_PER_HOUR)
+    assert mph.shown(50) == 31
+    assert mph.stored(31, previous=50) == 50
+    assert mph.stored(40, previous=50) == pytest.approx(64.4)
+
+    fahrenheit = DisplayUnit(TemperatureConverter, UnitOfTemperature.CELSIUS, UnitOfTemperature.FAHRENHEIT)
+    assert fahrenheit.stored(77, previous=25) == 25
+    assert fahrenheit.stored(78, previous=25) == pytest.approx(25.6)
+    assert mph.stored(None) is None
+    assert fahrenheit.stored(None) is None
+
+
+def test_speed_unit_us_mph_and_metric_kmh(hass: HomeAssistant) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    assert speed_unit(hass).unit == UnitOfSpeed.MILES_PER_HOUR
+    hass.config.units = METRIC_SYSTEM
+    assert speed_unit(hass).unit == UnitOfSpeed.KILOMETERS_PER_HOUR
 
 
 def temperature(hass: HomeAssistant, entity_id: str, value: float, unit: str) -> None:
