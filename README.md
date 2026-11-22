@@ -50,6 +50,9 @@ shutter. Details: [Installation](docs/installation.md).
 
 ## Documentation
 
+Read it on the documentation site: **<https://abroeders.github.io/smart-shutter-control/>**, or in
+[`docs/`](docs/).
+
 | | |
 |---|---|
 | [Installation](docs/installation.md) | requirements, HACS, adding shutters |

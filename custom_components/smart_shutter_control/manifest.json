@@ -19,7 +19,7 @@
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/abroeders/smart-shutter-control",
+  "documentation": "https://abroeders.github.io/smart-shutter-control/",
   "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/abroeders/smart-shutter-control/issues",

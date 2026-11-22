@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- A documentation site on GitHub Pages, <https://abroeders.github.io/smart-shutter-control/>, built from
+  `docs/` on every release; the integration's documentation link points to it (#78).
+
 ## [2026.11.20] - 2026-11-22
 
 ### Added
