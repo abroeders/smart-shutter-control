@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.14] - 2026-11-22
+
 ### Added
 
 - Heat protection from the weather forecast: with *Hot day from (forecast)* (default 28 °C, per shutter
@@ -22,7 +24,7 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 ### Changed
 
 - Releases are published by a workflow, only when the tagged commit passes the HACS and hassfest validation
-  and its versions match the tag.
+  and its versions match the tag (#63).
 
 ## [2026.11.13] - 2026-11-21
 
@@ -355,7 +357,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.13...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.14...HEAD
+[2026.11.14]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.13...2026.11.14
 [2026.11.13]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.12...2026.11.13
 [2026.11.12]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.11...2026.11.12
 [2026.11.11]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.10...2026.11.11
