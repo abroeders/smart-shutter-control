@@ -160,16 +160,9 @@ describe("card", () => {
     expect(hass.calls[0]).toMatchObject({ domain: "button", service: "press", data: { entity_id: "button.living_resume" } });
   });
 
-  it("offers to record the horizon only while the sun is on the window", async () => {
-    const hass = fakeHass({
-      "binary_sensor.living_sun_on_window": { state: "on", attributes: {} },
-    });
-    hass.entities["binary_sensor.living_sun_on_window"] = {
-      entity_id: "binary_sensor.living_sun_on_window",
-      device_id: LIVING,
-      platform: "smart_shutter_control",
-      translation_key: "sun_on_window",
-    };
+  it("offers to record the horizon only while the sun lowered the shutter", async () => {
+    const reason = (state: string) => ({ entity_id: "sensor.living_reason", state, attributes: { target_position: 30, max_position: 80, language: null } });
+    const hass = fakeHass({ "sensor.living_reason": reason("heat") });
     hass.entities["button.living_sun_left"] = {
       entity_id: "button.living_sun_left",
       device_id: LIVING,
@@ -186,12 +179,17 @@ describe("card", () => {
       data: { entity_id: "button.living_sun_left" },
     });
 
-    hass.states["binary_sensor.living_sun_on_window"].state = "off";
+    hass.states["sensor.living_reason"] = reason("glare");
+    card.hass = { ...hass };
+    await card.updateComplete;
+    expect(card.shadowRoot.querySelector(".sun-left")).not.toBeNull();
+
+    hass.states["sensor.living_reason"] = reason("schedule");
     card.hass = { ...hass };
     await card.updateComplete;
     expect(card.shadowRoot.querySelector(".sun-left")).toBeNull();
 
-    hass.states["binary_sensor.living_sun_on_window"].state = "on";
+    hass.states["sensor.living_reason"] = reason("heat");
     delete hass.entities["button.living_sun_left"];
     card.hass = { ...hass };
     await card.updateComplete;

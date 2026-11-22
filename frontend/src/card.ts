@@ -5,7 +5,7 @@ import { deviceEntities, integrationDevices, isShutter, shuttersOf } from "./ent
 import { localizer, type Translate } from "./localize";
 import { sceneFor } from "./scene";
 import type { CardConfig, HomeAssistant } from "./types";
-import { cardLanguage, decisionLines, formatTime, positionText, shutterModel, statusLines, type ShutterModel } from "./viewmodel";
+import { cardLanguage, decisionLines, formatTime, positionText, showSunLeft, shutterModel, statusLines, type ShutterModel } from "./viewmodel";
 
 export const CARD_TAG = "smart-shutter-card";
 export const EDITOR_TAG = "smart-shutter-card-editor";
@@ -171,7 +171,7 @@ export class SmartShutterCard extends LitElement {
       <div class="switches">
         ${this.switch(t("automatic"), m.entities.automatic, m.automatic, "automatic")}
         ${this.switch(t("sleep_in"), m.entities.sleep_in, m.sleepIn, "sleep-in")}
-        ${m.entities.sun_left && hass.states[m.entities.sun_on_window]?.state === "on"
+        ${showSunLeft(m)
           ? html`<button class="text sun-left" @click=${() => this.call("button", "press", m.entities.sun_left)}>${t("sun_left")}</button>`
           : nothing}
         ${m.paused && m.entities.resume
