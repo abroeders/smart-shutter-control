@@ -48,7 +48,7 @@ from .const import (
     DOMAIN,
 )
 from .core.arrival import ArrivalCheck, State, Verdict
-from .core.calibration import Calibration, DirectionTracker, RollerCalibration
+from .core.calibration import Calibration, PositionMemory, RollerCalibration
 from .core.contacts import Floor, OpeningGuard, Target, raise_to
 from .core.daily import ScheduleRule, SleepIn, SleepInRule
 from .core.glare import GlareProtectionRule
@@ -78,6 +78,7 @@ KEY_GLARE_POSITION = "glare_position"
 KEY_GLARE_FROM = "glare_from"
 KEY_SLEEP_IN = "sleep_in"
 KEY_PAUSE = "pause"
+KEY_POSITION = "position"  # the last command and direction (#75)
 RUNNING = 5.0  # W: the motor runs above this
 
 
@@ -148,8 +149,9 @@ class ShutterController:
         )
         self.adapter = CoverAdapter(hass, self.config.cover, subentry.data.get(CONF_MOTOR_POWER))
         self.adapter.on_send = self._on_send
-        self.tracker = DirectionTracker()
-        self.tracker.observe(self.adapter.module_position())
+        self.memory = PositionMemory.from_dict(store.get(self.id, KEY_POSITION))
+        self.memory.observe(self.adapter.module_position())
+        self.memory.on_change = self._save_position
         self.decision = Decision(None, Reason.IDLE)
         self.paused = False  # while the calibration assistant moves the shutter
         self.paused_all = False  # automatic control of the whole integration is off (#53)
@@ -272,6 +274,9 @@ class ShutterController:
             self.id, KEY_SLEEP_IN, {"armed": self.sleep_in.armed, "armed_at": self.sleep_in.armed_at}
         )
 
+    def _save_position(self) -> None:
+        self.store.set(self.id, KEY_POSITION, self.memory.to_dict())
+
     def _save_pause(self) -> None:
         self.store.set(self.id, KEY_PAUSE, self.pause.to_dict())
 
@@ -323,7 +328,7 @@ class ShutterController:
     def observe(self) -> None:
         """The physical cover or its power sensor reported."""
         module = self.adapter.module_position()
-        self.tracker.observe(module)
+        self.memory.observe(module)
         now = time.time()
         if self.detector.observe(module, self._motor_running(), now):
             self._manual(now, "switch")
@@ -348,6 +353,7 @@ class ShutterController:
             self.sleep_in.arm(False, now)
         if source == "switch":  # moved by someone else: whatever we sent is no longer the goal
             self.arrival.cancel()
+            self.memory.forget_sent()
         mode = str(self.schedule_values["manual_mode"])
         duration = float(self.schedule_values["manual_duration"])
         self.pause.start(now, mode, duration, str(self.schedule_rule.phase(now)), source)
@@ -363,14 +369,11 @@ class ShutterController:
         self._save_pause()
 
     def direction(self) -> Direction:
-        return self.tracker.current(self.adapter.module_position())
+        return self.memory.current(self.adapter.module_position())
 
     def position(self) -> int | None:
         """Real position of the shutter (calibrated)."""
-        module = self.adapter.module_position()
-        if module is None:
-            return None
-        return self.calibration.from_module(module, self.direction())
+        return self.memory.real(self.adapter.module_position(), self.calibration)
 
     def phase(self, now: float | None = None) -> Phase:
         return self.schedule_rule.phase(time.time() if now is None else now)
@@ -405,14 +408,13 @@ class ShutterController:
 
     async def _move(self, position: int, automatic: bool) -> None:
         module, direction = self._module_target(position)
-        if module != self.adapter.module_position():
-            self.tracker.expect(direction)
+        self.memory.command(module, position, direction, self.adapter.module_position())
         await self.adapter.async_move(module, automatic=automatic)
 
     async def _move_module(self, module: int) -> None:
         current = self.adapter.module_position()
         if current is not None and module != current:
-            self.tracker.expect(Direction.UP if module > current else Direction.DOWN)
+            self.memory.command(module, None, Direction.UP if module > current else Direction.DOWN, current)
         await self.adapter.async_move(module, automatic=True)
 
     # --- control ----------------------------------------------------------------------------------

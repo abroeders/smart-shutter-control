@@ -9,7 +9,7 @@ quadratic in the module position (see docs/design/2026-11-20-calibration.md). Al
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -336,29 +336,119 @@ class RollerCalibration:
         return cls(curves, slits)
 
 
-# --- direction of travel ----------------------------------------------------------------------------
-class DirectionTracker:
-    """The direction in which the shutter last moved; kept while it stands still."""
+# --- position memory --------------------------------------------------------------------------------
+SENT_TOLERANCE = 1  # module points within which a command counts as reached
+MIN_MOVE = 3  # module points a movement must cover before it sets the direction (#75)
 
-    def __init__(self) -> None:
-        self.direction: Direction | None = None
-        self._last: int | None = None
 
-    def expect(self, direction: Direction) -> None:
-        """A command was sent: its direction is known before the first report."""
+@dataclass(frozen=True)
+class SentCommand:
+    module: int
+    real: int | None  # None: a module command (slit, calibration)
+    direction: Direction
+
+
+class PositionMemory:
+    """The last command and the direction of the last movement, kept across a restart (#75).
+
+    While the module stands at the module position that was sent, the real position is the one that was sent;
+    otherwise the calibration curve of the last movement's direction gives it.
+    """
+
+    def __init__(
+        self, sent: SentCommand | None = None, direction: Direction | None = None, anchor: int | None = None
+    ) -> None:
+        self.sent = sent
         self.direction = direction
+        self.anchor = anchor  # the module position from which a new movement is measured
+        self._last: int | None = None
+        self.on_change: Callable[[], None] | None = None
+
+    def _changed(self) -> None:
+        if self.on_change is not None:
+            self.on_change()
+
+    def command(self, module: int, real: int | None, direction: Direction, start: int | None) -> None:
+        """A command was sent: its direction is known before the first report."""
+        self.sent = SentCommand(module, real, direction)
+        self.direction = direction
+        self.anchor = start
+        self._last = start
+        self._changed()
+
+    def expect(self, direction: Direction, start: int | None = None) -> None:
+        """A move without a real position to remember (the calibration assistant)."""
+        self.sent = None
+        self.direction = direction
+        self.anchor = start
+        self._last = start
+        self._changed()
+
+    def forget_sent(self) -> None:
+        if self.sent is not None:
+            self.sent = None
+            self._changed()
+
+    def at_sent(self, module: int | None) -> bool:
+        return (
+            self.sent is not None and module is not None and abs(module - self.sent.module) <= SENT_TOLERANCE
+        )
 
     def observe(self, module_position: int | None) -> None:
         if module_position is None:
             return
-        if self._last is not None and module_position != self._last:
-            self.direction = Direction.UP if module_position > self._last else Direction.DOWN
-        self._last = module_position
+        last, self._last = self._last, module_position
+        if self.sent is not None:
+            if self.at_sent(module_position):
+                return
+            target = self.sent.module
+            if last is not None and abs(module_position - target) < abs(last - target):
+                return  # on its way to the command
+            self.sent = None
+            self._changed()
+        if self.anchor is None:
+            self.anchor = module_position
+            self._changed()
+        elif abs(module_position - self.anchor) >= MIN_MOVE:
+            self.direction = Direction.UP if module_position > self.anchor else Direction.DOWN
+            self.anchor = module_position
+            self._changed()
 
     def current(self, module_position: int | None) -> Direction:
         if self.direction is not None:
             return self.direction
         return Direction.UP if (module_position or 0) >= 50 else Direction.DOWN
+
+    def real(self, module_position: int | None, calibration: Calibration) -> int | None:
+        if module_position is None:
+            return None
+        if calibration.calibrated and self.at_sent(module_position) and self.sent.real is not None:
+            return self.sent.real
+        return calibration.from_module(module_position, self.current(module_position))
+
+    def to_dict(self) -> dict:
+        sent = self.sent
+        return {
+            "sent": None if sent is None else [sent.module, sent.real, str(sent.direction)],
+            "direction": None if self.direction is None else str(self.direction),
+            "anchor": self.anchor,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping | None) -> PositionMemory:
+        data = data or {}
+        try:
+            raw = data.get("sent")
+            sent = (
+                None
+                if not raw
+                else SentCommand(int(raw[0]), None if raw[1] is None else int(raw[1]), Direction(raw[2]))
+            )
+            direction = Direction(data["direction"]) if data.get("direction") else None
+            anchor = int(data["anchor"]) if data.get("anchor") is not None else None
+        except (TypeError, ValueError, IndexError, KeyError):
+            return cls()
+        return cls(sent, direction, anchor)
 
 
 def points_from(raw: Iterable[Iterable[float]]) -> list[Point]:
