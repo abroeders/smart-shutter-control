@@ -1,0 +1,32 @@
+/* Screenshot sizes on the documentation site (#81); on GitHub the images keep their own size. */
+
+/* dialogs of Home Assistant: about their size on screen, with a shadow so their white stands out */
+.md-typeset img[src*="images/ha-cal-"],
+.md-typeset img[src*="images/ha-install-"],
+.md-typeset img[src*="images/ha-config-"] {
+  max-width: 460px;
+  width: 100%;
+  border-radius: 28px;
+  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 25%));
+}
+
+/* long forms: smaller, they only show what the page describes */
+.md-typeset img[src*="images/ha-install-sources"],
+.md-typeset img[src*="images/ha-install-shutter"],
+.md-typeset img[src*="images/ha-config-"] {
+  max-width: 340px;
+}
+
+/* the card alone: its own width */
+.md-typeset img[src*="images/card-light"],
+.md-typeset img[src*="images/card-dark"],
+.md-typeset img[src*="images/card-slit"],
+.md-typeset img[src*="images/card-drag"] {
+  max-width: 520px;
+  width: 100%;
+}
+
+.md-typeset img[src*="images/card-narrow"] {
+  max-width: 330px;
+  width: 100%;
+}

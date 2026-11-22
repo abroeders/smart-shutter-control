@@ -174,6 +174,17 @@ SURFACE = ", ".join(
 )
 
 
+# only the dialog: the page behind it and the dimmed backdrop hidden, so the rounded corners are transparent
+ALONE = """() => {
+  const root = document.querySelector("home-assistant").shadowRoot;
+  root.querySelector("home-assistant-main").style.visibility = "hidden";
+  const style = document.createElement("style");
+  style.textContent = `html, body { background: transparent !important; }
+    * { --mdc-dialog-scrim-color: transparent; --dialog-backdrop-filter: none; }`;
+  document.head.append(style);
+}"""
+
+
 class Browser:
     """A logged-in page in headless Chromium, and the helpers to take the screenshots."""
 
@@ -202,13 +213,20 @@ class Browser:
         self.wait()
         self.page.locator(DIALOG).last.get_by_text(item, exact=True).click()
 
-    def dialog(self, name: str, tall: bool = False) -> None:
-        """The open dialog's surface; `tall`: a long form, in a taller window so it fits without scrolling."""
+    def dialog(self, name: str, tall: bool = False, top: int | None = None) -> None:
+        """The open dialog's surface; `tall`: a long form, in a taller window so it fits without scrolling;
+        `top`: only its upper part, that many pixels high (a list with much empty space below)."""
         self.page.set_viewport_size({"width": 1280, "height": 3200 if tall else 900})
         self.wait()
         surface = self.page.locator(SURFACE).last  # the visible one: a closing dialog may still be there
+        self.page.evaluate(ALONE)
         try:
-            surface.screenshot(path=OUT / name)
+            if top:
+                box = surface.bounding_box()
+                clip = {**box, "height": min(top, box["height"])}
+                self.page.screenshot(path=OUT / name, clip=clip, omit_background=True)
+            else:
+                surface.screenshot(path=OUT / name, omit_background=True)
         except Exception:
             self.page.screenshot(path=OUT / f"failed-{name}")
             raise
@@ -275,7 +293,7 @@ def shots(browser: Browser, devices: dict[str, str]) -> dict:
         page.get_by_role("button", name="Add integration").click()
         page.wait_for_timeout(1500)
         page.keyboard.type("Smart Shutter")
-        browser.dialog("ha-install-search.png")
+        browser.dialog("ha-install-search.png", top=170)
         page.get_by_text("Smart Shutter Control").last.click()
         page.wait_for_timeout(2500)  # the search dialog closes first
         page.keyboard.press("End")  # the name is selected

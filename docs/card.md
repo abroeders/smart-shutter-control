@@ -21,23 +21,25 @@ device_id: <the shutter's device>
 - **Slats:** light shows between the slats whenever the shutter is not fully closed, also in the slit
   position (bar on the sill, gaps open); only fully closed are they pressed together.
 
-  ![The slit position](images/card-slit.png)
+    ![The slit position](images/card-slit.png)
+
 - **The view through the window:** a cartoon landscape behind the shutter with the real light (night with
   stars, twilight, day), the weather (clouds, rain, snow, fog, lightning), the sun and the moon (with its
   phase) at their place as seen through this window, the leaves of the season, and trees that sway with the
   wind (harder in a storm). Fully closed you see nothing; otherwise the view shows through the slots and below
   the bottom bar. With reduced motion everything stands still.
-  - **Per window:** every window direction has its own landscape, the sky is lighter and warmer on the side
-    of the sun, and a dotted arc shows today's path of the sun from east to west, as far as this window sees
-    it (a north window sees none in winter).
-  - **Clouds that match the light:** the amount of clouds follows the cloud cover. By day the measured light
-    (PV power or light sensors, or the window's own facade light sensor) counts three times as much as the
-    weather entity, which reports for a wide area. A sun in view that is not bright has a grey cloud in front
-    of it; when the sun breaks through for a while, the cloud slides aside.
+    - **Per window:** every window direction has its own landscape, the sky is lighter and warmer on the side
+      of the sun, and a dotted arc shows today's path of the sun from east to west, as far as this window sees
+      it (a north window sees none in winter).
+    - **Clouds that match the light:** the amount of clouds follows the cloud cover. By day the measured light
+      (PV power or light sensors, or the window's own facade light sensor) counts three times as much as the
+      weather entity, which reports for a wide area. A sun in view that is not bright has a grey cloud in front
+      of it; when the sun breaks through for a while, the cloud slides aside.
 
-  | Summer day | Autumn storm | Full moon | Snow |
-  |---|---|---|---|
-  | ![Summer](images/card-view-summer.png) | ![Storm](images/card-view-storm.png) | ![Night](images/card-view-night.png) | ![Snow](images/card-view-snow.png) |
+| Summer day | Autumn storm | Full moon | Snow |
+|---|---|---|---|
+| ![Summer](images/card-view-summer.png) | ![Storm](images/card-view-storm.png) | ![Night](images/card-view-night.png) | ![Snow](images/card-view-snow.png) |
+
 - **Maximum position:** an orange mark on the left of the window when it is below 100 %.
 - **Buttons:** open, stop, close.
 - **Status:** position, why the shutter is where it is (sun, schedule, sleep-in, manual until …, storm,

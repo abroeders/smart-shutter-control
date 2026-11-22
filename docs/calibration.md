@@ -40,12 +40,12 @@ while the assistant runs. It does not run during a storm.
 3. **Lift point:** the shutter moves up in steps of 2 % and asks *Has the bottom bar left the sill?* until you
    say yes. The step before is the **slit**: all gaps open, bar still on the sill.
 
-   ![Confirming that the bottom bar has lifted](images/ha-cal-lift.png)
+    ![Confirming that the bottom bar has lifted](images/ha-cal-lift.png)
 
 4. **Four points going up**, spread over the travel above the lift point. At each point: measure the opening
    below the bottom bar.
 
-   ![Measuring an opening at a calibration point](images/ha-cal-measure.png)
+    ![Measuring an opening at a calibration point](images/ha-cal-measure.png)
 
 5. The shutter **opens fully**, then the same points **going down**.
 6. **Result:** the module position for 50 % in each direction, and how well the model fits. A difference of
