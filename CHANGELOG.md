@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Changed
+
+- The installation steps describe the built-in Marketplace (*Add from link*, with a My Home Assistant
+  button) for Home Assistant 2026.11 and later; the HACS steps stay for older versions (#69).
+
 ## [2026.11.15] - 2026-11-22
 
 ### Fixed
