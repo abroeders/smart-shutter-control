@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { baseOf, deviceEntities, integrationDevices, isShutter, shuttersOf } from "../src/entities";
 import { positionForY, snap, yForPosition } from "../src/geometry";
 import { localizer } from "../src/localize";
-import { cardLanguage, decisionLines, formatTime, positionText, shutterModel, statusLines } from "../src/viewmodel";
+import { cardLanguage, decisionLines, formatTime, positionText, showSunLeft, shutterModel, statusLines } from "../src/viewmodel";
 import { BASE, KITCHEN, LIVING, fakeHass } from "./fixtures";
 
 const BOX = { top: 40, bottom: 240 };
@@ -41,6 +41,15 @@ describe("entities", () => {
 });
 
 describe("view model", () => {
+  it("offers 'sun has left the window' only while the sun lowered the shutter", () => {
+    const model = shutterModel(fakeHass(), LIVING)!;
+    const withReason = (reason: string | null) => ({ ...model, reason, entities: { ...model.entities, sun_left: "button.living_room_sun_left" } });
+    expect(showSunLeft(withReason("heat"))).toBe(true);
+    expect(showSunLeft(withReason("glare"))).toBe(true);
+    for (const reason of ["schedule", "winter", "manual", null]) expect(showSunLeft(withReason(reason))).toBe(false);
+    expect(showSunLeft({ ...withReason("heat"), entities: { ...model.entities, sun_left: "" } })).toBe(false);
+  });
+
   const time = (iso: string) => formatTime(iso, fakeHass(), "en");
 
   it("describes a shutter in the sun", () => {

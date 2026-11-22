@@ -46,7 +46,7 @@ device_id: <the shutter's device>
   55 %)*, *Heat protection: not warm (9.5 °C < 22 °C)*
   (temperatures in your unit system, e.g. *49.1 °F < 71.6 °F*), *Window and door contacts: at least 100 % (open)*.
 - **Switches:** *Automatic* and *Sleep in*; *Resume* during a manual pause; *Sun has left the window* while
-  the sun is on the window (records a point of the window's horizon).
+  the sun lowered the shutter, by heat or glare protection (records a point of the window's horizon).
 
 Below 360 px wide the status moves under the drawing.
 
