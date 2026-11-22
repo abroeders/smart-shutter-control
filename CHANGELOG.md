@@ -6,6 +6,14 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.22] - 2026-11-22
+
+### Added
+
+- Screenshots of Home Assistant in the documentation: setting up, the settings, the calibration and the device
+  page, and a dashboard on the home page of the documentation site in its light or dark theme. The site shows
+  the integration's icon in its title bar and as favicon (#81).
+
 ## [2026.11.21] - 2026-11-22
 
 ### Added
@@ -413,7 +421,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.21...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.22...HEAD
+[2026.11.22]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.21...2026.11.22
 [2026.11.21]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.20...2026.11.21
 [2026.11.20]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.19...2026.11.20
 [2026.11.19]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.18...2026.11.19

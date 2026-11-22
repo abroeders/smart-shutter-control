@@ -1,0 +1,202 @@
+# only what the demo needs; default_config would also start ffmpeg, bluetooth, …
+frontend:
+config:
+history:
+logbook:
+search:
+sun:
+
+homeassistant:
+  name: Demo home
+  unit_system: metric
+  time_zone: UTC
+  latitude: 45
+  longitude: 0
+  elevation: 0
+  country: NL
+  language: en
+  currency: EUR
+
+input_number:
+  living_room_position:
+    name: Living room position
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+    initial: 50
+  kitchen_position:
+    name: Kitchen position
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+    initial: 50
+  bedroom_position:
+    name: Bedroom position
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+    initial: 50
+  pv_power:
+    name: PV power
+    min: 0
+    max: 10000
+    step: 1
+    unit_of_measurement: W
+    mode: box
+    initial: 2400
+  outdoor_temperature:
+    name: Outdoor temperature
+    min: -40
+    max: 60
+    step: 0.1
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 24
+  wind_speed:
+    name: Wind speed
+    min: 0
+    max: 200
+    step: 0.1
+    unit_of_measurement: km/h
+    mode: box
+    initial: 12
+  wind_gust:
+    name: Wind gust
+    min: 0
+    max: 250
+    step: 0.1
+    unit_of_measurement: km/h
+    mode: box
+    initial: 25
+  living_room_temperature:
+    name: Living room temperature
+    min: -10
+    max: 50
+    step: 0.1
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 23
+
+template:
+  - cover:
+      - name: Living room
+        unique_id: demo_living_room_cover
+        device_class: shutter
+        position: "{{ states('input_number.living_room_position') | int(0) }}"
+        set_cover_position:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.living_room_position
+            data:
+              value: "{{ position }}"
+        open_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.living_room_position
+            data:
+              value: 100
+        close_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.living_room_position
+            data:
+              value: 0
+        stop_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.living_room_position
+            data:
+              value: "{{ states('input_number.living_room_position') | int(0) }}"
+      - name: Kitchen
+        unique_id: demo_kitchen_cover
+        device_class: shutter
+        position: "{{ states('input_number.kitchen_position') | int(0) }}"
+        set_cover_position:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.kitchen_position
+            data:
+              value: "{{ position }}"
+        open_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.kitchen_position
+            data:
+              value: 100
+        close_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.kitchen_position
+            data:
+              value: 0
+        stop_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.kitchen_position
+            data:
+              value: "{{ states('input_number.kitchen_position') | int(0) }}"
+      - name: Bedroom
+        unique_id: demo_bedroom_cover
+        device_class: shutter
+        position: "{{ states('input_number.bedroom_position') | int(0) }}"
+        set_cover_position:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.bedroom_position
+            data:
+              value: "{{ position }}"
+        open_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.bedroom_position
+            data:
+              value: 100
+        close_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.bedroom_position
+            data:
+              value: 0
+        stop_cover:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.bedroom_position
+            data:
+              value: "{{ states('input_number.bedroom_position') | int(0) }}"
+  - sensor:
+      - name: PV power
+        unique_id: demo_pv_power
+        device_class: power
+        state_class: measurement
+        unit_of_measurement: W
+        state: "{{ states('input_number.pv_power') | float(0) }}"
+      - name: Outdoor temperature
+        unique_id: demo_outdoor_temperature
+        device_class: temperature
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: "{{ states('input_number.outdoor_temperature') | float(0) }}"
+      - name: Wind speed
+        unique_id: demo_wind_speed
+        device_class: wind_speed
+        state_class: measurement
+        unit_of_measurement: km/h
+        state: "{{ states('input_number.wind_speed') | float(0) }}"
+      - name: Wind gust
+        unique_id: demo_wind_gust
+        device_class: wind_speed
+        state_class: measurement
+        unit_of_measurement: km/h
+        state: "{{ states('input_number.wind_gust') | float(0) }}"
+      - name: Living room temperature
+        unique_id: demo_living_room_temperature
+        device_class: temperature
+        state_class: measurement
+        unit_of_measurement: "°C"
+        state: "{{ states('input_number.living_room_temperature') | float(0) }}"

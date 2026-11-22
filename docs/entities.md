@@ -20,6 +20,8 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 
 ## Each shutter
 
+![A shutter's device page and entities](images/ha-device.png)
+
 | Entity | Shows or does |
 |---|---|
 | cover *Shutter* | the real (calibrated) position; open, close, stop and set position act as a manual action. *Opening*/*closing* while it moves. Attributes `module_position`, `direction`, `calibrated`, `slit` |
