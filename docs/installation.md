@@ -42,14 +42,14 @@ restart.
 
 1. **Name**, for example *House*.
 
-   ![Naming the base controller](images/ha-install-name.png)
+    ![Naming the base controller](images/ha-install-name.png)
 
 2. **Sources** (see [Configuration](configuration.md#sources)): outdoor temperature (required), weather,
    wind speed and gust sensors, and the sun source: *PV power* (PV power sensors, PV peak power), *Light
    sensors (lux)* (light sensors, the "sunny from" limit) or *None*. A second page shows only the fields of
    the chosen sun source.
 
-   <img src="images/ha-install-sources.png" alt="Base controller sources form" width="400">
+    ![Base controller sources form](images/ha-install-sources.png)
 
 The base controller is a device of its own. It holds the settings shared by all shutters.
 
@@ -57,7 +57,7 @@ The base controller is a device of its own. It holds the settings shared by all 
 
 On the integration's page: **Add shutter** (once per shutter).
 
-<img src="images/ha-install-shutter.png" alt="Add shutter form" width="400">
+![Add shutter form](images/ha-install-shutter.png)
 
 1. **Shutter**: the existing cover entity. Each cover can have one controller.
 2. **Window direction** in degrees: 0 = north, 90 = east, 180 = south, 270 = west. A compass app held
