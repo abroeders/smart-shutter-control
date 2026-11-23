@@ -399,11 +399,11 @@ class PositionMemory:
             return
         last, self._last = self._last, module_position
         if self.sent is not None:
-            if self.at_sent(module_position):
-                return
             target = self.sent.module
-            if last is not None and abs(module_position - target) < abs(last - target):
-                return  # on its way to the command
+            on_the_way = last is not None and abs(module_position - target) < abs(last - target)
+            if self.at_sent(module_position) or on_the_way:
+                self._follow_command(module_position)
+                return
             self.sent = None
             self._changed()
         if self.anchor is None:
@@ -411,6 +411,12 @@ class PositionMemory:
             self._changed()
         elif abs(module_position - self.anchor) >= MIN_MOVE:
             self.direction = Direction.UP if module_position > self.anchor else Direction.DOWN
+            self.anchor = module_position
+            self._changed()
+
+    def _follow_command(self, module_position: int) -> None:
+        """The anchor moves along with a command, so a later move is measured from where it ended (#85)."""
+        if module_position != self.anchor:
             self.anchor = module_position
             self._changed()
 

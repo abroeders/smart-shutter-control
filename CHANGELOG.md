@@ -6,6 +6,15 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.24] - 2026-11-23
+
+### Fixed
+
+- With US customary units, the calibration assistant asks for the window height in inches; the field was
+  labelled in cm while the input was read as inches (#84).
+- A manual move after an automatic move no longer gets the direction of the earlier movement, so the shown
+  position uses the right calibration curve (#85).
+
 ## [2026.11.23] - 2026-11-22
 
 ### Fixed
@@ -429,7 +438,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.23...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.24...HEAD
+[2026.11.24]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.23...2026.11.24
 [2026.11.23]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.22...2026.11.23
 [2026.11.22]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.21...2026.11.22
 [2026.11.21]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.20...2026.11.21
