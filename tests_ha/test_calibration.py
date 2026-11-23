@@ -163,6 +163,9 @@ async def test_us_customary_calibration_uses_inches(hass: HomeAssistant, covers,
     result = await open_menu(hass, entry, subentry_id, "calibrate")
     assert result["step_id"] == "cal_assistant"
 
+    height_field = next(k for k in result["data_schema"].schema if str(k) == "window_height_cm")
+    assert result["data_schema"].schema[height_field].config["unit_of_measurement"] == "in"  # (#84)
+
     flow_id = result["flow_id"]
     result = await run(
         hass,

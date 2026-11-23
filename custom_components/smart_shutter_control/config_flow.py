@@ -143,7 +143,12 @@ TEMPERATURE_FIELDS = {
 }
 SPEED_FIELDS = {OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT}
 # lengths stored in cm or m, shown in inches or feet with US customary units (#71): stored unit, shown step
-LENGTH_FIELDS = {CONF_WINDOW_SILL: ("cm", 1), CONF_WINDOW_HEIGHT: ("cm", 1), CONF_SUN_DEPTH: ("m", 0.5)}
+LENGTH_FIELDS = {
+    CONF_WINDOW_SILL: ("cm", 1),
+    CONF_WINDOW_HEIGHT: ("cm", 1),
+    CONF_SUN_DEPTH: ("m", 0.5),
+    "window_height_cm": ("cm", 1),  # the calibration assistant's window height (#84)
+}
 
 
 def _display_units(hass, schema: dict) -> dict[str, DisplayUnit]:
