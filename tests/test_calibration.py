@@ -128,9 +128,21 @@ def test_reports_on_the_way_keep_sent_and_reports_away_clear_it():
     memory.command(60, 40, Direction.UP, 30)
 
     memory.observe(45)
-    assert memory.sent is not None
+    assert memory.sent is not None and memory.direction is Direction.UP
     memory.observe(40)
-    assert memory.sent is None
+    assert memory.sent is None and memory.direction is Direction.DOWN  # 45 → 40
+
+
+def test_a_manual_move_after_a_command_is_measured_from_where_the_command_ended():
+    memory = PositionMemory(direction=Direction.DOWN, anchor=30)
+    memory.command(60, 40, Direction.UP, 30)
+
+    for module in (40, 50, 60):
+        memory.observe(module)
+    assert memory.direction is Direction.UP and memory.anchor == 60  # the command's direction (#85)
+
+    memory.observe(50)  # moved down by hand
+    assert memory.sent is None and memory.direction is Direction.DOWN
 
 
 def test_small_reports_do_not_flip_direction_until_three_points():
