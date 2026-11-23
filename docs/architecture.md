@@ -357,7 +357,9 @@ sequenceDiagram
 
 The memory is stored per shutter (key `position`), so the sent position and the direction survive a reload
 or restart. A report on the way to the command keeps it; a report moving away, or a manual move, clears it.
-The direction only changes after a movement of at least 3 module points (#75).
+The direction only changes after a movement of at least 3 module points (#75). While the shutter follows a
+command, the anchor moves along, so a later manual move is measured from
+where the command ended (#85).
 
 ### 5.3 The assistant
 

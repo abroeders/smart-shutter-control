@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- With US customary units, the calibration assistant asks for the window height in inches; the field was
+  labelled in cm while the input was read as inches (#84).
+- A manual move after an automatic move no longer gets the direction of the earlier movement, so the shown
+  position uses the right calibration curve (#85).
+
 ## [2026.11.23] - 2026-11-22
 
 ### Fixed
