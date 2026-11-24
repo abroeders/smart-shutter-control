@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Changed
+
+- The tests run on the minimum Home Assistant version as well as on the latest one; before, they ran on an older
+  version than the minimum without anyone noticing (#88). New checks fail on blocking calls on the event loop
+  (#89) and on translations that differ from `strings.json` or miss keys (#90).
+
 ### Fixed
 
 - The time zone is no longer created on Home Assistant's event loop: the integration uses Home Assistant's own
