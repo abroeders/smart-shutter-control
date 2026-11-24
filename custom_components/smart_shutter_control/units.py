@@ -52,12 +52,16 @@ def _value(state: State | None) -> float | None:
 
 def temperature(state: State | None) -> float | None:
     """A temperature sensor's state in °C."""
+    if state is None:
+        return None
     value = _value(state)
     return None if value is None else to_celsius(value, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT))
 
 
 def speed(state: State | None) -> float | None:
     """A wind sensor's state in km/h."""
+    if state is None:
+        return None
     value = _value(state)
     return None if value is None else to_kmh(value, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT))
 

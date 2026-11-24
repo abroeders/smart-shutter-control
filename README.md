@@ -68,6 +68,7 @@ Read it on the documentation site: **<https://abroeders.github.io/smart-shutter-
 - All tests, the Home Assistant ones included, with `pytest-homeassistant-custom-component` installed:
   `pytest`; with coverage (minimum in `pyproject.toml`): `pytest --cov`.
 - Code style: `ruff check .` and `ruff format .`.
+- Types: `mypy` (configured in `pyproject.toml`; CI runs it against the minimum Home Assistant version).
 - Designs: [`docs/design/`](docs/design/), architecture and UML: [`docs/architecture.md`](docs/architecture.md).
 - Icons: edit `brand/*.svg`, then `python scripts/render_icons.py`.
 - Card: in `frontend/`, `npm ci`, `npm test`, `npm run build` (the bundle in

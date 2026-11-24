@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from .model import Decision, Kind, Reason, ShutterContext
 
@@ -104,11 +104,17 @@ class RuleChain:
         """The decision, and the rule's decision that set it."""
         if target is not None and target.final:
             return target, target
-        cap = min(caps, key=lambda d: d.position) if caps else None
+        cap = min(caps, key=lambda d: cast(int, d.position)) if caps else None  # a cap always has one
         base = target.position if target is not None else ctx.position
-        if cap is not None and (base is None or cap.position < base):
-            slit = target is not None and target.module is not None and target.position is not None
-            if slit and target.position <= cap.position:
+        if cap is not None and (base is None or cast(int, cap.position) < base):
+            if (
+                target is not None
+                and target.module is not None
+                and target.position is not None
+                and target.position <= cast(int, cap.position)
+            ):
                 return target, target  # the slit (real 0 %) is below every cap
             return Decision(cap.position, cap.reason), cap
-        return (target, target) if target is not None else (Decision(None, Reason.IDLE), None)
+        if target is not None:
+            return target, target
+        return Decision(None, Reason.IDLE), None

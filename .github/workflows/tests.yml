@@ -40,6 +40,11 @@ jobs:
           pip show homeassistant | grep ^Version
       # both test folders in one run; fails below the minimum coverage in pyproject.toml (#99)
       - run: pytest -p no:cacheprovider --cov
+      - name: Type check (mypy) against the minimum version (#92)
+        if: matrix.ha == 'minimum'
+        run: |
+          pip install mypy==2.4.1
+          mypy
 
   docs:  # the documentation site builds without broken links (#78)
     runs-on: ubuntu-latest

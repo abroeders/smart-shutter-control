@@ -6,7 +6,7 @@ Stored points are fractions 0 … 1 per direction; the table shows whole percent
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 DIRECTIONS = ("up", "down")
 
@@ -15,6 +15,11 @@ def _percent(value: Any) -> int | None:
     if value is None or value == "":
         return None
     return round(float(value))
+
+
+def _module(row: Mapping[str, Any]) -> int:
+    """The module position of a checked row."""
+    return cast(int, _percent(row["module"]))
 
 
 def rows_from(data: Mapping | None) -> list[dict[str, int]]:
@@ -47,9 +52,7 @@ def check(rows: Sequence[Mapping[str, Any]]) -> list[str]:
         return errors
     counts = []
     for d in DIRECTIONS:
-        points = sorted(
-            (_percent(r["module"]), _percent(r.get(d))) for r in rows if _percent(r.get(d)) is not None
-        )
+        points = sorted((_module(r), o) for r in rows if (o := _percent(r.get(d))) is not None)
         counts.append(len(points))
         if any(b[1] < a[1] for a, b in zip(points, points[1:], strict=False)):
             errors.append("opening_falls")
@@ -68,6 +71,6 @@ def data_from(
         for d in DIRECTIONS:
             opening = _percent(row.get(d))
             if opening is not None:
-                points[d].append([_percent(row["module"]) / 100, opening / 100])
-    slit = {d: _percent(slits.get(d)) / 100 for d in DIRECTIONS if _percent(slits.get(d)) is not None}
+                points[d].append([_module(row) / 100, opening / 100])
+    slit = {d: v / 100 for d in DIRECTIONS if (v := _percent(slits.get(d))) is not None}
     return {"window_height_cm": height_cm, "points": points, "slit": slit}

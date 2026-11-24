@@ -49,7 +49,8 @@ class IdentityCalibration:
 
 # --- curves (strategy) -----------------------------------------------------------------------------
 class Curve(Protocol):
-    residual: float
+    @property
+    def residual(self) -> float: ...
 
     def opening(self, m: float) -> float: ...
 
@@ -428,8 +429,14 @@ class PositionMemory:
     def real(self, module_position: int | None, calibration: Calibration) -> int | None:
         if module_position is None:
             return None
-        if calibration.calibrated and self.at_sent(module_position) and self.sent.real is not None:
-            return self.sent.real
+        sent = self.sent
+        if (
+            calibration.calibrated
+            and sent is not None
+            and self.at_sent(module_position)
+            and sent.real is not None
+        ):
+            return sent.real
         return calibration.from_module(module_position, self.current(module_position))
 
     def to_dict(self) -> dict:

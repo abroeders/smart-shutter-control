@@ -75,7 +75,9 @@ def _disable_field(calendar: HolidayCalendar, current: dict[str, Any]) -> dict:
     """Check boxes for the holidays of the calendar; a checked one is ignored by the schedules."""
     names = calendar.calendar_names()
     disabled = list(current.get(OPT_HOLIDAYS_DISABLED) or [])
-    options = [{"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names]
+    options: list[selector.SelectOptionDict] = [
+        {"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names
+    ]
     options += [{"value": n, "label": n} for n in disabled if n not in {o["value"] for o in options}]
     if not options:
         return {}

@@ -57,7 +57,8 @@ async def read_calendar(hass: HomeAssistant, entity_id: str) -> dict[date, str] 
         _LOGGER.warning("Could not read holidays from %s: %s", entity_id, err)
         return None
     days = {}
-    for event in (response or {}).get(entity_id, {}).get("events", []):
+    events: dict[str, Any] = response or {}
+    for event in events.get(entity_id, {}).get("events", []):
         day = dt_util.parse_date(str(event.get("start", ""))[:10])
         if day is not None:
             days[day] = str(event.get("summary") or "")
@@ -98,7 +99,8 @@ class ForecastProvider:
             except HomeAssistantError as err:
                 _LOGGER.debug("No daily forecast from %s: %s", self.entity_id, err)
             else:
-                forecast = (response or {}).get(self.entity_id, {}).get("forecast") or []
+                forecasts: dict[str, Any] = response or {}
+                forecast = forecasts.get(self.entity_id or "", {}).get("forecast") or []
                 value = today_max(forecast, today, dt_util.get_default_time_zone())
                 if value is not None:  # in the weather entity's unit (#64)
                     value = units.to_celsius(value, weather.attributes.get("temperature_unit"))

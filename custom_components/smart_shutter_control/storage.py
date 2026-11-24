@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 from collections.abc import Callable
 from typing import Any, Protocol, overload
 
@@ -64,7 +65,7 @@ class RuntimeStore:
         if self._loaded:  # never overwrite the stored state with an empty one after a failed start
             await self._store.async_save(self._payload())
 
-    def forget(self, keep: set[str]) -> None:
+    def forget(self, keep: builtins.set[str]) -> None:
         """Drop the state of shutters that no longer exist."""
         for shutter_id in set(self.data) - keep:
             del self.data[shutter_id]

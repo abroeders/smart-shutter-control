@@ -88,7 +88,7 @@ def storm_target(position: int | None, mode: str, max_position: int, wanted: int
 class StormRule:
     priority = 10
     name = "storm"
-    why = None
+    why: tuple[str, dict] | None = None
 
     def __init__(self, mode_of, wanted_of=None) -> None:
         self.mode_of = mode_of  # callable() -> nearest | open | closed
@@ -108,7 +108,7 @@ class FrostRule:
 
     priority = 11
     name = "frost"
-    why = None
+    why: tuple[str, dict] | None = None
 
     def propose(self, ctx: ShutterContext) -> Decision | None:
         if not ctx.inputs.frost:
@@ -125,7 +125,7 @@ class TemperatureLimitRule:
 
     priority = 15
     name = "temperature_limits"
-    why = None
+    why: tuple[str, dict] | None = None
 
     def __init__(self, close_above: float | None, close_below: float | None) -> None:
         self.close_above = close_above
