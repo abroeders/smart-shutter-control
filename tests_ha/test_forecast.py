@@ -59,7 +59,7 @@ async def test_forecast_entities_and_hot_mild_days(hass: HomeAssistant, covers, 
         return_response=True,
     )
     assert response == {WEATHER: {"forecast": forecast}}
-    await entry.runtime_data.async_refresh_forecast()
+    await entry.runtime_data.forecast.async_refresh()
     await hass.async_block_till_done()
     calls = mock_moves(hass)
     await add_shutter(hass, entry, LIVING, azimuth=180, shading_position=30)
@@ -72,7 +72,7 @@ async def test_forecast_entities_and_hot_mild_days(hass: HomeAssistant, covers, 
 
     calls.clear()
     forecast[0]["temperature"] = 20
-    await entry.runtime_data.async_refresh_forecast()
+    await entry.runtime_data.forecast.async_refresh()
     await entry.runtime_data.async_tick()
     assert hass.states.get(entity_id(hass, entry, None, "sensor", "forecast_max")).state == "20.0"
     assert hass.states.get(entity_id(hass, entry, None, "binary_sensor", "hot_day")).state == "off"
