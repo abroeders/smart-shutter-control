@@ -1,6 +1,21 @@
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["custom_components/smart_shutter_control"]
+# One run takes both: `tests` (pure Python, no Home Assistant needed) and `tests_ha` (needs
+# pytest-homeassistant-custom-component). Without Home Assistant installed, run `pytest tests`.
+testpaths = ["tests", "tests_ha"]
+pythonpath = [".", "custom_components/smart_shutter_control"]
+asyncio_mode = "auto"
+filterwarnings = [
+    # pytest-asyncio comes with the Home Assistant test plugin; `pytest tests` runs without it
+    "ignore:Unknown config option. asyncio_mode:pytest.PytestConfigWarning",
+]
+
+[tool.coverage.run]
+source = ["custom_components/smart_shutter_control"]
+
+[tool.coverage.report]
+fail_under = 94
+skip_covered = true
+show_missing = true
 
 [tool.ruff]
 line-length = 110

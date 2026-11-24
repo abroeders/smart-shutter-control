@@ -1,16 +1,29 @@
 """Core: imports without Home Assistant, the rule chain, the limiter and the identity calibration."""
 
+import subprocess
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from core.calibration import IdentityCalibration
 from core.limits import PositionLimiter
 from core.model import Decision, Direction, Inputs, Reason, ShutterConfig, ShutterContext
 from core.rules import RuleChain
 
+CORE = Path(__file__).parents[1] / "custom_components" / "smart_shutter_control" / "core"
+
 
 def test_core_imports_without_home_assistant():
-    assert not any(name == "homeassistant" or name.startswith("homeassistant.") for name in sys.modules)
+    """In a fresh interpreter: in one run with the Home Assistant tests, the test plugin has loaded it."""
+    modules = [f"core.{p.stem}" for p in sorted(CORE.glob("*.py")) if p.stem != "__init__"]
+    script = (
+        f"import {', '.join(modules)}, sys; "
+        "print(sorted(n for n in sys.modules if n.split('.')[0] == 'homeassistant'))"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script], cwd=CORE.parent, capture_output=True, text=True, check=True
+    )
+    assert result.stdout.strip() == "[]"
 
 
 @dataclass

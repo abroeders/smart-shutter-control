@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Changed
+
+- Development: the core and the Home Assistant tests run in one `pytest` run, and CI fails below a minimum test
+  coverage. The day schedule and the calibration assistant's waiting are split into smaller steps, without a
+  change in behaviour (#99).
+
 ## [2026.11.27] - 2026-11-24
 
 ### Fixed

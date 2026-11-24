@@ -254,36 +254,42 @@ class CalibrationSession:
     async def _wait_until_stopped(self, start_position: int | None = None, target: int | None = None) -> None:
         """Until the motor stops (with a power sensor); without one for the expected travel time (#18), or
         until the position stops changing when the travel time is unknown."""
-        adapter = self.controller.adapter
+        if self.has_power:
+            await self._wait_for_power_idle(target)
+        elif self.travel_time and start_position is not None and target is not None:
+            await self._wait_travel_time(abs(target - start_position) / 100 * self.travel_time)
+        else:
+            await self._wait_until_stable(target)
+
+    async def _wait_travel_time(self, travel: float) -> None:
+        """Without a power sensor: the expected travel time and a margin, then a fresh report (#18)."""
         start = time.monotonic()
-        if (
-            adapter.motor_power() is None
-            and self.travel_time
-            and start_position is not None
-            and target is not None
-        ):
-            expected = abs(target - start_position) / 100 * self.travel_time + TRAVEL_MARGIN
-            while time.monotonic() - start < expected:
-                await self._pause()
-            await self._fresh_report()
-            return
-        if adapter.motor_power() is not None:
-            started = False
-            idle_since: float | None = None
-            while time.monotonic() - start < MAX_WAIT:
-                await self._pause()
-                now = time.monotonic()
-                if self._motor_running():
-                    started, idle_since = True, None
-                    continue
-                if not started and now - start < START_WAIT and not self._at(target):
-                    continue  # not started yet (a short move may be over before the power sensor shows it)
-                idle_since = idle_since or now
-                if now - idle_since >= IDLE:
-                    await self._fresh_report()
-                    return
-            return
-        last_change = start
+        while time.monotonic() - start < travel + TRAVEL_MARGIN:
+            await self._pause()
+        await self._fresh_report()
+
+    async def _wait_for_power_idle(self, target: int | None) -> None:
+        """Until the motor power has been low for IDLE seconds, then a fresh report."""
+        start = time.monotonic()
+        started = False
+        idle_since: float | None = None
+        while time.monotonic() - start < MAX_WAIT:
+            await self._pause()
+            now = time.monotonic()
+            if self._motor_running():
+                started, idle_since = True, None
+                continue
+            if not started and now - start < START_WAIT and not self._at(target):
+                continue  # not started yet (a short move may be over before the power sensor shows it)
+            idle_since = idle_since or now
+            if now - idle_since >= IDLE:
+                await self._fresh_report()
+                return
+
+    async def _wait_until_stable(self, target: int | None) -> None:
+        """No power sensor, no travel time: until the position stops changing or reaches the target."""
+        adapter = self.controller.adapter
+        start = last_change = time.monotonic()
         last = adapter.module_position()
         while time.monotonic() - start < MAX_WAIT:
             await self._pause()
