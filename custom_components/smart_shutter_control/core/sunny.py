@@ -126,6 +126,7 @@ class SunnyDetector:
             self.factor, self.source, self.sunny = 0.0, "night", False
             return self.sunny
         base = self.baseline
+        assert base is not None  # set in __post_init__
         ref = self.reference.reference(sun) if value is not None else None
         young = False
         if ref is not None and ref > 0:
@@ -134,7 +135,7 @@ class SunnyDetector:
             self.source, young = base.young, True
         else:
             ref = None
-        if ref:
+        if ref and value is not None:
             self.factor = max(0.0, min(1.0, value / ref))
             limit = self.threshold - base.hysteresis(self.threshold, young) if self.sunny else self.threshold
             self.sunny = self.factor >= limit

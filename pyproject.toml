@@ -17,6 +17,13 @@ fail_under = 94
 skip_covered = true
 show_missing = true
 
+[tool.mypy]
+# CI runs it against the minimum Home Assistant version from hacs.json (#92)
+python_version = "3.14"
+files = ["custom_components/smart_shutter_control"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+
 [tool.ruff]
 line-length = 110
 target-version = "py313"

@@ -95,7 +95,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             "close_above": _num(o.get(OPT_CLOSE_ABOVE)),
             "close_below": _num(o.get(OPT_CLOSE_BELOW)),
         }
-        self._quick = None
+        self._quick: CALLBACK_TYPE | None = None
         self.outdoor_mean = OutdoorMean()
         self.winter = WinterDetector(float(o[OPT_WINTER_LIMIT]))
         self.language: str | None = None if o[OPT_LANGUAGE] == "system" else str(o[OPT_LANGUAGE])
@@ -111,8 +111,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.calendar = self.holidays.calendar  # shared with every schedule, refreshed in place
         self.base_device_id: str | None = None
         self._unsubs: list[CALLBACK_TYPE] = []
-        self._pending = None
-        self._release = None  # the evaluation when a closed contact's hold ends (#49)
+        self._pending: CALLBACK_TYPE | None = None
+        self._release: CALLBACK_TYPE | None = None  # the evaluation when a closed contact's hold ends (#49)
 
     @property
     def sun_source(self) -> str:
@@ -127,9 +127,12 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     def sunny_threshold(self) -> float:
         return float(self.options[OPT_SUNNY_THRESHOLD]) / 100
 
+    def _lux_baseline(self) -> LuxBaseline:
+        return LuxBaseline(float(self.sources.get(CONF_LUX_LIMIT) or DEFAULT_LUX_LIMIT))
+
     def baseline(self) -> PvBaseline | LuxBaseline:
         if self.sun_source == "light":
-            return LuxBaseline(float(self.sources.get(CONF_LUX_LIMIT) or DEFAULT_LUX_LIMIT))
+            return self._lux_baseline()
         return PvBaseline(self.sources.get(CONF_PV_PEAK))
 
     def sun_value(self) -> float | None:
@@ -194,7 +197,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
                 )
                 controller.on_manual = self._on_manual
                 if self.sun_source == "light":
-                    controller.use_facade(self.sunny_threshold, self.baseline())
+                    controller.use_facade(self.sunny_threshold, self._lux_baseline())
                 self.shutters[subentry.subentry_id] = controller
         self.store.forget(set(self.shutters))
 

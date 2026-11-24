@@ -36,18 +36,17 @@ from .units import DisplayUnit, length_unit, speed_unit, temperature_unit
 
 
 def _sensor(device_class: str | None = None, multiple: bool = False) -> selector.EntitySelector:
-    config: dict[str, Any] = {"domain": "sensor", "multiple": multiple}
+    config = selector.EntitySelectorConfig(domain="sensor", multiple=multiple)
     if device_class:
         config["device_class"] = device_class
-    return selector.EntitySelector(selector.EntitySelectorConfig(**config))
+    return selector.EntitySelector(config)
 
 
 def _number(low: float, high: float, step: float, unit: str | None = None) -> selector.NumberSelector:
-    return selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            min=low, max=high, step=step, unit_of_measurement=unit, mode=selector.NumberSelectorMode.BOX
-        )
-    )
+    config = selector.NumberSelectorConfig(min=low, max=high, step=step, mode=selector.NumberSelectorMode.BOX)
+    if unit is not None:
+        config["unit_of_measurement"] = unit
+    return selector.NumberSelector(config)
 
 
 def _with_defaults(schema: dict, values: dict[str, Any]) -> vol.Schema:
@@ -253,7 +252,7 @@ SOURCES = {
     vol.Optional(CONF_WIND_GUST): _sensor("wind_speed"),
 }
 # the second step: only the fields of the chosen sun source, so PV and light sensors are never both set
-SUN_FIELDS = {
+SUN_FIELDS: dict[str, dict] = {
     "pv": {
         vol.Required(CONF_PV_POWER): _sensor("power", multiple=True),
         vol.Optional(CONF_PV_PEAK): _number(0.1, 100, 0.1, "kWp"),

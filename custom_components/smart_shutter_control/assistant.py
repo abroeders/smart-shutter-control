@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 from homeassistant.util import dt as dt_util
 
@@ -156,7 +157,7 @@ class CalibrationSession:
         """What the assistant saves in the shutter's settings."""
         from .const import CONF_CALIBRATION, CONF_TRAVEL_TIME
 
-        out = {CONF_CALIBRATION: self.data()}
+        out: dict[str, Any] = {CONF_CALIBRATION: self.data()}
         if self.measured_travel and self.travel_time:
             out[CONF_TRAVEL_TIME] = self.travel_time
         return out

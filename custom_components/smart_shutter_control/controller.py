@@ -28,7 +28,7 @@ from .core.manual import ManualDetector, ManualPause, matches
 from .core.model import Decision, Direction, Inputs, Reason, ShutterContext
 from .core.rule_factory import build_rules
 from .core.rules import RuleChain
-from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, merged, overridden
+from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, Transition, merged, overridden
 from .core.sun import SunPosition, WindowGeometry
 from .core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
 from .shutter_settings import ShutterSettings
@@ -247,9 +247,10 @@ class ShutterController:
     def next_change(self):
         return self.schedule.next_change(datetime.now(UTC))
 
-    def next_changes(self, count: int) -> list:
+    def next_changes(self, count: int) -> list[Transition]:
         """The next `count` phase changes of the schedule."""
-        changes, at = [], datetime.now(UTC)
+        changes: list[Transition] = []
+        at = datetime.now(UTC)
         while len(changes) < count and (change := self.schedule.next_change(at)) is not None:
             changes.append(change)
             at = change.at
@@ -343,6 +344,7 @@ class ShutterController:
                 ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
             elif verdict is Verdict.RETRY:
                 command = self.adapter.last_command
+                assert self.arrival.target is not None  # a command is only awaited after `sent`
                 _LOGGER.info(
                     "%s did not reach %s %% (at %s %%): sending it again",
                     self.title,
@@ -427,7 +429,8 @@ class ShutterController:
     # --- contacts (#49) -------------------------------------------------------------------------------
     def _read_contacts(self, now: float) -> bool:
         """Read both contacts; true when the door or window has just opened."""
-        return self.guard.update(*(self._contact(e) for e in self.contacts), now)
+        opened, tilted = self.contacts
+        return self.guard.update(self._contact(opened), self._contact(tilted), now)
 
     def _contact(self, entity_id: str | None) -> bool | None:
         if not entity_id:
@@ -454,7 +457,7 @@ class ShutterController:
         raised = target if leave else raise_to(target, self._current(), floor, storm)
         applied = floor is not None and raised != target
         self.floor_entry = _floor_entry(floor, applied, self.guard) if any(self.contacts) else None
-        if not applied:
+        if not applied or floor is None or raised is None:
             return decision, target
         kind, value = raised
         module = value if kind == "module" else None
