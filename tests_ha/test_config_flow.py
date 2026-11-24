@@ -66,7 +66,7 @@ async def test_us_storm_options_show_and_store_mph(hass: HomeAssistant, covers) 
     async def max_wind(hass, entity_id, wind=False):
         return "40 mph" if wind else "not used"
 
-    with patch("custom_components.smart_shutter_control.config_flow._max_30_days", new=max_wind):
+    with patch("custom_components.smart_shutter_control.options_flow._max_30_days", new=max_wind):
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(
             result["flow_id"], {"next_step_id": "storm"}
