@@ -50,15 +50,15 @@ class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return self.controller.heat_rule.sun_on
+        return self.controller.rules.heat.sun_on
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        incidence = self.controller.heat_rule.incidence
+        incidence = self.controller.rules.heat.incidence
         attributes = {
             "incidence": None if incidence is None else round(incidence, 1),
-            "phase": str(self.controller.heat_rule.phase),
-            "glare_phase": str(self.controller.glare_rule.phase),
+            "phase": str(self.controller.rules.heat.phase),
+            "glare_phase": str(self.controller.rules.glare.phase),
             # for the view through the window in the card (#30)
             "window_azimuth": self.controller.config.azimuth,
             "window_tilt": self.controller.config.tilt,

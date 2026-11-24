@@ -13,6 +13,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   change in behaviour (#99).
 - Development: the weather forecast and the holiday calendar are read by their own providers instead of the base
   controller (#98).
+- Development: a shutter's settings are read once into one typed object, its rule chain is built by a factory,
+  and the settings its entities change share one stored-setting helper (#96).
 
 ## [2026.11.27] - 2026-11-24
 

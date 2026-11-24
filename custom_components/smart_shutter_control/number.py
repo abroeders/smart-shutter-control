@@ -40,7 +40,7 @@ class MaxPositionNumber(ShutterEntity, NumberEntity):
         return self.controller.max_position
 
     async def async_set_native_value(self, value: float) -> None:
-        self.controller.set_max_position(int(value))
+        self.controller.max_position = int(value)
         await self.coordinator.async_tick()
 
 
@@ -52,7 +52,7 @@ class ShadingPositionNumber(MaxPositionNumber):
         return self.controller.shading_position
 
     async def async_set_native_value(self, value: float) -> None:
-        self.controller.set_shading_position(int(value))
+        self.controller.shading_position = int(value)
         await self.coordinator.async_tick()
 
 
@@ -64,7 +64,7 @@ class GlarePositionNumber(MaxPositionNumber):
         return self.controller.glare_position
 
     async def async_set_native_value(self, value: float) -> None:
-        self.controller.set_glare_position(int(value))
+        self.controller.glare_position = int(value)
         await self.coordinator.async_tick()
 
 
@@ -78,7 +78,7 @@ class GlareFromNumber(MaxPositionNumber):
         return self.controller.glare_from
 
     async def async_set_native_value(self, value: float) -> None:
-        self.controller.set_glare_from(int(value))
+        self.controller.glare_from = int(value)
         await self.coordinator.async_tick()
 
 
