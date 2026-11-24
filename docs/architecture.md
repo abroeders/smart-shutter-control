@@ -326,11 +326,15 @@ classDiagram
     class ShutterSubentryFlow {
         <<ConfigSubentryFlow>>
         +reconfigure: menu settings / calibrate / add_point
+    }
+    class CalibrationSteps {
+        <<mixin, calibration_flow.py>>
         +cal_move (progress)
         +cal_measure
         +cal_lift
         +cal_review
     }
+    CalibrationSteps <|-- ShutterSubentryFlow
     Calibration <|.. IdentityCalibration
     Calibration <|.. RollerCalibration
     RollerCalibration o-- Curve
@@ -1424,4 +1428,50 @@ flowchart LR
     mk --> art[Pages artifact] --> site["abroeders.github.io/smart-shutter-control"]
     main[push to main] --> wf[docs.yml] --> mk
     pr[push / PR] --> tests["tests.yml: docs job"] --> mk
+```
+
+## 25. Flow modules (#97)
+
+The flows are split by responsibility; the step ids, forms and translations did not change.
+
+| Module | Contents |
+|---|---|
+| `config_flow.py` | `SmartShutterControlConfigFlow`: the base controller (sources, PV or light sensors), reconfigure |
+| `options_flow.py` | `SmartShutterControlOptionsFlow`: language, winter, schedule, holidays, sun, storm; the holiday calendar and its listing as functions |
+| `subentry_flow.py` | `ShutterSubentryFlow`: add and change a shutter, schedule overrides, horizon, contacts |
+| `calibration_flow.py` | `CalibrationSteps`: the calibration assistant and the calibration table, mixed into `ShutterSubentryFlow` |
+| `flow_common.py` | Form helpers shared by the flows: selectors, defaults, values in the user's units, schedule fields |
+| `recorder_stats.py` | The 30-day maxima from long-term statistics (wind, light sensors) |
+
+```mermaid
+classDiagram
+    class SmartShutterControlConfigFlow {
+        <<ConfigFlow>>
+    }
+    class SmartShutterControlOptionsFlow {
+        <<OptionsFlow>>
+    }
+    class ShutterSubentryFlow {
+        <<ConfigSubentryFlow>>
+    }
+    class CalibrationSteps {
+        <<mixin>>
+    }
+    class flow_common {
+        <<module>>
+    }
+    class recorder_stats {
+        <<module>>
+        +_max_30_days(hass, entity_id, wind) str
+        +lux_maxima(hass, sensors) tuple
+    }
+    SmartShutterControlConfigFlow ..> SmartShutterControlOptionsFlow : async_get_options_flow
+    SmartShutterControlConfigFlow ..> ShutterSubentryFlow : subentry type shutter
+    CalibrationSteps <|-- ShutterSubentryFlow
+    SmartShutterControlConfigFlow ..> flow_common
+    SmartShutterControlOptionsFlow ..> flow_common
+    ShutterSubentryFlow ..> flow_common
+    CalibrationSteps ..> flow_common
+    SmartShutterControlConfigFlow ..> recorder_stats : light sensor maxima
+    SmartShutterControlOptionsFlow ..> recorder_stats : wind maxima
 ```

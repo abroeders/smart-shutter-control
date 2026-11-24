@@ -40,7 +40,7 @@ async def test_light_source_flow_and_saturation_note(hass: HomeAssistant) -> Non
     )
     assert result["step_id"] == "light"
     assert {str(k) for k in result["data_schema"].schema} == {"light_sensors", "lux_limit"}
-    with patch("custom_components.smart_shutter_control.config_flow._max_30_days", return_value="2000"):
+    with patch("custom_components.smart_shutter_control.recorder_stats._max_30_days", return_value="2000"):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"light_sensors": [LUX_A], "lux_limit": 30000}
         )
