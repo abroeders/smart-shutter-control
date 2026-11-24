@@ -18,14 +18,26 @@ jobs:
       - run: ruff format --check .
       - run: pytest
 
-  home-assistant:
+  home-assistant:  # on the minimum version from hacs.json and on the latest version (#88)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ha: [minimum, latest]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
-      - run: pip install pytest-homeassistant-custom-component
+          python-version: "3.14"  # the test plugin for 2026.3 and later needs Python 3.14
+      - name: Install Home Assistant
+        run: |
+          if [ "${{ matrix.ha }}" = minimum ]; then
+            minimum=$(python -c "import json; print(json.load(open('hacs.json'))['homeassistant'])")
+            pip install pytest-homeassistant-custom-component "homeassistant~=${minimum%.*}.0"
+          else
+            pip install pytest-homeassistant-custom-component
+          fi
+          pip show homeassistant | grep ^Version
       - run: pytest tests_ha -p no:cacheprovider -o pythonpath=. -o testpaths=tests_ha -o asyncio_mode=auto
 
   docs:  # the documentation site builds without broken links (#78)

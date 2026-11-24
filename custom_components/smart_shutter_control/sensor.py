@@ -68,23 +68,9 @@ class NextActionSensor(ShutterEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        change = self.controller.next_change()
-        if change is None:
-            return {}
-        following = self.controller.next_changes(3)[1:]
-        return {
-            "phase": change.phase.value,
-            "position": self.controller.target_of(change.phase),
-            "following": [
-                {
-                    "at": t.at.isoformat(),
-                    "phase": t.phase.value,
-                    "position": self.controller.target_of(t.phase),
-                }
-                for t in following
-            ],
-            "overrides": self.controller.overrides(),
-        }
+        attributes = self.controller.next_action()
+        attributes.pop("at", None)  # the state itself
+        return attributes
 
 
 class CalibrationSensor(ShutterEntity, SensorEntity):

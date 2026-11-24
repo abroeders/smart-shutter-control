@@ -59,5 +59,9 @@ logger:
     custom_components.smart_shutter_control: debug
 ```
 
-**Diagnostics:** the sensor *Calibration* (attributes) and the history of *Reason* show what the integration
-decided and why.
+**Diagnostics:** *Settings → Devices & services → Smart Shutter Control → ⋮ → Download diagnostics* gives one
+JSON file for the base controller and every shutter: the settings, the sun and weather values, and per shutter
+its position, phase, reason, the decision of every rule, the next action and the last command. Coordinates, the
+location name and entities of persons and device trackers are replaced by `**REDACTED**`. Names of shutters and
+the other entity IDs stay in the file, so open it and check it before you attach it to an issue. The sensor
+*Calibration* (attributes) and the history of *Reason* also show what the integration decided and why.

@@ -12,6 +12,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.util import dt as dt_util
 
 from . import units
 from .adapter import CoverAdapter
@@ -163,7 +164,7 @@ class ShutterController:
             self.schedule_values,
             SunTimes(hass.config.latitude, hass.config.longitude),
             calendar or HolidayCalendar(),
-            _zone(hass),
+            dt_util.get_default_time_zone(),  # not ZoneInfo(...): that can read from disk (#87)
         )
         self.schedule_rule = ScheduleRule(self.schedule, self.slit_module)
         stored_sleep = store.get(self.id, KEY_SLEEP_IN) or {}
@@ -610,6 +611,44 @@ class ShutterController:
     def calibration_points(self) -> dict:
         return dict((self.subentry_data.get(CONF_CALIBRATION) or {}).get("points") or {})
 
+    def next_action(self) -> dict[str, Any]:
+        """The next schedule change as the next action sensor shows it; empty without one."""
+        change = self.next_change()
+        if change is None:
+            return {}
+        return {
+            "at": change.at.isoformat(),
+            "phase": change.phase.value,
+            "position": self.target_of(change.phase),
+            "following": [
+                {"at": t.at.isoformat(), "phase": t.phase.value, "position": self.target_of(t.phase)}
+                for t in self.next_changes(3)[1:]
+            ],
+            "overrides": self.overrides(),
+        }
+
+    def diagnostics(self) -> dict[str, Any]:
+        """The shutter's runtime state for the diagnostics file: what its entities show."""
+        return {
+            "title": self.title,
+            "subentry_id": self.id,
+            "cover": self.config.cover,
+            "data": dict(self.subentry_data),
+            "state": {
+                "position": self.position(),
+                "module_position": self.adapter.module_position(),
+                "phase": self.phase().value,
+                "reason": str(self.decision.reason),
+                "target_position": self.decision.position,
+                "manual_pause": self.pause.on,
+                "stuck": self.stuck,
+                "calibrated": self.calibration.calibrated,
+            },
+            "decision": self.trace(),
+            "next_action": self.next_action(),
+            "position_memory": self.memory.to_dict(),
+        }
+
     def pause_info(self) -> dict[str, Any]:
         p = self.pause
         return {
@@ -640,12 +679,6 @@ def _floor_entry(floor: Floor | None, applied: bool, guard: OpeningGuard) -> dic
 
 def _iso(epoch: float | None) -> str | None:
     return None if epoch is None else datetime.fromtimestamp(epoch, UTC).isoformat()
-
-
-def _zone(hass: HomeAssistant):
-    from zoneinfo import ZoneInfo
-
-    return ZoneInfo(hass.config.time_zone)
 
 
 def _on(value) -> bool:

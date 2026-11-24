@@ -6,6 +6,25 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.25] - 2026-11-24
+
+### Added
+
+- *Download diagnostics* in the menu of the integration: one file with the settings and the state of the base
+  controller and every shutter, without the location and without person or device tracker entities (#91).
+
+### Changed
+
+- The tests run on the minimum Home Assistant version as well as on the latest one; before, they ran on an older
+  version than the minimum without anyone noticing (#88). New checks fail on blocking calls on the event loop
+  (#89) and on translations that differ from `strings.json` or miss keys (#90).
+
+### Fixed
+
+- The time zone is no longer created on Home Assistant's event loop: the integration uses Home Assistant's own
+  time zone object for the schedule and the sun times, instead of building a new one from its name, which can
+  read from disk and block the event loop (#87).
+
 ## [2026.11.24] - 2026-11-23
 
 ### Fixed
@@ -438,7 +457,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.24...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.25...HEAD
+[2026.11.25]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.24...2026.11.25
 [2026.11.24]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.23...2026.11.24
 [2026.11.23]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.22...2026.11.23
 [2026.11.22]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.21...2026.11.22
