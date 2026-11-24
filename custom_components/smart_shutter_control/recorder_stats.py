@@ -27,15 +27,15 @@ async def _max_30_days(hass, entity_id: str | None, wind: bool = False) -> str:
         stats = await get_instance(hass).async_add_executor_job(
             statistics_during_period, hass, start, None, {entity_id}, "day", None, {"max"}
         )
-        values = [row["max"] for row in stats.get(entity_id, []) if row.get("max") is not None]
+        values = [v for row in stats.get(entity_id, []) if (v := row.get("max")) is not None]
         if not values:
             return "–"
         top = max(values)
         if wind:
             state = hass.states.get(entity_id)
             unit = speed_unit(hass)
-            top = unit.shown(to_kmh(top, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) if state else None))
-            return f"{top:.0f} {unit.unit}"
+            shown = unit.shown(to_kmh(top, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT) if state else None))
+            return f"{shown:.0f} {unit.unit}"
         return f"{top:.0f}"
     except Exception:  # noqa: BLE001 - no recorder or no statistics: just do not show it
         return "–"

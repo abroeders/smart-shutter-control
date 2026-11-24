@@ -16,7 +16,7 @@ jobs:
       - run: pip install pytest ruff
       - run: ruff check .
       - run: ruff format --check .
-      - run: pytest
+      - run: pytest tests  # the pure Python core, without Home Assistant
 
   home-assistant:  # on the minimum version from hacs.json and on the latest version (#88)
     runs-on: ubuntu-latest
@@ -33,12 +33,18 @@ jobs:
         run: |
           if [ "${{ matrix.ha }}" = minimum ]; then
             minimum=$(python -c "import json; print(json.load(open('hacs.json'))['homeassistant'])")
-            pip install pytest-homeassistant-custom-component "homeassistant~=${minimum%.*}.0"
+            pip install pytest-homeassistant-custom-component pytest-cov "homeassistant~=${minimum%.*}.0"
           else
-            pip install pytest-homeassistant-custom-component
+            pip install pytest-homeassistant-custom-component pytest-cov
           fi
           pip show homeassistant | grep ^Version
-      - run: pytest tests_ha -p no:cacheprovider -o pythonpath=. -o testpaths=tests_ha -o asyncio_mode=auto
+      # both test folders in one run; fails below the minimum coverage in pyproject.toml (#99)
+      - run: pytest -p no:cacheprovider --cov
+      - name: Type check (mypy) against the minimum version (#92)
+        if: matrix.ha == 'minimum'
+        run: |
+          pip install --only-binary :all: mypy==2.4.1
+          mypy
 
   docs:  # the documentation site builds without broken links (#78)
     runs-on: ubuntu-latest

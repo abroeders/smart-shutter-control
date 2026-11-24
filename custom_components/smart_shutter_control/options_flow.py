@@ -40,7 +40,6 @@ from .const import (
     OPT_WEEKEND_DAYS,
     OPT_WINTER_LIMIT,
 )
-from .coordinator import read_calendar
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
 from .flow_common import (
     _number,
@@ -49,6 +48,7 @@ from .flow_common import (
     _with_defaults,
     schedule_fields,
 )
+from .providers import read_calendar
 from .recorder_stats import _max_30_days
 
 
@@ -75,7 +75,9 @@ def _disable_field(calendar: HolidayCalendar, current: dict[str, Any]) -> dict:
     """Check boxes for the holidays of the calendar; a checked one is ignored by the schedules."""
     names = calendar.calendar_names()
     disabled = list(current.get(OPT_HOLIDAYS_DISABLED) or [])
-    options = [{"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names]
+    options: list[selector.SelectOptionDict] = [
+        {"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names
+    ]
     options += [{"value": n, "label": n} for n in disabled if n not in {o["value"] for o in options}]
     if not options:
         return {}

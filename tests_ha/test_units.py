@@ -187,6 +187,6 @@ async def test_forecast_in_fahrenheit(hass: HomeAssistant, covers) -> None:
         "weather", "get_forecasts", get_forecasts, supports_response=SupportsResponse.ONLY
     )
     entry = await setup(hass, weather=WEATHER)
-    await entry.runtime_data.async_refresh_forecast()
+    await entry.runtime_data.forecast.async_refresh()
     assert entry.runtime_data.forecast_max == pytest.approx(30)  # 86 °F
     assert entry.runtime_data.hot_day  # 30 °C reaches 28 °C

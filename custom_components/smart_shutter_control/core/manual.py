@@ -49,8 +49,8 @@ class ManualDetector:
             self.command = None
         return self.command is not None
 
-    def _on_the_way(self, position: int) -> bool:
-        c = self.command
+    @staticmethod
+    def _on_the_way(c: ActiveCommand, position: int) -> bool:
         low = min(c.target, c.start if c.start is not None else c.target)
         high = max(c.target, c.start if c.start is not None else c.target)
         return low - MARGIN <= position <= high + MARGIN
@@ -62,12 +62,12 @@ class ManualDetector:
         if motor_running is not None:
             if motor_running and not self.motor and not active:
                 manual = True  # the motor started without a command
-            if motor_running and active:
+            if motor_running and active and self.command is not None:
                 self.command.started = True
             self.motor = motor_running
         if position is not None and position != self.last_position:
             if self.last_position is not None:
-                if not active or not self._on_the_way(position):
+                if not active or self.command is not None and not self._on_the_way(self.command, position):
                     manual = True
                 self.last_change = now
             self.last_position = position
@@ -141,7 +141,7 @@ class ManualPauseRule:
 
     priority = 20
     name = "manual"
-    why = None
+    why: tuple[str, dict] | None = None
 
     def __init__(self, pause: ManualPause, phase_of) -> None:
         self.pause = pause

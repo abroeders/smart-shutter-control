@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 REACH = 15.0  # degrees of azimuth the outermost points hold beyond themselves
 NEAR = 3.0  # degrees of azimuth: a new point this close replaces the old one
@@ -63,7 +63,7 @@ def check(rows: Sequence[Mapping[str, Any]]) -> list[str]:
     errors = []
     if any(a is None or not 0 <= a <= 360 for a in azimuths):
         errors.append("azimuth_range")
-    elif len({round(a, 1) for a in azimuths}) != len(azimuths):
+    elif len({round(cast(float, a), 1) for a in azimuths}) != len(azimuths):
         errors.append("azimuth_twice")
     if any(e is None or not 0 <= e <= 60 for e in elevations):
         errors.append("elevation_range")
@@ -71,4 +71,6 @@ def check(rows: Sequence[Mapping[str, Any]]) -> list[str]:
 
 
 def from_rows(rows: Sequence[Mapping[str, Any]]) -> Horizon:
-    return Horizon.from_data([_number(r["azimuth"]), _number(r["elevation"])] for r in rows)
+    return Horizon.from_data(
+        [cast(float, _number(r["azimuth"])), cast(float, _number(r["elevation"]))] for r in rows
+    )

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
+    ConfigSubentryFlow,
     SubentryFlowResult,
 )
 from homeassistant.helpers import selector
@@ -46,13 +47,31 @@ def _review(summary: dict) -> dict[str, str]:
     }
 
 
-class CalibrationSteps:
+if TYPE_CHECKING:
+    _FlowBase = ConfigSubentryFlow
+else:
+    _FlowBase = object
+
+
+class CalibrationSteps(_FlowBase):
     """The calibration steps (assistant and table) of the shutter's reconfigure flow."""
 
     _session: CalibrationSession | None = None
     _task: asyncio.Task | None = None
     _action: Action | None = None
     _shown: str | None = None  # the form on screen: input for another form (after a progress step) is ignored
+
+    @property
+    def _active_session(self) -> CalibrationSession:
+        """The running session; the steps after `_start` only run with one."""
+        assert self._session is not None
+        return self._session
+
+    @property
+    def _active_action(self) -> Action:
+        """The action being performed; set by the step that queues it."""
+        assert self._action is not None
+        return self._action
 
     # --- calibration assistant ------------------------------------------------------------------
     def _controller(self):
@@ -128,10 +147,10 @@ class CalibrationSteps:
                 slits = {"up": user_input.get("slit_up"), "down": user_input.get("slit_down")}
                 self._table = calibration_table.data_from(rows, slits, stored.get("window_height_cm"))
                 return await self.async_step_cal_table_review()
-        slits = calibration_table.slits_from(stored)
+        saved_slits = calibration_table.slits_from(stored)
         values = {
             "rows": calibration_table.rows_from(stored),
-            **{f"slit_{d}": v for d, v in slits.items()},
+            **{f"slit_{d}": v for d, v in saved_slits.items()},
             **(user_input or {}),
         }
         return self.async_show_form(
@@ -178,7 +197,7 @@ class CalibrationSteps:
         return self.async_show_form(step_id="add_point", data_schema=schema)
 
     async def async_step_cal_next(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        session = self._session
+        session = self._active_session
         if not session.queue:
             return await self.async_step_cal_review()
         self._action = session.queue.pop(0)
@@ -188,11 +207,10 @@ class CalibrationSteps:
         return await self.async_step_cal_move()
 
     async def async_step_cal_move(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        action = self._action
+        action = self._active_action
         if self._task is None:
-            job = (
-                self._session.measure_travel() if action.kind == "time" else self._session.move(action.module)
-            )
+            session = self._active_session
+            job = session.measure_travel() if action.kind == "time" else session.move(action.module)
             self._task = self.hass.async_create_task(job)
         if not self._task.done():
             return self.async_show_progress(
@@ -206,7 +224,7 @@ class CalibrationSteps:
         return self.async_show_progress_done(next_step_id=following)
 
     async def async_step_cal_measure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        session, action = self._session, self._action
+        session, action = self._active_session, self._active_action
         length = length_unit(self.hass, "cm", 0.25)
         if user_input and self._shown == "cal_measure":
             self._shown = None
@@ -234,7 +252,7 @@ class CalibrationSteps:
         )
 
     async def async_step_cal_lift(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        session = self._session
+        session = self._active_session
         if user_input and self._shown == "cal_lift":
             self._shown = None
             if session.lifted(bool(user_input["lifted"])):
@@ -255,7 +273,7 @@ class CalibrationSteps:
         )
 
     async def async_step_cal_review(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        session = self._session
+        session = self._active_session
         summary = session.summary()
         if user_input is not None:
             session.controller.paused = False

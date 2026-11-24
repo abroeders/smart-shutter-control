@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+import builtins
+from collections.abc import Callable
+from typing import Any, Protocol, overload
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -63,10 +65,37 @@ class RuntimeStore:
         if self._loaded:  # never overwrite the stored state with an empty one after a failed start
             await self._store.async_save(self._payload())
 
-    def forget(self, keep: set[str]) -> None:
+    def forget(self, keep: builtins.set[str]) -> None:
         """Drop the state of shutters that no longer exist."""
         for shutter_id in set(self.data) - keep:
             del self.data[shutter_id]
 
     async def async_remove(self) -> None:
         await self._store.async_remove()
+
+
+class _StoredOwner(Protocol):
+    id: str
+    store: RuntimeStore
+
+
+class StoredSetting[T]:
+    """A shutter setting that an entity changes (#96): read from and written to the runtime store, with its
+    default taken from the owner when the user has not changed it. Use as a class attribute of the owner."""
+
+    def __init__(self, key: str, kind: Callable[[Any], T], default: Callable[[Any], T]) -> None:
+        self.key = key
+        self.kind = kind  # bool or int: applied on reading and on writing
+        self.default = default  # owner -> the default
+
+    @overload
+    def __get__(self, owner: None, owner_type: type) -> StoredSetting[T]: ...
+    @overload
+    def __get__(self, owner: _StoredOwner, owner_type: type | None = None) -> T: ...
+    def __get__(self, owner: _StoredOwner | None, owner_type: type | None = None) -> T | StoredSetting[T]:
+        if owner is None:
+            return self
+        return self.kind(owner.store.get(owner.id, self.key, self.default(owner)))
+
+    def __set__(self, owner: _StoredOwner, value: T) -> None:
+        owner.store.set(owner.id, self.key, self.kind(value))
