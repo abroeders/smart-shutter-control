@@ -417,7 +417,7 @@ sequenceDiagram
         loop at most 3 attempts
             S->>A: async_move(target)
             A->>M: set position
-            S->>P: wait for the motor to start, then to stop (no sensor: distance × travel time + 5 s)
+            S->>P: wait for the motor to start, then to stop (no sensor: distance × travel time + 5 s,<br/>no travel time either: until the position stops changing)
             S->>M: update_entity (poll)
             S->>S: wait for a report after the stop (max 30 s)
             alt within 1 % of the target
