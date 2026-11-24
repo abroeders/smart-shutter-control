@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Changed
+
+- Installation: Smart Shutter Control is now in the Marketplace and HACS default catalog; search for it instead
+  of adding the repository from its link.
+
 ## [2026.11.25] - 2026-11-24
 
 ### Added

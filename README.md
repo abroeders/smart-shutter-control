@@ -41,10 +41,8 @@ All shutters of a base controller:
 
 ## Installation
 
-[![Open your Home Assistant instance and add a repository to the Marketplace.](https://my.home-assistant.io/badges/marketplace_repositories.svg)](https://my.home-assistant.io/redirect/marketplace_repositories/)
-
-*Settings → Marketplace → Add from link* → `abroeders/smart-shutter-control` (type *Integration*) → open it →
-**Install** → restart (Home Assistant 2026.11 and later; before that: HACS → ⋮ → *Custom repositories*). Then
+*Settings → Marketplace* → search for **Smart Shutter Control** → **Install** → restart (Home Assistant
+2026.11 and later; before that: HACS → search → *Download*). Then
 *Settings → Devices & services → Add integration → Smart Shutter Control*, and *Add shutter* for each
 shutter. Details: [Installation](docs/installation.md).
 
