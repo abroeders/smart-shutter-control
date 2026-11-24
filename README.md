@@ -1,6 +1,6 @@
 # Smart Shutter Control
 
-[![Marketplace: add from link](https://img.shields.io/badge/Marketplace-add%20from%20link-41BDF5.svg)](https://my.home-assistant.io/redirect/marketplace_repositories/)
+[![Marketplace: default](https://img.shields.io/badge/Marketplace-default-41BDF5.svg)](docs/installation.md)
 [![Release](https://img.shields.io/github/v/release/abroeders/smart-shutter-control)](https://github.com/abroeders/smart-shutter-control/releases)
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-ffdd00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/abroeders)
 
