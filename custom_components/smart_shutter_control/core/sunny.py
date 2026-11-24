@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from .sun import SunPosition
 
@@ -67,8 +68,8 @@ class PvBaseline:
     """PV power: while young, a rough clear-sky curve from the panels' peak power (if known)."""
 
     pv_peak_kw: float | None = None
-    learned = "learned"
-    young = "pv_peak"
+    learned: ClassVar[str] = "learned"
+    young: ClassVar[str] = "pv_peak"
 
     def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
         if not self.pv_peak_kw:
@@ -85,8 +86,8 @@ class LuxBaseline:
     threshold, so the sun factor means the same before and after the reference is learned."""
 
     limit_lux: float = LUX_LIMIT
-    learned = "lux_learned"
-    young = "lux_limit"
+    learned: ClassVar[str] = "lux_learned"
+    young: ClassVar[str] = "lux_limit"
 
     def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
         return self.limit_lux / threshold if threshold > 0 else None

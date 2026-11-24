@@ -53,7 +53,7 @@ export interface ShutterModel {
   outside: SceneInputs;
 }
 
-const num = (v: unknown): number | null => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v));
+const num = (v: unknown): number | null => (v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
 const isDecision = (value: unknown): value is Decision => {
   if (!value || typeof value !== "object") return false;
   const entry = value as Record<string, unknown>;
@@ -138,7 +138,7 @@ export function cardLanguage(hass: HomeAssistant, configured: string | undefined
 
 export function formatTime(iso: string, hass: HomeAssistant, language: string): string {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) return "";
   try {
     return new Intl.DateTimeFormat(language, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: hass.config?.time_zone }).format(d);
   } catch {
@@ -245,7 +245,7 @@ export interface StatusLines {
   reason: string;
   detail: string;
   next: string | null;
-  then: string | null;
+  after: string | null;
   chip: "automatic" | "manual_pause" | "off";
 }
 
@@ -269,7 +269,7 @@ export function statusLines(m: ShutterModel, t: Translate, time: (iso: string) =
     reason,
     detail,
     next: first ? `${t("next")}: ${action(first)}` : null,
-    then: second ? `${t("then")} ${action(second)}` : null,
+    after: second ? `${t("after")} ${action(second)}` : null,
     chip: !m.automatic || m.reason === "paused" ? "off" : m.paused ? "manual_pause" : "automatic",
   };
 }

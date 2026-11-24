@@ -67,7 +67,8 @@ export class SmartShutterCard extends LitElement {
 
   private call(domain: string, service: string, entityId?: string, data: Record<string, unknown> = {}) {
     if (!this.hass || !entityId) return;
-    this.hass.callService(domain, service, { entity_id: entityId, ...data });
+    // Home Assistant shows a failed call to the user itself; catch it so it is not an unhandled rejection
+    this.hass.callService(domain, service, { entity_id: entityId, ...data }).catch(() => undefined);
   }
 
   private toggle(entityId: string | undefined, on: boolean) {
@@ -153,7 +154,7 @@ export class SmartShutterCard extends LitElement {
           <div class="line reason">${s.reason}</div>
           <div class="sub">${s.detail}</div>
           ${s.next ? html`<div class="line next">${s.next}</div>` : nothing}
-          ${s.then ? html`<div class="sub then">${s.then}</div>` : nothing}
+          ${s.after ? html`<div class="sub then">${s.after}</div>` : nothing}
           ${decisions.length
             ? html`<div class="why">
                 <button class="why-toggle" type="button" aria-expanded=${this._decisionOpen ? "true" : "false"} aria-controls="decision-list" @click=${() => (this._decisionOpen = !this._decisionOpen)}>
