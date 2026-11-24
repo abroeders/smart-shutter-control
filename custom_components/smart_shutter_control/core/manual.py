@@ -129,7 +129,7 @@ class ManualPause:
 
     @classmethod
     def from_dict(cls, data: dict | None) -> ManualPause:
-        return cls(**(data or {})) if data else cls()
+        return cls(**data) if data else cls()
 
 
 def matches(position: int | None, wanted: int | None) -> bool:

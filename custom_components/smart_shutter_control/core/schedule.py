@@ -119,7 +119,7 @@ def _sun_times(lat: float, lon: float, day: date, tz: tzinfo) -> tuple[datetime 
 
 
 # --- holidays -------------------------------------------------------------------------------------
-LINE = re.compile(r"^\s*(?:(\d{4})-)?(\d{1,2})-(\d{1,2})\s*(.*)$")
+LINE = re.compile(r"^\s*(?:(\d{4})-)?(\d{1,2})-(\d{1,2})(.*)$")
 
 
 @dataclass(frozen=True)
