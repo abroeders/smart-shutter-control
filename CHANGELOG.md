@@ -9,7 +9,7 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 ### Changed
 
 - Installation: Smart Shutter Control is now in the Marketplace and HACS default catalog; search for it instead
-  of adding the repository from its link.
+  of adding the repository from its link (#94).
 - Heat and glare protection share one state machine for their delays (open, waiting, shading, leaving)
   instead of two copies; the behaviour is unchanged (#95).
 - The configuration flows are split into modules: config, options, shutter, calibration, shared form helpers
