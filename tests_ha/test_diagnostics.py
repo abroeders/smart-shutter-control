@@ -45,7 +45,9 @@ async def test_location_and_people_are_redacted(hass: HomeAssistant, covers) -> 
     entry = await setup_base(hass)
     await add_shutter(hass, entry, LIVING)
     subentry = next(iter(entry.subentries.values()))
-    hass.config_entries.async_update_subentry(entry, subentry, data={**subentry.data, "owner": "person.resident"})
+    hass.config_entries.async_update_subentry(
+        entry, subentry, data={**subentry.data, "owner": "person.resident"}
+    )
     hass.config_entries.async_update_entry(
         entry, data={**entry.data, "latitude": 52.0, "longitude": 5.0, "location_name": "Home"}
     )
