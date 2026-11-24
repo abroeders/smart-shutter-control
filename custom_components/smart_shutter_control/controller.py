@@ -12,6 +12,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.util import dt as dt_util
 
 from . import units
 from .adapter import CoverAdapter
@@ -163,7 +164,7 @@ class ShutterController:
             self.schedule_values,
             SunTimes(hass.config.latitude, hass.config.longitude),
             calendar or HolidayCalendar(),
-            _zone(hass),
+            dt_util.get_default_time_zone(),  # not ZoneInfo(...): that can read from disk (#87)
         )
         self.schedule_rule = ScheduleRule(self.schedule, self.slit_module)
         stored_sleep = store.get(self.id, KEY_SLEEP_IN) or {}
@@ -640,12 +641,6 @@ def _floor_entry(floor: Floor | None, applied: bool, guard: OpeningGuard) -> dic
 
 def _iso(epoch: float | None) -> str | None:
     return None if epoch is None else datetime.fromtimestamp(epoch, UTC).isoformat()
-
-
-def _zone(hass: HomeAssistant):
-    from zoneinfo import ZoneInfo
-
-    return ZoneInfo(hass.config.time_zone)
 
 
 def _on(value) -> bool:

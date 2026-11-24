@@ -54,6 +54,22 @@ def schedule(values=None, calendar=None):
     return DaySchedule(merged(None, values), SUN, calendar or HolidayCalendar(), TZ)
 
 
+def test_sun_times_never_build_a_zoneinfo(monkeypatch):
+    """The time zone is passed as a tzinfo object; constructing a ZoneInfo can block the event loop (#87)."""
+    import zoneinfo
+
+    def blocked(*_args, **_kwargs):
+        raise AssertionError("ZoneInfo constructed")
+
+    import core.schedule as schedule
+
+    monkeypatch.setattr(zoneinfo, "ZoneInfo", blocked)
+    monkeypatch.setattr(schedule, "ZoneInfo", blocked, raising=False)  # also a name bound at import
+    schedule._sun_times.cache_clear()
+    rise, set_ = SUN.sunrise_sunset(date(2031, 6, 21), TZ)
+    assert rise is not None and set_ is not None and rise.tzinfo is TZ
+
+
 def test_weekday_and_weekend_phases():
     s = schedule()
     wed = date(2026, 11, 18)

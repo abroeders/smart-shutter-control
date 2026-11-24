@@ -7,11 +7,10 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, tzinfo
 from enum import StrEnum
 from functools import lru_cache
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from .sun import SunPosition
 
@@ -102,15 +101,15 @@ class SunTimes:
             return a + (b - a) / 2
         return None
 
-    def sunrise_sunset(self, day: date, tz: ZoneInfo) -> tuple[datetime | None, datetime | None]:
-        return _sun_times(self.latitude, self.longitude, day, str(tz))
+    def sunrise_sunset(self, day: date, tz: tzinfo) -> tuple[datetime | None, datetime | None]:
+        return _sun_times(self.latitude, self.longitude, day, tz)
 
 
 @lru_cache(maxsize=64)
-def _sun_times(lat: float, lon: float, day: date, tz: str) -> tuple[datetime | None, datetime | None]:
+def _sun_times(lat: float, lon: float, day: date, tz: tzinfo) -> tuple[datetime | None, datetime | None]:
+    """Cached per day and time zone; `tz` is the tzinfo object itself, never rebuilt from its name (#87)."""
     st = SunTimes(lat, lon)
-    zone = ZoneInfo(tz)
-    start = datetime.combine(day, time(0), zone)
+    start = datetime.combine(day, time(0), tz)
     hours = [start + timedelta(minutes=30 * i) for i in range(49)]
     rise = set_ = None
     for a, b in zip(hours, hours[1:], strict=False):
@@ -203,7 +202,7 @@ class DaySchedule:
     """When each phase starts on a given day, and the phase at any moment."""
 
     def __init__(
-        self, values: Mapping[str, Any], sun: SunTimes, calendar: HolidayCalendar, tz: ZoneInfo
+        self, values: Mapping[str, Any], sun: SunTimes, calendar: HolidayCalendar, tz: tzinfo
     ) -> None:
         self.values = dict(values)
         self.sun = sun
