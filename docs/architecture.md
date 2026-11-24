@@ -104,6 +104,11 @@ classDiagram
         +async_stop()
         +read_inputs() Inputs
         +async_tick()
+        +diagnostics() dict
+    }
+    class diagnostics {
+        <<module>>
+        +async_get_config_entry_diagnostics(hass, entry) dict
     }
     class ShutterController {
         +id str
@@ -161,6 +166,7 @@ classDiagram
         +motor_power() float|None
         +async_move(position, automatic)
         +async_stop()
+        +diagnostics() dict
     }
     class RuntimeStore {
         +async_load()
@@ -179,6 +185,8 @@ classDiagram
     ShutterEntity <|-- NextActionSensor
     BaseCoordinator o-- ShutterController
     BaseCoordinator o-- RuntimeStore
+    diagnostics ..> BaseCoordinator : collects
+    diagnostics ..> ShutterController : collects
     ShutterController o-- RuleChain
     RuleChain o-- Rule
     ShutterController o-- PositionLimiter
