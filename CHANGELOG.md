@@ -6,6 +6,12 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- The time zone is no longer created on Home Assistant's event loop: the integration uses Home Assistant's own
+  time zone object for the schedule and the sun times, instead of building a new one from its name, which can
+  read from disk and block the event loop (#87).
+
 ## [2026.11.24] - 2026-11-23
 
 ### Fixed
