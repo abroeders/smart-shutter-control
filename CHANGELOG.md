@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.26] - 2026-11-24
+
 ### Changed
 
 - Installation: Smart Shutter Control is now in the Marketplace and HACS default catalog; search for it instead
@@ -466,7 +468,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.25...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.26...HEAD
+[2026.11.26]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.25...2026.11.26
 [2026.11.25]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.24...2026.11.25
 [2026.11.24]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.23...2026.11.24
 [2026.11.23]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.22...2026.11.23
