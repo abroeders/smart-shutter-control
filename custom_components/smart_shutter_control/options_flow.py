@@ -40,7 +40,6 @@ from .const import (
     OPT_WEEKEND_DAYS,
     OPT_WINTER_LIMIT,
 )
-from .coordinator import read_calendar
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
 from .flow_common import (
     _number,
@@ -49,6 +48,7 @@ from .flow_common import (
     _with_defaults,
     schedule_fields,
 )
+from .providers import read_calendar
 from .recorder_stats import _max_30_days
 
 

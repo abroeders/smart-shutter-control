@@ -625,7 +625,8 @@ classDiagram
     ShutterController o-- ManualPause
     ShutterController o-- ScheduleRule
     ShutterController o-- SleepIn
-    BaseCoordinator o-- HolidayCalendar : shared, filled daily from a calendar entity
+    HolidayProvider o-- HolidayCalendar : shared, filled daily from a calendar entity
+    BaseCoordinator o-- HolidayProvider
 ```
 
 The rule chain per shutter, by priority: `ManualPauseRule` (20, final while paused) → `SleepInRule` (30) →
@@ -1245,7 +1246,7 @@ sequenceDiagram
 
 ## 21. Heat protection from the weather forecast (#50)
 
-`BaseCoordinator.async_refresh_forecast` calls `weather.get_forecasts` (`type: daily`) at start, once Home
+`ForecastProvider.async_refresh` (#98) calls `weather.get_forecasts` (`type: daily`) at start, once Home
 Assistant has started, when the weather entity appears or becomes available (#67), and every 30 minutes; `today_max` (`core/forecast.py`, pure) takes the `temperature` of the entry whose local date is
 today, and `ForecastMaximum` keeps it for that day only (a failed call keeps today's value, never
 yesterday's). `Inputs.forecast_max` carries it to every shutter. `HeatProtectionRule._warm` is true on a hot
@@ -1262,11 +1263,16 @@ classDiagram
         +update(value, today)
         +today(today) float|None
     }
+    class ForecastProvider {
+        +maximum ForecastMaximum
+        +value float|None
+        +async_refresh()
+        +track(on_update) list
+    }
     class BaseCoordinator {
-        +forecast ForecastMaximum
+        +forecast ForecastProvider
         +forecast_max float|None
         +hot_day bool
-        +async_refresh_forecast()
     }
     class Inputs {
         +forecast_max float|None
@@ -1284,7 +1290,8 @@ classDiagram
     class HotDaySensor {
         <<BinarySensorEntity>>
     }
-    BaseCoordinator o-- ForecastMaximum
+    BaseCoordinator o-- ForecastProvider
+    ForecastProvider o-- ForecastMaximum
     BaseCoordinator ..> Inputs
     HeatProtectionRule ..> Inputs
     HeatProtectionRule o-- SunSettings
@@ -1295,12 +1302,14 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant C as BaseCoordinator
+    participant F as ForecastProvider
     participant W as weather.get_forecasts
     participant SC as ShutterController
     participant H as HeatProtectionRule
-    C->>W: type daily (start, started, entity appears, every 30 min)
-    W-->>C: forecast list
-    C->>C: today_max → ForecastMaximum
+    F->>W: type daily (start, started, entity appears, every 30 min)
+    W-->>F: forecast list
+    F->>F: today_max → ForecastMaximum
+    C->>F: value (each tick)
     C->>SC: async_evaluate(Inputs(forecast_max))
     SC->>H: propose(ctx)
     H->>H: hot day? then warm without the outdoor and room limits
@@ -1474,4 +1483,64 @@ classDiagram
     CalibrationSteps ..> flow_common
     SmartShutterControlConfigFlow ..> recorder_stats : light sensor maxima
     SmartShutterControlOptionsFlow ..> recorder_stats : wind maxima
+```
+
+## 26. Base controller providers (#98)
+
+`BaseCoordinator` reads the inputs, runs the tick and wires the parts; the weather forecast and the holiday
+calendar are providers in `providers.py`, each with its own listeners. `async_start` creates the shutter
+controllers, refreshes both providers once and collects every listener's unsubscribe function, which
+`async_stop` calls. A provider calls `on_update` (the coordinator's `async_update_listeners`) when its entity
+appears late, so the base entities show the new value at once.
+
+```mermaid
+classDiagram
+    class BaseCoordinator {
+        <<DataUpdateCoordinator>>
+        +forecast ForecastProvider
+        +holidays HolidayProvider
+        +calendar HolidayCalendar
+        +async_start()
+        +async_stop()
+        -_create_shutters()
+        -_track_entities() list
+    }
+    class ForecastProvider {
+        +entity_id str|None
+        +maximum ForecastMaximum
+        +value float|None
+        +day date|None
+        +async_refresh()
+        +track(on_update) list
+    }
+    class HolidayProvider {
+        +entity_id str|None
+        +calendar HolidayCalendar
+        +async_refresh()
+        +track(on_update) list
+    }
+    class read_calendar {
+        <<function>>
+        +read_calendar(hass, entity_id) dict|None
+    }
+    BaseCoordinator o-- ForecastProvider
+    BaseCoordinator o-- HolidayProvider
+    ForecastProvider o-- ForecastMaximum
+    HolidayProvider o-- HolidayCalendar
+    HolidayProvider ..> read_calendar
+    SmartShutterControlOptionsFlow ..> read_calendar : holiday listing
+```
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant H as HolidayProvider
+    participant F as ForecastProvider
+    C->>C: _create_shutters()
+    C->>H: async_refresh()
+    C->>F: async_refresh()
+    C->>C: _track_entities(): tick, covers, inputs, contacts
+    C->>H: track(async_update_listeners): every night, calendar appears
+    C->>F: track(async_update_listeners): every 30 min, weather appears
+    Note over C: async_stop calls every unsubscribe function
 ```

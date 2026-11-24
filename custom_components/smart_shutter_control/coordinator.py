@@ -10,17 +10,14 @@ from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_state_change_event,
-    async_track_time_change,
     async_track_time_interval,
 )
-from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.util import dt as dt_util
 
 from . import units
 from .const import (
@@ -36,7 +33,6 @@ from .const import (
     DEFAULT_LUX_LIMIT,
     DEFAULT_OPTIONS,
     DOMAIN,
-    FORECAST_SECONDS,
     INPUT_DEBOUNCE,
     OPT_CLOSE_ABOVE,
     OPT_CLOSE_BELOW,
@@ -45,10 +41,6 @@ from .const import (
     OPT_FROST_RELEASE,
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
-    OPT_HOLIDAY_CALENDAR,
-    OPT_HOLIDAYS_DISABLED,
-    OPT_HOLIDAYS_EXCLUDED,
-    OPT_HOLIDAYS_EXTRA,
     OPT_HOT_DAY,
     OPT_LANGUAGE,
     OPT_MAX_INCIDENCE,
@@ -59,49 +51,21 @@ from .const import (
     OPT_STORM_RELEASE,
     OPT_STORM_WIND_LIMIT,
     OPT_SUNNY_THRESHOLD,
-    OPT_WEEKEND_DAYS,
     OPT_WINTER_LIMIT,
     SUBENTRY_SHUTTER,
     TICK_SECONDS,
 )
 from .controller import ShutterController
-from .core.forecast import ForecastMaximum, today_max
 from .core.heat import SunSettings
 from .core.model import Inputs
-from .core.schedule import HolidayCalendar, parse_holidays, weekend_set
 from .core.sun import SunPosition
 from .core.sunny import ClearSkyReference, LuxBaseline, PvBaseline, SunnyDetector
 from .core.weather import FrostDetector, StormDetector, cloud_coverage
 from .core.winter import OutdoorMean, WinterDetector
+from .providers import ForecastProvider, HolidayProvider
 from .storage import RuntimeStore
 
 _LOGGER = logging.getLogger(__name__)
-
-
-async def read_calendar(hass: HomeAssistant, entity_id: str) -> dict | None:
-    """Holidays (date → name) of the coming 400 days from a calendar entity; None when it cannot be read."""
-    start = dt_util.now()
-    try:
-        response = await hass.services.async_call(
-            "calendar",
-            "get_events",
-            {
-                "entity_id": entity_id,
-                "start_date_time": start.isoformat(),
-                "end_date_time": (start + timedelta(days=400)).isoformat(),
-            },
-            blocking=True,
-            return_response=True,
-        )
-    except (HomeAssistantError, ValueError) as err:
-        _LOGGER.warning("Could not read holidays from %s: %s", entity_id, err)
-        return None
-    days = {}
-    for event in (response or {}).get(entity_id, {}).get("events", []):
-        day = dt_util.parse_date(str(event.get("start", ""))[:10])
-        if day is not None:
-            days[day] = str(event.get("summary") or "")
-    return days
 
 
 def _num(value) -> float | None:
@@ -142,10 +106,11 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         self.sunny = SunnyDetector()
         self.weather_state: str | None = None
         self.cloud_coverage: float | None = None
-        self.forecast = ForecastMaximum()  # today's forecast maximum (#50)
-        self.calendar = self._holiday_calendar()
+        self.forecast = ForecastProvider(hass, self.sources.get(CONF_WEATHER))  # (#50)
+        self.holidays = HolidayProvider(hass, self.options)
+        self.calendar = self.holidays.calendar  # shared with every schedule, refreshed in place
         self.base_device_id: str | None = None
-        self._unsubs: list = []
+        self._unsubs: list[CALLBACK_TYPE] = []
         self._pending = None
         self._release = None  # the evaluation when a closed contact's hold ends (#49)
 
@@ -204,6 +169,16 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             threshold=self.sunny_threshold,
             baseline=self.baseline(),
         )
+        self._create_shutters()
+        await self.holidays.async_refresh()
+        await self.forecast.async_refresh()
+        self._unsubs += self._track_entities()
+        self._unsubs += self.holidays.track(self.async_update_listeners)
+        self._unsubs += self.forecast.track(self.async_update_listeners)
+        self.data = None
+
+    def _create_shutters(self) -> None:
+        """One shutter controller per shutter subentry; the stored state of removed shutters is dropped."""
         sun = self.sun_settings()
         base_schedule = dict(self.options.get(OPT_SCHEDULE) or {})
         for subentry in self.entry.subentries.values():
@@ -222,33 +197,19 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
                     controller.use_facade(self.sunny_threshold, self.baseline())
                 self.shutters[subentry.subentry_id] = controller
         self.store.forget(set(self.shutters))
+
+    def _track_entities(self) -> list[CALLBACK_TYPE]:
+        """The tick, and the covers, the inputs and the contacts that make a shutter decide sooner."""
         watched = [s.config.cover for s in self.shutters.values()]
         watched += [s.adapter.power_entity for s in self.shutters.values() if s.adapter.power_entity]
         inputs = [e for e in self._input_entities() if e]
         contacts = [e for s in self.shutters.values() for e in s.contacts if e]
-        await self.async_refresh_holidays()
-        await self.async_refresh_forecast()
-        self._unsubs += [
+        return [
             async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=TICK_SECONDS)),
-            async_track_time_interval(self.hass, self._on_forecast, timedelta(seconds=FORECAST_SECONDS)),
             async_track_state_change_event(self.hass, watched, self._on_cover),
             async_track_state_change_event(self.hass, inputs, self._on_input),
             async_track_state_change_event(self.hass, contacts, self._on_contact),
-            async_track_time_change(self.hass, self._on_midnight, hour=0, minute=5, second=0),
         ]
-        calendar_entity = self.options.get(OPT_HOLIDAY_CALENDAR)
-        if calendar_entity:
-            # the calendar's integration may start after this one: read it once it is there
-            self._unsubs.append(
-                async_track_state_change_event(self.hass, [calendar_entity], self._on_calendar)
-            )
-            self._unsubs.append(async_at_started(self.hass, self._on_started))
-        weather_entity = self.sources.get(CONF_WEATHER)
-        if weather_entity:
-            # the weather integration may start after this one: read the forecast once it is there (#67)
-            self._unsubs.append(async_track_state_change_event(self.hass, [weather_entity], self._on_weather))
-            self._unsubs.append(async_at_started(self.hass, self._on_started_forecast))
-        self.data = None
 
     async def async_stop(self) -> None:
         await self.store.async_flush()
@@ -379,33 +340,9 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     async def _on_tick(self, _now: datetime) -> None:
         await self.async_tick()
 
-    async def async_refresh_forecast(self) -> None:
-        """Today's maximum from the weather entity's daily forecast (#50); a failed call keeps today's."""
-        entity_id = self.sources.get(CONF_WEATHER)
-        today = dt_util.now().date()
-        value = None
-        weather = self.hass.states.get(entity_id) if entity_id else None
-        if weather is not None:
-            try:
-                response = await self.hass.services.async_call(
-                    "weather",
-                    "get_forecasts",
-                    {"entity_id": entity_id, "type": "daily"},
-                    blocking=True,
-                    return_response=True,
-                )
-            except HomeAssistantError as err:
-                _LOGGER.debug("No daily forecast from %s: %s", entity_id, err)
-            else:
-                forecast = (response or {}).get(entity_id, {}).get("forecast") or []
-                value = today_max(forecast, today, dt_util.get_default_time_zone())
-                if value is not None:  # in the weather entity's unit (#64)
-                    value = units.to_celsius(value, weather.attributes.get("temperature_unit"))
-        self.forecast.update(value, today)
-
     @property
     def forecast_max(self) -> float | None:
-        return self.forecast.today(dt_util.now().date())
+        return self.forecast.value
 
     @property
     def hot_day(self) -> bool:
@@ -437,29 +374,6 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             "clear_sky_reference": {"cells": len(self.sunny.reference.cells), "days": len(days)},
         }
 
-    async def _on_forecast(self, _now: datetime) -> None:
-        await self.async_refresh_forecast()
-
-    def _holiday_calendar(self) -> HolidayCalendar:
-        extra, _ = parse_holidays(self.options.get(OPT_HOLIDAYS_EXTRA))
-        excluded, _ = parse_holidays(self.options.get(OPT_HOLIDAYS_EXCLUDED))
-        return HolidayCalendar(
-            weekend_set(self.options.get(OPT_WEEKEND_DAYS)),
-            extra,
-            excluded,
-            disabled=frozenset(self.options.get(OPT_HOLIDAYS_DISABLED) or []),
-        )
-
-    async def async_refresh_holidays(self) -> None:
-        """Read the public holidays of the coming 400 days from the calendar entity, if one is set."""
-        entity_id = self.options.get(OPT_HOLIDAY_CALENDAR)
-        if not entity_id:
-            self.calendar.from_calendar = {}
-            return
-        days = await read_calendar(self.hass, entity_id)
-        if days is not None:
-            self.calendar.from_calendar = days
-
     def set_winter_mode(self, mode: str) -> None:
         self.winter.mode = mode
         self.store.set_global("winter_mode", mode, setting=True)
@@ -483,30 +397,6 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             await self.async_tick()
 
         self._quick = async_call_later(self.hass, 3, _run)
-
-    async def _on_midnight(self, _now: datetime) -> None:
-        await self.async_refresh_holidays()
-
-    async def _on_started(self, _hass: HomeAssistant) -> None:
-        await self.async_refresh_holidays()
-
-    async def _on_started_forecast(self, _hass: HomeAssistant) -> None:
-        await self.async_refresh_forecast()
-        self.async_update_listeners()
-
-    async def _on_weather(self, event: Event[EventStateChangedData]) -> None:
-        """The weather entity appeared or became available again: read the forecast now (#67)."""
-        old, new = event.data.get("old_state"), event.data.get("new_state")
-        gone = old is None or old.state in (STATE_UNAVAILABLE, STATE_UNKNOWN)
-        if gone and new is not None and new.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            await self.async_refresh_forecast()
-            self.async_update_listeners()
-
-    async def _on_calendar(self, event: Event[EventStateChangedData]) -> None:
-        old = event.data.get("old_state")
-        if old is None or old.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) or not self.calendar.from_calendar:
-            await self.async_refresh_holidays()
-            self.async_update_listeners()
 
     def set_sleep_in_all(self, on: bool) -> None:
         for controller in self.shutters.values():
