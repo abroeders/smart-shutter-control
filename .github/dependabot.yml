@@ -1,0 +1,24 @@
+# Weekly updates of the actions (pinned to commit SHAs, #102) and the card's npm packages, against develop.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    target-branch: develop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+    groups:
+      npm:
+        patterns: ["*"]

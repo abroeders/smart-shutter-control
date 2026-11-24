@@ -61,7 +61,7 @@ describe("view model", () => {
       reason: "Sun on the window",
       detail: "→ 30 % · day",
       next: "Next: 16:55 dusk 35 %",
-      then: "then 17:10 closed",
+      after: "then 17:10 closed",
       chip: "automatic",
     });
   });

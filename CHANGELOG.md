@@ -6,6 +6,21 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.27] - 2026-11-24
+
+### Fixed
+
+- The card no longer leaves a failed service call as an unhandled error in the browser console; Home Assistant
+  still shows the error (#101).
+- Smaller code findings from SonarCloud: class constants typed as such, a simpler holiday line pattern, no
+  object with a `then` key in the card (#101).
+
+### Security
+
+- The workflows use actions pinned to a commit SHA, give write access to GitHub Pages only to the job that
+  deploys, and install npm packages without running their install scripts (#102). Dependabot keeps the actions
+  and the card's npm packages up to date (#103).
+
 ## [2026.11.26] - 2026-11-24
 
 ### Changed
@@ -468,7 +483,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.26...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.27...HEAD
+[2026.11.27]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.26...2026.11.27
 [2026.11.26]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.25...2026.11.26
 [2026.11.25]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.24...2026.11.25
 [2026.11.24]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.23...2026.11.24
