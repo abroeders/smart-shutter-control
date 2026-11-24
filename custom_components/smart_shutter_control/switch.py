@@ -57,11 +57,11 @@ class HeatProtectionSwitch(ShutterEntity, SwitchEntity):
         return self.controller.heat_protection
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        self.controller.set_heat_protection(True)
+        self.controller.heat_protection = True
         await self.coordinator.async_tick()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        self.controller.set_heat_protection(False)
+        self.controller.heat_protection = False
         await self.coordinator.async_tick()
 
 
@@ -73,11 +73,11 @@ class GlareProtectionSwitch(ShutterEntity, SwitchEntity):
         return self.controller.glare_protection
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        self.controller.set_glare_protection(True)
+        self.controller.glare_protection = True
         await self.coordinator.async_tick()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        self.controller.set_glare_protection(False)
+        self.controller.glare_protection = False
         await self.coordinator.async_tick()
 
 
