@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- *Download diagnostics* in the menu of the integration: one file with the settings and the state of the base
+  controller and every shutter, without the location and without person or device tracker entities (#91).
+
 ### Changed
 
 - The tests run on the minimum Home Assistant version as well as on the latest one; before, they ran on an older

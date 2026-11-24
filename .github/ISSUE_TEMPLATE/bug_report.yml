@@ -24,4 +24,4 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostics
-      description: Settings → Devices & services → Smart Shutter Control → ⋮ → Download diagnostics. Attach the file.
+      description: Settings → Devices & services → Smart Shutter Control → ⋮ → Download diagnostics. Check the file (location and persons are redacted, names of shutters and entity IDs are not), then attach it.

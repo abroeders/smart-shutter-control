@@ -412,6 +412,31 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         limit, value = self.sun_settings().hot_day, self.forecast_max
         return value is not None and limit is not None and value >= limit
 
+    def diagnostics(self) -> dict:
+        """The base controller's runtime state for the diagnostics file: what its entities show."""
+        sun = self.inputs.sun
+        days = {day for cell in self.sunny.reference.cells.values() for day in cell}
+        return {
+            "paused": not self.automatic_all,
+            "sun": {
+                "elevation": None if sun is None else round(sun.elevation, 1),
+                "azimuth": None if sun is None else round(sun.azimuth, 1),
+                "source": self.sunny.source,
+                "factor": self.sunny.factor,
+                "sunny": self.sunny.sunny,
+            },
+            "weather": {
+                "outdoor": self.inputs.outdoor,
+                "wind": self.inputs.wind,
+                "storm": self.storm.active,
+                "frost": self.frost.active,
+                "forecast_max": self.forecast_max,
+                "winter": self.winter.active,
+                "hot_day": self.hot_day,
+            },
+            "clear_sky_reference": {"cells": len(self.sunny.reference.cells), "days": len(days)},
+        }
+
     async def _on_forecast(self, _now: datetime) -> None:
         await self.async_refresh_forecast()
 
