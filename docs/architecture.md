@@ -48,7 +48,7 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | Single responsibility | one module per concern; one class per rule |
 | Dependency inversion | `core/` depends on its own protocols, not on Home Assistant |
 | **Chain of responsibility** | `RuleChain` asks every `Rule` by priority: the first target wins, caps may lower it, a final target (safety) is not lowered (#2, #3) |
-| **State** | `HeatProtectionRule` phases open → pending → shading → leaving (#3); `DaySchedule` phases night → slit → day → dusk (#4); `ManualDetector` idle → commanded → manual (#5) |
+| **State** | `ProtectionState` phases open → pending → shading → leaving, shared by heat and glare protection (#3, #95); `DaySchedule` phases night → slit → day → dusk (#4); `ManualDetector` idle → commanded → manual (#5) |
 | **Template / inheritance of settings** | `merged(base, overrides)`: every shutter takes the base schedule unless it overrides a setting (#4) |
 | **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
 | **Decorator (floor)** | `raise_to` puts the window and door contacts' floor over the chain's decision without the rules knowing about it (#49) |
@@ -479,7 +479,17 @@ classDiagram
         +phase Phase
         +sun_on bool
         +incidence float|None
+        +state ProtectionState
         +propose(ctx) Decision|None
+    }
+    class ProtectionState {
+        +phase Phase
+        +since float
+        +started bool
+        +active bool
+        +step(wanted, gone, now, close_delay, open_delay) Phase
+        +reset()
+        +remaining(now, delay) int
     }
     class Decision {
         +position int|None
@@ -490,6 +500,7 @@ classDiagram
     SunnyDetector o-- ClearSkyReference
     HeatProtectionRule ..> WindowGeometry
     HeatProtectionRule ..> Decision : cap
+    HeatProtectionRule *-- ProtectionState
     BaseCoordinator o-- SunnyDetector
     BaseCoordinator ..> SunPosition : once per tick
     ShutterController o-- HeatProtectionRule
@@ -528,6 +539,10 @@ stateDiagram-v2
     Leaving --> Shading: conditions back
     Leaving --> Open: open_delay passed, or the sun left the window
 ```
+
+The phases are kept by `ProtectionState` (`core/protection.py`, #95): the rule decides whether shading is
+*wanted* and whether the sun is *gone* (which skips the open delay); `step` applies the delays. Glare
+protection uses the same class (section 13).
 
 The learned clear-sky reference is kept with the runtime state (`RuntimeStore.globals`, saved every few
 minutes).
@@ -905,8 +920,12 @@ classDiagram
         +priority 41
         +settings SunSettings
         +day_phase(now) Phase
+        +state ProtectionState
         +phase Phase
         +propose(ctx) Decision|None
+    }
+    class ProtectionState {
+        +step(wanted, gone, now, close_delay, open_delay) Phase
     }
     class HeatProtectionRule {
         <<cap>>
@@ -928,6 +947,8 @@ classDiagram
     HeatProtectionRule ..> WindowGeometry
     GlareProtectionRule ..> ShutterContext
     GlareProtectionRule ..> ScheduleRule : day phase
+    GlareProtectionRule *-- ProtectionState
+    HeatProtectionRule *-- ProtectionState
     ShutterController o-- GlareProtectionRule
 ```
 
@@ -943,7 +964,7 @@ stateDiagram-v2
     Leaving --> Open: open_delay passed, the sun left the window, or the day phase ended
 ```
 
-`GlareProtectionRule` reuses the phases of heat protection (`core.heat.Phase`) and its `SunSettings` (largest
+`GlareProtectionRule` shares the state machine of heat protection (`ProtectionState`, #95) and its `SunSettings` (largest
 angle of incidence, delays), but not the temperature. The sun factor is `Inputs.sun_factor`: the base
 controller's, or the facade sensor's when the shutter has one. Its phase is the attribute `glare_phase` of
 *Sun on the window*. The switch *Glare protection* and the numbers *Glare position* and *Glare from* are kept

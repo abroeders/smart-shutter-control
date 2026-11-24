@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import StrEnum
 
 from .model import Decision, Kind, Reason, ShutterContext
+from .protection import Phase, ProtectionState
 from .shading import DepthShading
 from .sun import WindowGeometry
 
@@ -22,13 +22,6 @@ class SunSettings:
     hot_day: float | None = 28.0  # °C forecast maximum from which the temperature limits do not apply (#50)
 
 
-class Phase(StrEnum):
-    OPEN = "open"
-    PENDING = "pending"  # conditions met, waiting for close_delay
-    SHADING = "shading"
-    LEAVING = "leaving"  # conditions gone, waiting for open_delay
-
-
 class HeatProtectionRule:
     """A cap: at most the shading position while the sun is on the window, it is sunny and warm."""
 
@@ -39,9 +32,7 @@ class HeatProtectionRule:
         self.settings = settings
         self.why: tuple[str, dict] | None = None  # (#56)
         self.shade = DepthShading()  # the position from the sun with a room geometry (#55)
-        self.phase = Phase.OPEN
-        self.since = 0.0
-        self.started = False  # the first evaluation after a (re)start acts without the close delay
+        self.state = ProtectionState()
         self.incidence: float | None = None
         self.sun_on: bool = False
 
@@ -59,14 +50,15 @@ class HeatProtectionRule:
             room is not None and room >= self.settings.heat_room
         )
 
-    def _go(self, phase: Phase, now: float) -> None:
-        if phase is not self.phase:
-            self.phase, self.since = phase, now
+    @property
+    def phase(self) -> Phase:
+        return self.state.phase
 
     def propose(self, ctx: ShutterContext) -> Decision | None:
         sun, now = ctx.inputs.sun, ctx.inputs.now
         if not ctx.heat_protection or sun is None:
-            self.phase, self.sun_on, self.incidence = Phase.OPEN, False, None
+            self.state.reset()
+            self.sun_on, self.incidence = False, None
             self.why = ("off", {}) if not ctx.heat_protection else ("night", {})
             return None
         cfg = ctx.config
@@ -74,24 +66,10 @@ class HeatProtectionRule:
         self.incidence = window.incidence(sun)
         self.sun_on = window.sun_on(sun, self.settings.max_incidence)
         wanted = self.sun_on and ctx.inputs.sunny and self._warm(ctx)
-        if self.phase is Phase.OPEN and wanted:
-            # after a restart the conditions held already: no need to wait (and to open meanwhile)
-            self._go(Phase.SHADING if not self.started else Phase.PENDING, now)
-        self.started = True
-        if self.phase is Phase.PENDING:
-            if not wanted:
-                self._go(Phase.OPEN, now)
-            elif now - self.since >= self.settings.close_delay:
-                self._go(Phase.SHADING, now)
-        if self.phase is Phase.SHADING and not wanted:
-            self._go(Phase.LEAVING, now)
-        if self.phase is Phase.LEAVING:
-            if wanted:
-                self._go(Phase.SHADING, now)
-            elif not self.sun_on or now - self.since >= self.settings.open_delay:
-                self._go(Phase.OPEN, now)
+        s = self.settings
+        self.state.step(wanted, not self.sun_on, now, s.close_delay, s.open_delay)
         self.why = self._why(ctx, window, sun, now)
-        if self.phase in (Phase.SHADING, Phase.LEAVING):
+        if self.state.active:
             position = self.shade(now, cfg.room, sun, cfg.azimuth, cfg.tilt, ctx.shading_position)
             return Decision(position, Reason.SUN, Kind.CAP)
         self.shade.reset()
@@ -99,9 +77,9 @@ class HeatProtectionRule:
 
     def _why(self, ctx: ShutterContext, window: WindowGeometry, sun, now: float) -> tuple[str, dict] | None:
         if self.phase is Phase.PENDING:
-            return "waiting", {"seconds": round(self.settings.close_delay - (now - self.since))}
+            return "waiting", {"seconds": self.state.remaining(now, self.settings.close_delay)}
         if self.phase is Phase.LEAVING:
-            return "leaving", {"seconds": round(self.settings.open_delay - (now - self.since))}
+            return "leaving", {"seconds": self.state.remaining(now, self.settings.open_delay)}
         if self.phase is Phase.SHADING:
             return None
         off = window.why_not(sun, self.settings.max_incidence)
