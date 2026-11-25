@@ -15,6 +15,7 @@ KEEP_DAYS = 30
 MIN_DAYS = 7  # days with data before a cell is trusted
 PERCENTILE = 0.95
 HYSTERESIS = 0.15
+LOW_SUN = 10.0  # degrees: below this the young PV curve is unreliable (diffuse light), #107
 
 
 def _cell(sun: SunPosition) -> str:
@@ -50,6 +51,10 @@ class ClearSkyReference:
             return None
         return _percentile(list(days.values()), PERCENTILE)
 
+    def days(self, sun: SunPosition) -> int:
+        """Days with data in the sky cell of this position of the sun (learned from `MIN_DAYS`)."""
+        return len(self.cells.get(_cell(sun), {}))
+
     def to_dict(self) -> dict:
         return self.cells
 
@@ -65,19 +70,28 @@ LUX_HYSTERESIS = 0.2  # share of the limit
 
 @dataclass
 class PvBaseline:
-    """PV power: while young, a rough clear-sky curve from the panels' peak power (if known)."""
+    """PV power: while young, a rough clear-sky curve from the panels' peak power (if known). The curve
+    only models direct light, so it never drops below its value at `LOW_SUN`, and below `LOW_SUN` the
+    weather decides (#107)."""
 
     pv_peak_kw: float | None = None
     learned: ClassVar[str] = "learned"
     young: ClassVar[str] = "pv_peak"
+    low_sun_source: ClassVar[str] = "pv_peak_weather"
 
     def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
         if not self.pv_peak_kw:
             return None
-        return 0.8 * self.pv_peak_kw * 1000 * math.sin(math.radians(sun.elevation))
+        return 0.8 * self.pv_peak_kw * 1000 * math.sin(math.radians(max(sun.elevation, LOW_SUN)))
 
     def hysteresis(self, threshold: float, young: bool) -> float:
         return HYSTERESIS
+
+    def low_sun(self, sun: SunPosition, weather: str | None) -> bool | None:
+        """While young: sunny by the weather at a low sun; None leaves it to the factor."""
+        if weather is None or sun.elevation >= LOW_SUN:
+            return None
+        return weather in SUNNY_WEATHER
 
 
 @dataclass
@@ -88,12 +102,16 @@ class LuxBaseline:
     limit_lux: float = LUX_LIMIT
     learned: ClassVar[str] = "lux_learned"
     young: ClassVar[str] = "lux_limit"
+    low_sun_source: ClassVar[str] = "lux_limit"
 
     def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
         return self.limit_lux / threshold if threshold > 0 else None
 
     def hysteresis(self, threshold: float, young: bool) -> float:
         return threshold * LUX_HYSTERESIS if young else HYSTERESIS
+
+    def low_sun(self, sun: SunPosition, weather: str | None) -> bool | None:
+        return None  # a light sensor measures the light at the facade itself
 
 
 @dataclass
@@ -139,6 +157,8 @@ class SunnyDetector:
             self.factor = max(0.0, min(1.0, value / ref))
             limit = self.threshold - base.hysteresis(self.threshold, young) if self.sunny else self.threshold
             self.sunny = self.factor >= limit
+            if young and (by_weather := base.low_sun(sun, weather)) is not None:
+                self.source, self.sunny = base.low_sun_source, by_weather
         elif weather is not None:
             self.factor, self.source = None, "weather"
             self.sunny = weather in SUNNY_WEATHER

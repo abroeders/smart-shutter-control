@@ -468,6 +468,7 @@ classDiagram
         +cells dict
         +observe(sun, pv_power, now)
         +reference(sun) float|None
+        +days(sun) int
         +to_dict() dict
         +from_dict(data)$
     }
@@ -525,7 +526,7 @@ sequenceDiagram
     participant H as HeatProtectionRule
     C->>SP: at(latitude, longitude, now)
     C->>SD: update(sun, PV power or lux, weather)
-    SD-->>C: sunny, factor, source (learned / pv_peak / lux_learned / lux_limit / weather / geometry)
+    SD-->>C: sunny, factor, source (learned / pv_peak / pv_peak_weather / lux_learned / lux_limit / weather / geometry)
     C->>SC: async_evaluate(inputs with sun and sunny)
     SC->>R: decide(ctx: room temperature, heat protection, shading position)
     R->>H: propose(ctx)
@@ -840,12 +841,14 @@ classDiagram
         +pv_peak_kw
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
+        +low_sun(sun, weather) bool|None
     }
     class LuxBaseline {
         <<strategy>>
         +limit_lux
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
+        +low_sun(sun, weather) bool|None
     }
     SunnyDetector o-- ClearSkyReference
     SunnyDetector o-- PvBaseline
@@ -857,6 +860,10 @@ classDiagram
 `BaseCoordinator.sun_value()` gives the PV sum or the highest lux, by the sun source. The learned references
 are stored under `clear_sky` (PV) and `clear_sky_lux` (light), a facade sensor's with its shutter. A shutter
 with a facade sensor replaces `sunny` and `sun_factor` in its copy of the inputs before the rules run.
+
+While the PV reference is young, `PvBaseline` never lets the rough curve drop below its value at 10°
+elevation, and below 10° `low_sun()` lets the weather condition decide (`source` `pv_peak_weather`);
+`LuxBaseline.low_sun()` has no opinion. Design: [`design/2026-11-25-low-sun-factor.md`](design/2026-11-25-low-sun-factor.md) (#107).
 
 ## 12. The view through the window (#30, #34)
 

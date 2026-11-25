@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- Glare and heat protection no longer take a grey morning or evening for bright sun while the clear-sky PV
+  reference is still being learned: the rough curve from the PV peak power never drops below its value at 10°
+  sun elevation, and below 10° the weather condition decides. The sun factor shows the learning progress in the
+  attributes `learned_days` and `learned_days_needed` (#107).
+
 ## [2026.11.28] - 2026-11-24
 
 ### Changed

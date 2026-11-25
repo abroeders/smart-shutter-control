@@ -6,7 +6,7 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 
 | Entity | Shows or does |
 |---|---|
-| sensor *Sun factor* | PV power or illuminance as % of its learned clear-sky value for this position of the sun; attributes `source` (`learned`, `pv_peak`, `lux_learned`, `lux_limit`, `weather`, `geometry`), `sun_source`, `weather`, `cloud_coverage` (%, from the weather entity, for the card), `lux`, `sun_azimuth`, `sun_elevation` |
+| sensor *Sun factor* | PV power or illuminance as % of its learned clear-sky value for this position of the sun; attributes `source` (`learned`, `pv_peak`, `pv_peak_weather`, `lux_learned`, `lux_limit`, `weather`, `geometry`), `sun_source`, `weather`, `cloud_coverage` (%, from the weather entity, for the card), `lux`, `sun_azimuth`, `sun_elevation`, `learned_days` (days with data for the current position of the sun) and `learned_days_needed` (7: from then on `source` is `learned`) |
 | sensor *Forecast maximum* | today's maximum temperature from the weather entity's daily forecast; attribute `date` |
 | binary_sensor *Sunny* | sun factor above the threshold (with hysteresis) |
 | binary_sensor *Hot day* | today's forecast maximum reaches the base hot-day limit; attributes `forecast_max`, `limit` |

@@ -70,6 +70,55 @@ def test_sunny_detector_fallbacks_and_hysteresis():
     assert SunnyDetector().update(sun, None, None) and not SunnyDetector().update(SunPosition(180, -5), None)
 
 
+def test_young_pv_reference_has_a_floor_at_a_low_sun():
+    """#107: diffuse light at a low sun; the curve never drops below its value at 10°."""
+    low = SunPosition(130, 4)
+    d = SunnyDetector(pv_peak_kw=5.0)  # floor: 0.8·5000·sin 10° ≈ 695 W (at 4° the curve gave 279 W)
+    assert not d.update(low, 250, now=0) and d.source == "pv_peak"  # overcast: 0.36 instead of 0.9
+    assert d.factor is not None and round(d.factor, 2) == 0.36
+    assert d.update(low, 600, now=60)  # 0.86: bright enough without a weather entity
+    ten, thirty = SunnyDetector(pv_peak_kw=5.0), SunnyDetector(pv_peak_kw=5.0)
+    ten.update(SunPosition(150, 10), 500, now=0)
+    thirty.update(SunPosition(180, 30), 1000, now=0)
+    assert round(ten.factor or 0, 3) == round(500 / 694.6, 3)  # unchanged from 10°
+    assert round(thirty.factor or 0, 3) == 0.5
+
+
+def test_young_pv_at_a_low_sun_follows_the_weather():
+    low = SunPosition(130, 4)
+    cloudy = SunnyDetector(pv_peak_kw=5.0)
+    assert not cloudy.update(low, 690, "cloudy", now=0) and cloudy.source == "pv_peak_weather"
+    assert cloudy.factor is not None and cloudy.factor > 0.9  # the factor is still shown
+    clear = SunnyDetector(pv_peak_kw=5.0)
+    assert clear.update(low, 100, "sunny", now=0) and clear.source == "pv_peak_weather"
+    assert clear.update(SunPosition(135, 8), 150, "partlycloudy", now=60)
+    # from 10° the factor decides again, with the hysteresis of a sunny state
+    assert clear.update(SunPosition(140, 12), 700, "cloudy", now=120) and clear.source == "pv_peak"
+
+
+def test_learned_reference_and_lux_ignore_the_low_sun_rule():
+    from core.sunny import LuxBaseline
+
+    low = SunPosition(130, 4)
+    ref = ClearSkyReference()
+    for day in range(7):
+        ref.observe(low, 300, day * 86400)
+    learned = SunnyDetector(reference=ref, pv_peak_kw=5.0)
+    assert learned.update(low, 290, "cloudy", now=7 * 86400) and learned.source == "learned"
+    lux = SunnyDetector(threshold=0.6, baseline=LuxBaseline(30000))
+    assert lux.update(low, 40000, "cloudy", 0) and lux.source == "lux_limit"
+
+
+def test_reference_days_per_cell():
+    sun = SunPosition(130, 4)
+    ref = ClearSkyReference()
+    assert ref.days(sun) == 0
+    for day in range(40):
+        ref.observe(sun, 300, day * 86400)
+    assert ref.days(sun) == 31  # KEEP_DAYS back from today, today included
+    assert ref.days(SunPosition(200, 20)) == 0
+
+
 @dataclass
 class Fixed:
     priority: int
