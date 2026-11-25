@@ -21,6 +21,10 @@ CONF_OUTDOOR = "outdoor_temperature"
 CONF_WEATHER = "weather"
 CONF_PV_POWER = "pv_power"  # list of sensors, summed
 CONF_PV_PEAK = "pv_peak"  # kWp
+CONF_PV_TILT = "pv_tilt"  # degrees from horizontal (#110)
+CONF_PV_AZIMUTH = "pv_azimuth"  # degrees, 180 = south (#110)
+DEFAULT_PV_TILT = 35
+DEFAULT_PV_AZIMUTH = 180
 CONF_SUN_SOURCE = "sun_source"  # pv, light or none: never PV and light sensors together
 SUN_SOURCES = ["pv", "light", "none"]
 CONF_LIGHT = "light_sensors"  # list of illuminance sensors, the highest counts

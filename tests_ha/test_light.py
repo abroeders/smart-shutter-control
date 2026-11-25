@@ -8,7 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smart_shutter_control.const import DEFAULT_OPTIONS, DOMAIN
 
-from .conftest import LIVING, OUTDOOR, add_shutter
+from .conftest import LIVING, OUTDOOR, add_shutter, setup_base
 from .test_schedule import amsterdam, eid, report  # noqa: F401  (fixture)
 
 LUX_A, LUX_B, FACADE = "sensor.lux_garden", "sensor.lux_roof", "sensor.lux_facade"
@@ -51,6 +51,22 @@ async def test_light_source_flow_and_saturation_note(hass: HomeAssistant) -> Non
         )
     assert result["type"] is FlowResultType.CREATE_ENTRY  # … then saved anyway
     assert "pv_power" not in result["data"] and result["data"]["light_sensors"] == [LUX_A]
+
+
+async def test_switching_to_light_drops_the_panel_orientation(hass: HomeAssistant, covers) -> None:
+    entry = await setup_base(hass)
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "pv_tilt": 40, "pv_azimuth": 182})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"outdoor_temperature": OUTDOOR, "sun_source": "light"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"light_sensors": [LUX_A], "lux_limit": 30000}
+    )
+    await hass.async_block_till_done()
+    assert "pv_tilt" not in entry.data and "pv_azimuth" not in entry.data  # (#110)
 
 
 async def test_switching_source_drops_the_other_fields(hass: HomeAssistant) -> None:

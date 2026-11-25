@@ -36,8 +36,9 @@ maximum position; by hand it can.
 **My shutters went down for glare on a grey morning. Why?**
 In the first weeks the integration has not learned the clear-sky PV power for every position of the sun yet
 (sun factor attribute `learned_days` below `learned_days_needed`) and uses a rough curve from the PV peak
-power. With the sun low that curve is unreliable; below 10° elevation the weather entity then decides. Without
-a weather entity, add one, or raise *Glare from* for the first weeks.
+power. Set *Panel tilt* and *Panel direction* of your panels (reconfigure the base controller) so that curve
+fits; while it is young, a weather entity that reports a cloudy sky also prevents bright sun. Without a weather
+entity, add one, or raise *Glare from* for the first weeks.
 
 **I stopped or reversed the shutter while it was moving, and it went back. Why?**
 Since #108 a reversal during an automatic move is recognised as manual. Stopping halfway is recognised only
