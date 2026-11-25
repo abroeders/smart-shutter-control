@@ -38,11 +38,37 @@ proposed nothing (`why` with `values`), for example:
 Codes: `off`, `night`, `below_horizon`, `above_overhang`, `not_facing` (the sun is not in front of the
 window), `not_sunny`, `too_cold`, `waiting` / `leaving` (seconds until the delay ends), `bright` /
 `not_bright` (sun factor against *Glare from*), `not_day`, `phase`, `calm`, `no_frost`, `within_limits`,
-`no_pause`, `not_cold`. The card shows the list under **Why?**. The attribute is not recorded in the
+`no_pause`, `not_cold`, `locked` / `unlocked` (the lock rule), and for the door floors (listed as
+`contacts`, before all rules) `opened`, `opened_hold`, `tilted`, `tilted_hold` and `contacts_closed`. The card shows the list under **Why?**. The attribute is not recorded in the
 history (it changes on every evaluation).
 
 **Moves only at changes.** The schedule's target is sent when a phase starts, when a setting changes, or when
 a higher rule ends. A shutter moved in the middle of a phase is left there until the next phase.
+
+### Which rule wins (examples)
+
+The rules are asked from the top; the first one with a target decides, caps only lower it. `cover.living_room`
+has *Maximum position* 100 %, *Heat protection position* 30 %, *Glare position* 40 %. Evening 22:00 is night
+(target 0 %), the day phase wants 100 %.
+
+| Situation | Proposals | Result | *Reason* |
+|---|---|---|---|
+| Day, sunny and 30 °C, sun on the window | heat: cap 30 %, schedule: 100 % | 30 % | heat protection |
+| Same, and bright sun (glare 40 %) | heat cap 30 %, glare cap 40 % | 30 %: the lowest cap | heat protection |
+| Same, and a storm (mode *nearest*) | storm (final): the others want 30 %, below 50 → closed end | 0 % | storm |
+| Storm, and the others want 100 % (no sun) | storm: 100 is at least 50 → open end | 100 % | storm |
+| You press the wall switch at 10:00 in the middle of a heat phase | manual pause (final) | stays where you put it until the next phase | manual |
+| 10:00, lock *Force open* set by an automation, sunny and hot | lock (final) | 100 % | locked |
+| Same lock, and frost | frost (final, comes first) | not moved | frost |
+| Close below 5 °C, outdoor 3 °C, you open the shutter by hand | temperature limits (15) before manual (20) | closed again within seconds | temperature limits |
+| Day, no sun, 15 °C, sleep-in active | sleep-in 0 % | 0 % until the sleep-in time | sleep-in |
+| Day, heat cap 30 %, *Maximum position* 80 % | heat cap 30 %; the maximum only limits upward | 30 % | heat protection |
+| Day wants 100 %, *Maximum position* 80 % | schedule 100 % | 80 % | schedule |
+| Door open, *Lockout position* 100 %, heat cap 30 % | floor after the rules | 100 % | lockout |
+| Window tilted, *Ventilation position* 50 %, heat cap 30 % | floor after the rules raises 30 → 50 | 50 % | ventilation |
+
+A floor from a contact only **raises**: with the shutter at 30 % and a ventilation position of 20 %, nothing
+moves. A cap only lowers: a shutter already at 20 % is not raised to 30 % by heat protection.
 
 ```mermaid
 flowchart LR
@@ -121,12 +147,41 @@ Without values (or without a sun source) it uses the weather entity's condition,
 motion sensors measure only up to a few thousand lux and cannot tell sun from bright cloud: the sources page
 shows each sensor's highest value of the last 30 days.
 
+### Sun factor and glare threshold: examples
+
+**Learned reference (PV).** `sensor.pv_power` reached 4 000 W on the clearest days around this sun position
+(the reference). Then:
+
+| `sensor.pv_power` | Sun factor | Sunny? |
+|---|---|---|
+| 1 600 W | 40 % | no |
+| 2 400 W | 60 % | yes, from here |
+| 2 000 W | 50 % | still yes (the sunny state is kept down to 45 %) |
+| 1 700 W | 42 % | no, below 45 % (1 800 W) |
+| 2 800 W | 70 % | yes; with *Glare from* 70 % glare protection starts |
+| 2 200 W | 55 % | still glare (it holds until 15 points below *Glare from*) |
+| 2 000 W | 50 % | glare ends |
+
+**Young reference, PV peak power.** With 5 kWp, panels at 35° facing south and the sun at elevation 55° due
+south, the sun is straight onto the panels: the rough curve expects 0.8 × 5 000 W = 4 000 W. Sunny from
+2 400 W. A grey sky from the weather entity still vetoes it from 10° elevation up.
+
+**Young reference, light sensor.** Fixed limit 30 000 lx corresponds to a reference of 50 000 lx. 35 000 lx is
+70 %, so it just reaches *Glare from* 70 %; sunny from 30 000 lx, not sunny below 24 000 lx.
+
+Raise *Glare from* (80 %) if the shutter lowers for light that does not bother you; lower it (50 %) to react
+earlier.
+
 ## Heat protection
 
 When the sun is on the window, it is sunny, and it is warm (outdoor or room temperature at or above the
 limit), the shutter goes down to its heat protection position after 5 minutes. It goes up again 20 minutes after
 one of these stops, or at once when the sun has moved past the window. Passing clouds do not make it move up
 and down.
+
+Heat protection also starts when neither an outdoor nor a room temperature is available (it counts as warm).
+After a restart, a shutter whose conditions already hold goes to the heat protection position at once, without the 5 minutes.
+Manual pause, sleep-in and lock survive a restart.
 
 **Hot day.** With a weather entity, the integration reads today's maximum from its daily forecast at start
 (also once the weather entity is there) and every 30 minutes. When it reaches *Hot day from (forecast)* (28 °C; a shutter may use its own value),
@@ -183,7 +238,25 @@ Automatic control **resumes**:
 - with the button *Resume automatic control*, or by turning *Automatic control* on: the shutter moves at once;
 - when you move the shutter by hand to the position automatic control wants anyway.
 
-A manual action also ends sleep-in. Storm still acts during a pause.
+A manual action also ends sleep-in. Storm still acts during a pause, and so do the temperature limits (they come
+before the pause).
+
+**Examples** for `cover.living_room`, with the default *pause until the next phase*. The day phase starts at
+07:00, dusk at 20:00:
+
+| Time | What happens | Result |
+|---|---|---|
+| 09:00 | you close the shutter at the wall switch | paused; heat protection and schedule leave it alone |
+| 15:00 | still paused, the sun is on the window and it is 30 °C | stays closed; no heat move |
+| 20:00 | dusk phase begins | pause over; the shutter moves to the dusk position |
+
+With *pause for a while* (120 min), the same switch at 09:00 gives control back at 11:00: the shutter then
+moves to what is wanted. With *ignore* there is no pause at all: the next evaluation (within seconds) sends
+the wanted position again, so the shutter goes back almost at once. Use that if you want the wall switch only
+to nudge, not to override.
+
+If at 09:00 the wanted position is 100 % and you open the shutter to 100 % by hand, the pause ends at once
+(you did what automatic control wants).
 
 ## Locks
 
@@ -222,6 +295,16 @@ has expired. A lock and its end time survive a restart. While the calibration as
 
 The sensor *Reason* shows *locked*, and the decision trace says which mode.
 
+**Examples.** `cover.living_room` has a daily schedule and heat protection:
+
+| Automation sets | At 14:00, sunny and 30 °C | Result |
+|---|---|---|
+| `hold`, 120 minutes, at 13:00 | heat protection wants 30 % | the shutter stays where it is until 15:00; then it moves to 30 % |
+| `force_open`, no duration | would go down | 100 % until the lock is set to `none` |
+| `force_closed` for 60 minutes (movie) | – | 0 % until the hour is over; then what the rules want |
+| `hold`, then you press the wall switch | – | the lock ends; the usual manual pause follows |
+| `hold` while the wind is over the limit | storm decides | the shutter goes to the storm position; the hold applies again after the storm |
+
 ## Lockout and ventilation
 
 An opened contact raises the shutter at once to its lockout position and holds it there while the door or
@@ -238,6 +321,20 @@ switch off or with the whole integration paused. A contact that is unavailable k
 When a contact closes, the floor continues for one minute so a short walk in or out does not move the shutter.
 After the hold, the shutter goes to the position the rules want. The *Reason* is *lockout* or
 *ventilation* while the contact raises or holds it.
+
+**Examples.** `cover.living_room` has *Lockout position* 100 %, *Ventilation position* 30 %, *Maximum position* 80 %,
+and the schedule has closed it (0 %) for the night. `binary_sensor.terrace_door` is the opened contact,
+`binary_sensor.kitchen_window` the tilted one:
+
+| Moment | Result |
+|---|---|
+| 22:00 terrace door opens | the shutter goes to 100 % (above the maximum: safety first) |
+| 22:05 door closes | stays at 100 % for 60 s, then goes to 0 % |
+| 22:10 the door is closed and the window is tilted (the kitchen window's own shutter works the same) | the shutter goes to 30 % and holds there |
+| 22:15 both open and tilted | 100 %: opened wins |
+| in a storm with the terrace door open | 100 %: the lockout floor means fully open |
+| frost, door open | not moved: the shutter may be frozen |
+| *Ventilation position* empty | the shutter goes to the slit, the smallest gap that is above closed |
 
 ## Did the move arrive?
 

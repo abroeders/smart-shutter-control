@@ -56,6 +56,20 @@ With a **motor power sensor** the assistant sees when the motor stops; without o
 also asks the module for its position every 5 seconds, so a module that does not report by itself is still
 seen to arrive, and the assistant goes on as soon as the position is there.
 
+### Worked example
+
+The window of `cover.living_room` is 150 cm high. The assistant closes the shutter and lifts it in steps of 2 %.
+At 34 % the bottom bar has left the sill, so the lift point is 34 % and the **slit** is the step before: 32 %.
+The four points going up are spread over the travel above the lift point (66 %), at 15, 40, 65 and 90 % of
+it: module positions 44, 60, 77 and 93. At each one you measure the opening below the bar, for example 18 cm
+at 44 %, which you enter as 18 (cm), about 12 % of the window. Going down the same positions are measured
+again. The result might read: *50 % is reached at module position 66 going up and 71 going down*. A target of
+50 % then sends 66 when the shutter comes from below and 71 when it comes from above.
+
+**Reading the result.** A difference of about 2 % or less between the directions: equally fast. More than 5 %:
+the motor is slower in one direction, and the model takes care of it; check the fit shown per direction.
+The fit is good when it stays within 3 % of the window.
+
 **Add a calibration point** moves the shutter from closed (↑) or from open (↓) to a module position you
 choose, and asks for the opening. Use it to improve a curve without measuring everything again.
 
@@ -79,6 +93,15 @@ window the same calibration.
   came from below (up) or from above (down). A cell may stay empty.
 - **Slit going up / going down:** the module position with the slat gaps open and the bottom bar still on
   the sill (optional).
+
+Values are checked on *Submit*:
+
+| Message | Meaning |
+|---|---|
+| module position out of range / twice | a module position must be 1 to 99 and appear once |
+| opening out of range | an opening must be 0 to 100 (%) |
+| too few points | at least one direction needs two points |
+| opening falls | in one direction the opening may not decrease as the module position rises |
 
 At least one direction needs two points; a direction with fewer uses the other one. Per direction the
 opening may not fall while the module position rises. After *Submit* you see the result (the module position

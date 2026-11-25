@@ -34,6 +34,31 @@ Lock them from an automation with the action `smart_shutter_control.set_lock`: *
 *Force open*, or *Hold* to keep them where they are. Storm and frost still come first, and an open door still
 raises a closed shutter. See [Actions](actions.md).
 
+**How do I find my window direction?**
+Hold a compass app flat against the glass with its top edge pointing out of the window: the reading is the
+direction. South is 180°, west 270°. A window facing 20° west of south is 200°. With a wrong value the sun is
+on the window at the wrong time of day: check the binary sensor *Sun on the window* at noon (south) or in the
+evening (west). More in [Configuration](configuration.md#window-direction-tilt-and-sun-elevations).
+
+**What is the difference between *Maximum position* and *Open position*?**
+*Open position* is what the schedule asks in the day phase. *Maximum position* limits every automatic target
+(not closing). With an *Open position* of 100 % and a *Maximum position* of 80 %, the shutter opens to 80 %;
+with an *Open position* of 60 % and a maximum of 80 %, to 60 %. See [Maximum position](configuration.md#maximum-position).
+
+**Two rules disagree. Which one wins?**
+The one with the lower priority number, except that heat and glare protection only lower and the lowest wins.
+Storm, frost, lock, temperature limits and manual pause come first. See
+[Which rule wins](how-it-works.md#which-rule-wins-examples).
+
+**I changed a value in the shutter's Settings, but nothing changes.**
+The maximum position, the heat and glare positions, *Glare from* and the switches *Heat protection* and *Glare protection* are also entities.
+Once you have changed the entity, its value is kept. Change it on the entity (see
+[Entities](entities.md#each-shutter)).
+
+**Sleep in: what does it do?**
+The switch *Sleep in* keeps the shutter closed in the coming slit and day phases, until *Sleep in until* (say
+09:00) or until a manual action. Switched on after 09:00, it applies to tomorrow morning.
+
 **Why does the shutter not open fully?**
 Check the *Maximum position* and the *Open position* of the schedule. Automatic control never goes above the
 maximum position; by hand it can.
@@ -59,13 +84,14 @@ limits from those. A gust value from a weather service is often more representat
 | Problem | Check |
 |---|---|
 | The shutter does not move | sensor *Reason*: off (switch *Automatic control*), manual (button *Resume*), frost, or the shutter is already at the target |
-| It moves back after I moved it | *After a manual action* is *ignore*, or a storm is active |
+| It moves back after I moved it | *After a manual action* is *ignore*, or a storm is active, or a temperature limit (*Close above* / *Close below*) applies: those come before the manual pause |
 | It goes up and down with clouds | raise *Open after*, or lower *Sunny from* |
 | The low winter sun shines into the room | switch on *Glare protection* for that shutter; set *Glare position* and *Glare from* |
 | Heat protection never acts | binary sensor *Sun on the window* (window direction, elevations); sensor *Sun factor*; the heat limits |
 | Holidays are missing | *Configure → Holidays*: choose the calendar, then the second step lists its days. A calendar that loads late is read again when it becomes available |
 | Calibration stops early or waits long | set or check the *Motor power sensor* (it must read about 0 W at rest), or measure the *Travel time* |
 | The card is not in the card picker | reload the browser (after an update the old card may be cached) |
+| The settings form refuses a value | the message says which: a direction must be 0–360°, the lowest sun elevation below the highest, a calibration position 1–99 with no duplicates, a holiday line as `2026-12-24 name` or `12-31 name` |
 | Entity names in the wrong language | *Configure → Language*; names you changed yourself stay |
 
 **Logs:** add to `configuration.yaml` and restart:
