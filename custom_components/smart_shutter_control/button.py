@@ -24,7 +24,7 @@ class ResumeButton(ShutterEntity, ButtonEntity):
     """Ends the manual pause and moves the shutter at once to the position automatic control wants."""
 
     async def async_press(self) -> None:
-        self.controller.resume()
+        self.controller.resume_all()
         await self.coordinator.async_tick()
 
 
