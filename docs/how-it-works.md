@@ -42,6 +42,8 @@ window), `not_sunny`, `too_cold`, `waiting` / `leaving` (seconds until the delay
 `contacts`, before all rules) `opened`, `opened_hold`, `tilted`, `tilted_hold` and `contacts_closed`. The card shows the list under **Why?**. The attribute is not recorded in the
 history (it changes on every evaluation).
 
+![A shutter card with its decision list open: heat protection caps the day's 100 % at 30 %](images/card-why.png)
+
 **Moves only at changes.** The schedule's target is sent when a phase starts, when a setting changes, or when
 a higher rule ends. A shutter moved in the middle of a phase is left there until the next phase.
 

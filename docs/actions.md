@@ -6,6 +6,11 @@ Locks one or more shutters: the controller holds them, or forces them fully open
 or until you end the lock. How a lock ranks among the rules, and how it ends, is in
 [How it works](how-it-works.md#locks).
 
+![The action set_lock in Developer tools](images/ha-action-set-lock.png)
+
+The select *Lock* on each shutter's device page (see [Entities](entities.md#each-shutter)) sets the same modes
+without a duration.
+
 | Field | Required | Meaning |
 |---|---|---|
 | target | yes | one or more shutter devices of the integration (the devices of the shutters, not the base controller) |
