@@ -678,6 +678,10 @@
       "name": "Set lock",
       "description": "Holds a shutter, or forces it fully open or fully closed, for a while or until you end it. Storm and frost still come first; an open door or tilted window still raises a closed shutter.",
       "fields": {
+        "device_id": {
+          "name": "Shutters",
+          "description": "The shutter controllers to lock or release."
+        },
         "mode": {
           "name": "Mode",
           "description": "None ends the lock; hold: the controller does not move the shutter; force open: fully open (100 %); force closed: fully closed (0 %)."

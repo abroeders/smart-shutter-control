@@ -678,6 +678,10 @@
       "name": "Vergrendeling instellen",
       "description": "Houdt een rolluik vast, of dwingt het helemaal open of helemaal dicht, voor een tijd of tot je het opheft. Storm en vorst gaan nog voor; een open deur of gekanteld raam tilt een gesloten rolluik nog steeds op.",
       "fields": {
+        "device_id": {
+          "name": "Rolluiken",
+          "description": "De rolluikregelaars die je vergrendelt of vrijgeeft."
+        },
         "mode": {
           "name": "Modus",
           "description": "Geen heft de vergrendeling op; vasthouden: de regeling beweegt het rolluik niet; geforceerd open: helemaal open (100 %); geforceerd dicht: helemaal dicht (0 %)."
