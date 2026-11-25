@@ -104,10 +104,13 @@ Until a cell has 7 days of history:
 | PV power | a rough clear-sky curve from the PV peak power, if set |
 | Light sensors | sunny from a fixed limit (30 000 lx), not sunny below 80 % of it |
 
-The rough PV curve only models direct sunlight. Just after sunrise and before sunset most PV power is diffuse
-light, so the curve never drops below its value at **10°** sun elevation, and below 10° the weather entity's
-condition decides (`sunny` or `partlycloudy`: sunny); the factor is still shown, with `source`
-`pv_peak_weather`. A grey morning therefore does not count as bright sun. The sun factor's attributes
+The rough PV curve uses the sun's angle of incidence on the panels (*Panel tilt* and *Panel direction*), so a
+low winter sun on tilted panels is expected to give much more than on flat ones. It only models direct
+sunlight; at a low sun most PV power is diffuse light, so the curve never drops below its value for flat
+panels with the sun at **10°**. While the reference is young the weather entity's condition takes part: below
+10° it decides (`sunny` or `partlycloudy`: sunny), and from 10° a sky that is not sunny (`cloudy`, `rainy`,
+`fog`, …) vetoes bright sun. The factor is still shown; `source` is then `pv_peak_weather`. A grey day
+therefore does not count as bright sun. The sun factor's attributes
 `learned_days` and `learned_days_needed` show how far the current cell is learned.
 
 Without values (or without a sun source) it uses the weather entity's condition, and otherwise geometry only.

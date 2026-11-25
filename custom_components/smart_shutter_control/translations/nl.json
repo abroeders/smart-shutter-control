@@ -41,11 +41,15 @@
         "description": "Het PV-vermogen zegt hoeveel de zon schijnt: de integratie leert per zonnestand het vermogen bij heldere hemel.",
         "data": {
           "pv_power": "Pv-vermogensensoren",
-          "pv_peak": "Piekvermogen pv"
+          "pv_peak": "Piekvermogen pv",
+          "pv_tilt": "Helling panelen",
+          "pv_azimuth": "Richting panelen"
         },
         "data_description": {
           "pv_power": "Eén of meer sensoren; ze worden opgeteld. Dient als maat voor bewolking.",
-          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht."
+          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht.",
+          "pv_tilt": "Graden ten opzichte van horizontaal: 0 = plat, 90 = verticaal. Voor het verwachte vermogen bij heldere lucht zolang de integratie nog leert.",
+          "pv_azimuth": "Richting waarin de panelen kijken: 0 = noord, 90 = oost, 180 = zuid, 270 = west."
         }
       },
       "light": {

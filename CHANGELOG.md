@@ -6,6 +6,15 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.30] - 2026-11-25
+
+### Fixed
+
+- While the clear-sky PV reference is still being learned, the expected clear-sky power now follows the sun's
+  angle on the panels: new settings *Panel tilt* (default 35°) and *Panel direction* (default 180°, south) next
+  to *PV peak power*. A cloudy, rainy or foggy sky from the weather entity now prevents bright sun at every sun
+  elevation, not only below 10° (#110).
+
 ## [2026.11.29] - 2026-11-25
 
 ### Fixed
@@ -507,7 +516,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.29...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.30...HEAD
+[2026.11.30]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.29...2026.11.30
 [2026.11.29]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.28...2026.11.29
 [2026.11.28]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.27...2026.11.28
 [2026.11.27]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.26...2026.11.27
