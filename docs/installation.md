@@ -54,9 +54,10 @@ On the integration's page: **Add shutter** (once per shutter).
 
 ![Add shutter form](images/ha-install-shutter.png)
 
-1. **Shutter**: the existing cover entity. Each cover can have one controller.
+1. **Shutter**: the existing cover entity; it must support setting a position. Each cover can have one controller.
 2. **Window direction** in degrees: 0 = north, 90 = east, 180 = south, 270 = west. A compass app held
-   against the glass, facing outward, gives it within a few degrees.
+   against the glass, facing outward, gives it within a few degrees. A window that looks south-west has 225°,
+   one a little west of south 200° (more examples in [Configuration](configuration.md#window-direction-tilt-and-sun-elevations)).
 3. The other fields have sensible defaults; see [Configuration](configuration.md#a-shutter).
 
 Each shutter becomes a device under the base controller with its own entities, among them a new cover

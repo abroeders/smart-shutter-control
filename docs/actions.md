@@ -16,6 +16,10 @@ A new lock on a locked shutter replaces the old one. A device that is not a shut
 an error, and then no shutter is locked. The select *Lock* of each shutter shows the lock and sets one
 without a duration (see [Entities](entities.md#each-shutter)).
 
+The `duration` is a time such as `"02:00:00"` (two hours) or `"00:30:00"` (half an hour). Example: a `hold` of
+`"01:00:00"` set at 13:00 keeps `cover.living_room` where it is until 14:00; then it moves to what the rules
+want at that moment. Lock durations survive a restart.
+
 ### Hail warning: close for two hours
 
 ```yaml
