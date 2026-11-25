@@ -12,11 +12,17 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   open or fully closed, for a while or until it is ended, e.g. on a hail warning or while washing windows.
   Storm and frost come first, and an open door or tilted window still raises the shutter; a manual action or
   *Resume automatic control* ends the lock. Reason `locked` (#52).
+- Away and holiday: an optional presence entity (zone, person, device tracker, group or binary sensor) makes
+  the house count as away after a delay; while away, heat protection starts at lower temperatures and glare
+  protection is skipped. A switch *Holiday* also counts as away and shifts the morning and evening times at
+  random per day and per shutter, so the house looks lived in. New binary sensor *Away* (#51).
+- User guide completed with worked examples, the learning period, the PV peak power of the panels, common
+  pitfalls and screenshots of every page (#113, #114, #115).
 
 ### Fixed
 
 - The setting *Shading position* is now called *Heat protection position* (Dutch: *Hitteweringsstand*, was
-  *Schaduwstand*), so it is clear that heat protection uses it. Entity IDs do not change.
+  *Schaduwstand*), so it is clear that heat protection uses it. Entity IDs do not change (#112).
 
 ## [2026.11.30] - 2026-11-25
 
