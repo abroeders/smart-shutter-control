@@ -9,6 +9,7 @@ edit_uri: edit/develop/docs/
 docs_dir: docs
 exclude_docs: |
   design/
+  overrides/
   hooks.py
   __pycache__/
 hooks:
@@ -31,6 +32,7 @@ nav:
 
 theme:
   name: material
+  custom_dir: docs/overrides  # partials/header.html: support button in the top bar
   logo: assets/icon.svg  # brand/icon.svg, added by docs/hooks.py (#81)
   favicon: assets/icon.svg
   features:
@@ -51,6 +53,15 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Light theme
+
+extra:
+  social:
+    - icon: simple/buymeacoffee
+      link: https://www.buymeacoffee.com/abroeders
+      name: Support the development with a coffee
+    - icon: fontawesome/brands/github
+      link: https://github.com/abroeders/smart-shutter-control
+      name: Source code on GitHub
 
 extra_css:
   - stylesheets/extra.css
