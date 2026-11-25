@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from collections.abc import Callable
@@ -337,7 +338,16 @@ class ShutterController:
             return
         self._checking = True
         try:
+            if wait := self.detector.settling(now):  # stopped short: a late report may still come (#108)
+                await asyncio.sleep(wait)
             await self.adapter.async_refresh()  # not every module reports by itself (#42)
+            self.observe()  # the refreshed report may itself be manual
+            if not self.arrival.active:
+                return
+            now = time.time()
+            if self.detector.check(now):  # someone stopped the move halfway (#108)
+                self._manual(now, "switch")
+                return
             position = self.adapter.module_position()
             verdict = self.arrival.judge(position)
             if verdict is Verdict.ARRIVED:

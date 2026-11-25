@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- Pressing the switch against the direction of an automatic move, or stopping it halfway (with a motor power
+  sensor), now counts as a manual action: the manual pause starts and the shutter is not sent back (#108).
+
 ## [2026.11.28] - 2026-11-24
 
 ### Changed
