@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.31] - 2026-11-25
+
 ### Added
 
 - Action `smart_shutter_control.set_lock` and a select *Lock* per shutter: hold a shutter, or force it fully
@@ -534,7 +536,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.30...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.31...HEAD
+[2026.11.31]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.30...2026.11.31
 [2026.11.30]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.29...2026.11.30
 [2026.11.29]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.28...2026.11.29
 [2026.11.28]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.27...2026.11.28
