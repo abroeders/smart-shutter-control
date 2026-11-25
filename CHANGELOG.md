@@ -6,6 +6,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.29] - 2026-11-25
+
 ### Fixed
 
 - Glare and heat protection no longer take a grey morning or evening for bright sun while the clear-sky PV
@@ -505,7 +507,8 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.28...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.29...HEAD
+[2026.11.29]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.28...2026.11.29
 [2026.11.28]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.27...2026.11.28
 [2026.11.27]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.26...2026.11.27
 [2026.11.26]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.25...2026.11.26
