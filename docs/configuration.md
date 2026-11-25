@@ -32,6 +32,8 @@ Sun source *PV power*:
 |---|---|---|
 | PV power sensors | required | one or more, added up |
 | PV peak power (kWp) | – | a rough clear-sky curve while the learned reference is young |
+| Panel tilt | 35° | degrees from horizontal (0 = flat, 90 = vertical), for that curve |
+| Panel direction | 180° | where the panels face (0 = north, 90 = east, 180 = south, 270 = west), for that curve |
 
 Sun source *Light sensors (lux)*:
 

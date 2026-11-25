@@ -11,8 +11,10 @@ from .const import (
     CONF_LIGHT,
     CONF_LUX_LIMIT,
     CONF_OUTDOOR,
+    CONF_PV_AZIMUTH,
     CONF_PV_PEAK,
     CONF_PV_POWER,
+    CONF_PV_TILT,
     CONF_SUN_DEPTH,
     CONF_SUN_SOURCE,
     CONF_WEATHER,
@@ -21,6 +23,8 @@ from .const import (
     CONF_WINDOW_HEIGHT,
     CONF_WINDOW_SILL,
     DEFAULT_LUX_LIMIT,
+    DEFAULT_PV_AZIMUTH,
+    DEFAULT_PV_TILT,
     OPT_CLOSE_ABOVE,
     OPT_CLOSE_BELOW,
     OPT_FROST_LIMIT,
@@ -256,10 +260,12 @@ SUN_FIELDS: dict[str, dict] = {
     "pv": {
         vol.Required(CONF_PV_POWER): _sensor("power", multiple=True),
         vol.Optional(CONF_PV_PEAK): _number(0.1, 100, 0.1, "kWp"),
+        vol.Optional(CONF_PV_TILT, default=DEFAULT_PV_TILT): _number(0, 90, 1, "°"),
+        vol.Optional(CONF_PV_AZIMUTH, default=DEFAULT_PV_AZIMUTH): _number(0, 359, 1, "°"),
     },
     "light": {
         vol.Required(CONF_LIGHT): _sensor("illuminance", multiple=True),
         vol.Required(CONF_LUX_LIMIT, default=DEFAULT_LUX_LIMIT): _number(1000, 150000, 1000, "lx"),
     },
 }
-SUN_KEYS = (CONF_PV_POWER, CONF_PV_PEAK, CONF_LIGHT, CONF_LUX_LIMIT)
+SUN_KEYS = (CONF_PV_POWER, CONF_PV_PEAK, CONF_PV_TILT, CONF_PV_AZIMUTH, CONF_LIGHT, CONF_LUX_LIMIT)

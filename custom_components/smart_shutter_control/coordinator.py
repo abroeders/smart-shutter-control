@@ -24,14 +24,18 @@ from .const import (
     CONF_LIGHT,
     CONF_LUX_LIMIT,
     CONF_OUTDOOR,
+    CONF_PV_AZIMUTH,
     CONF_PV_PEAK,
     CONF_PV_POWER,
+    CONF_PV_TILT,
     CONF_SUN_SOURCE,
     CONF_WEATHER,
     CONF_WIND_GUST,
     CONF_WIND_SPEED,
     DEFAULT_LUX_LIMIT,
     DEFAULT_OPTIONS,
+    DEFAULT_PV_AZIMUTH,
+    DEFAULT_PV_TILT,
     DOMAIN,
     INPUT_DEBOUNCE,
     OPT_CLOSE_ABOVE,
@@ -134,7 +138,11 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     def baseline(self) -> PvBaseline | LuxBaseline:
         if self.sun_source == "light":
             return self._lux_baseline()
-        return PvBaseline(self.sources.get(CONF_PV_PEAK))
+        return PvBaseline(
+            self.sources.get(CONF_PV_PEAK),
+            float(self.sources.get(CONF_PV_TILT, DEFAULT_PV_TILT)),
+            float(self.sources.get(CONF_PV_AZIMUTH, DEFAULT_PV_AZIMUTH)),
+        )
 
     def sun_value(self) -> float | None:
         """PV power (sum) or illuminance (highest sensor), by the sun source; None without one."""

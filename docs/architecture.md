@@ -884,16 +884,18 @@ classDiagram
     class PvBaseline {
         <<strategy>>
         +pv_peak_kw
+        +tilt
+        +azimuth
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
-        +low_sun(sun, weather) bool|None
+        +weather_rule(sun, weather, by_factor) bool|None
     }
     class LuxBaseline {
         <<strategy>>
         +limit_lux
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
-        +low_sun(sun, weather) bool|None
+        +weather_rule(sun, weather, by_factor) bool|None
     }
     SunnyDetector o-- ClearSkyReference
     SunnyDetector o-- PvBaseline
@@ -906,9 +908,11 @@ classDiagram
 are stored under `clear_sky` (PV) and `clear_sky_lux` (light), a facade sensor's with its shutter. A shutter
 with a facade sensor replaces `sunny` and `sun_factor` in its copy of the inputs before the rules run.
 
-While the PV reference is young, `PvBaseline` never lets the rough curve drop below its value at 10°
-elevation, and below 10° `low_sun()` lets the weather condition decide (`source` `pv_peak_weather`);
-`LuxBaseline.low_sun()` has no opinion. Design: [`design/2026-11-25-low-sun-factor.md`](design/2026-11-25-low-sun-factor.md) (#107).
+While the PV reference is young, `PvBaseline` computes the rough curve from the sun's angle of incidence on
+the panels (`tilt`, `azimuth`, via `WindowGeometry.incidence`, #110) and never lets it drop below its value
+for flat panels at 10° elevation. `weather_rule()` lets the weather condition decide below 10° and veto a
+bright sun from 10° when the sky is not sunny (`source` `pv_peak_weather`); `LuxBaseline.weather_rule()` has
+no opinion. Design: [`design/2026-11-25-panel-orientation.md`](design/2026-11-25-panel-orientation.md) (#110). Design: [`design/2026-11-25-low-sun-factor.md`](design/2026-11-25-low-sun-factor.md) (#107).
 
 ## 12. The view through the window (#30, #34)
 

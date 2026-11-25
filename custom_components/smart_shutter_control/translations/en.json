@@ -41,11 +41,15 @@
         "description": "The PV power tells how much the sun shines: the integration learns the clear-sky power for each position of the sun.",
         "data": {
           "pv_power": "PV power sensors",
-          "pv_peak": "PV peak power"
+          "pv_peak": "PV peak power",
+          "pv_tilt": "Panel tilt",
+          "pv_azimuth": "Panel direction"
         },
         "data_description": {
           "pv_power": "One or more sensors; they are added up. Used as a measure of clouds.",
-          "pv_peak": "Peak power of the panels, for the expected power in clear sky."
+          "pv_peak": "Peak power of the panels, for the expected power in clear sky.",
+          "pv_tilt": "Degrees from horizontal: 0 = flat, 90 = vertical. For the expected power in clear sky while the integration is still learning.",
+          "pv_azimuth": "Direction the panels face: 0 = north, 90 = east, 180 = south, 270 = west."
         }
       },
       "light": {
