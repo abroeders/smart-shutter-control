@@ -72,6 +72,8 @@ class Inputs:
     frost: bool = False
     winter: bool = False
     forecast_max: float | None = None  # today's forecast maximum temperature (#50)
+    away: bool = False  # nobody home, or holiday (#51)
+    holiday: bool = False
     extra: dict = field(default_factory=dict)
 
 

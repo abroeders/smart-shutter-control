@@ -82,7 +82,8 @@
           "schedule": "Schema",
           "holidays": "Feestdagen",
           "winter": "Winter",
-          "language": "Taal"
+          "language": "Taal",
+          "away": "Afwezig en vakantie"
         }
       },
       "storm": {
@@ -196,6 +197,22 @@
         "description": "Taal van de kaart en de namen van de entiteiten. Instelschermen en waarden in de standaardkaarten van Home Assistant volgen de taal van je profiel.",
         "data": {
           "language": "Taal"
+        }
+      },
+      "away": {
+        "title": "Afwezig en vakantie",
+        "description": "Als er niemand thuis is, begint de warmtebescherming bij lagere temperaturen en vervalt de verblindingsbescherming. Met vakantie telt het huis ook als afwezig en verschuiven de tijden van het schema willekeurig per dag en per rolluik, zodat het huis bewoond lijkt.",
+        "data": {
+          "presence": "Aanwezigheidsentiteit",
+          "away_delay": "Afwezig na",
+          "away_heat_offset": "Afwezig: warmtebescherming lager met",
+          "holiday_shift": "Vakantie: verschuiving tot"
+        },
+        "data_description": {
+          "presence": "Een zone (aantal personen erin), een persoon of device tracker, een groep, of een binaire sensor die aan is als er iemand thuis is. Leeg: nooit afwezig, behalve als de schakelaar Vakantie aan staat.",
+          "away_delay": "Minuten dat er niemand thuis moet zijn voordat het huis als afwezig telt. Thuiskomen telt meteen.",
+          "away_heat_offset": "Beide grenzen van de warmtebescherming (buiten en kamer) zijn zoveel lager als je afwezig bent.",
+          "holiday_shift": "De tijden van de ochtend en de avond verschuiven willekeurig tot zoveel minuten, eerder of later, per dag en per rolluik."
         }
       }
     },
@@ -511,6 +528,9 @@
       },
       "automatic_all": {
         "name": "Automatische sturing (alle rolluiken)"
+      },
+      "holiday_mode": {
+        "name": "Vakantie"
       }
     },
     "number": {
@@ -615,6 +635,14 @@
       },
       "hot_day": {
         "name": "Hete dag"
+      },
+      "away": {
+        "name": "Afwezig",
+        "state_attributes": {
+          "since": {
+            "name": "Sinds"
+          }
+        }
       }
     },
     "button": {

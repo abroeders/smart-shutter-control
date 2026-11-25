@@ -291,9 +291,11 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
     base_keys = sorted(e.unique_id.removeprefix(f"{entry.entry_id}_") for e in base)
     assert base_keys == [
         "automatic_all",
+        "away",
         "forecast_max",
         "frost",
         "holiday",
+        "holiday_mode",
         "hot_day",
         "sleep_in_all",
         "storm",

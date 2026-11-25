@@ -14,6 +14,8 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | binary_sensor *Storm* | storm (see [How it works](how-it-works.md#storm)) |
 | binary_sensor *Frost* | frost: no automatic moves |
 | binary_sensor *Winter* | winter mode active; attributes `mean_24h`, `mode` |
+| binary_sensor *Away* | on while the house counts as away: nobody home for the *Away after* time, or holiday; attribute `since` (when it became away; empty when home). No device class, as *Presence* would mean the opposite |
+| switch *Holiday* | on: holiday mode. The house counts as away at once and the schedule times shift at random each day. Only you or an automation turn it on; the integration never does. Kept across restarts |
 | select *Winter mode* | *Auto* (by the 24-hour mean), *On*, *Off* |
 | switch *Sleep in (all shutters)* | turns sleep-in on or off for every shutter |
 | switch *Automatic control (all shutters)* | off: no shutter moves by itself, **not even in a storm**; manual operation still works. On again: every shutter goes to its wanted position at once. The shutters' own *Automatic* switches keep their state |

@@ -82,7 +82,8 @@
           "schedule": "Schedule",
           "holidays": "Holidays",
           "winter": "Winter",
-          "language": "Language"
+          "language": "Language",
+          "away": "Away and holiday"
         }
       },
       "storm": {
@@ -196,6 +197,22 @@
         "description": "Language of the card and the entity names. Settings screens and state values in Home Assistant's own cards follow your profile language.",
         "data": {
           "language": "Language"
+        }
+      },
+      "away": {
+        "title": "Away and holiday",
+        "description": "When nobody is home, heat protection starts at lower temperatures and glare protection is skipped. On holiday the house also counts as away, and the schedule times shift at random per day and per shutter, so the house looks lived in.",
+        "data": {
+          "presence": "Presence entity",
+          "away_delay": "Away after",
+          "away_heat_offset": "Away: heat protection lower by",
+          "holiday_shift": "Holiday: time shift up to"
+        },
+        "data_description": {
+          "presence": "A zone (number of persons in it), a person or device tracker, a group, or a binary sensor that is on while somebody is home. Empty: never away, unless the Holiday switch is on.",
+          "away_delay": "Minutes nobody must be home before the house counts as away. Coming home counts at once.",
+          "away_heat_offset": "Both heat protection limits (outdoor and room) are this much lower while away.",
+          "holiday_shift": "The morning and the evening times shift by a random number of minutes up to this, earlier or later, per day and per shutter."
         }
       }
     },
@@ -511,6 +528,9 @@
       },
       "automatic_all": {
         "name": "Automatic control (all shutters)"
+      },
+      "holiday_mode": {
+        "name": "Holiday"
       }
     },
     "number": {
@@ -615,6 +635,14 @@
       },
       "hot_day": {
         "name": "Hot day"
+      },
+      "away": {
+        "name": "Away",
+        "state_attributes": {
+          "since": {
+            "name": "Since"
+          }
+        }
       }
     },
     "button": {

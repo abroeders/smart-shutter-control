@@ -50,6 +50,12 @@ Since #108 a reversal during an automatic move is recognised as manual. Stopping
 with a motor power sensor; without one the integration cannot tell a stop from a slow module and sends its
 position once more. Press the switch again, or use the button *Resume automatic control* afterwards.
 
+**Why did my shutter open 20 minutes early?**
+Probably holiday mode: with the switch *Holiday* on (see the binary sensor *Away* and the schedule's decision
+trace, `shift_morning` and `shift_evening`) every schedule time shifts by up to *Holiday: time shift up to*
+minutes (30 by default), different each day, so the house looks lived in. Turn *Holiday* off, or set the shift
+to 0, for exact times. See [Away and holiday](how-it-works.md#away-and-holiday).
+
 **Which wind sensor should I use?**
 A sheltered wind meter reads low. The storm page shows the highest values of the last 30 days; set the
 limits from those. A gust value from a weather service is often more representative.

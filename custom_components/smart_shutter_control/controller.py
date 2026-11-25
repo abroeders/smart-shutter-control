@@ -27,6 +27,7 @@ from .core.limits import PositionLimiter
 from .core.lock import Lock, LockMode
 from .core.manual import ManualDetector, ManualPause, matches
 from .core.model import Decision, Direction, Inputs, Reason, ShutterContext
+from .core.presence import ScheduleShift
 from .core.rule_factory import build_rules
 from .core.rules import RuleChain
 from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, Transition, merged, overridden
@@ -72,6 +73,7 @@ class ShutterController:
         base_schedule: dict | None = None,
         calendar: HolidayCalendar | None = None,
         safety: dict | None = None,
+        shift: Callable[[str], ScheduleShift] | None = None,
     ) -> None:
         self.hass = hass
         self.id = subentry.subentry_id
@@ -98,6 +100,7 @@ class ShutterController:
             SunTimes(hass.config.latitude, hass.config.longitude),
             calendar or HolidayCalendar(),
             dt_util.get_default_time_zone(),  # not ZoneInfo(...): that can read from disk (#87)
+            (lambda: shift(self.id)) if shift else None,  # random shifts on holiday (#51)
         )
         stored_sleep = store.get(self.id, KEY_SLEEP_IN) or {}
         self.sleep_in = SleepIn(bool(stored_sleep.get("armed")), float(stored_sleep.get("armed_at", 0.0)))
