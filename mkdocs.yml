@@ -24,6 +24,7 @@ nav:
       - Entities: entities.md
       - The card: card.md
       - How it works: how-it-works.md
+      - Actions: actions.md
       - FAQ and troubleshooting: faq.md
   - Developers:
       - Architecture: architecture.md

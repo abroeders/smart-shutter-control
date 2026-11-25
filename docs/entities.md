@@ -35,9 +35,10 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | switch *Glare protection* | glare protection for this shutter (off by default) |
 | switch *Sleep in* | stays closed in the coming slit and day phases; ends on a manual action or at *Sleep in until* |
 | binary_sensor *Stuck* (diagnostic) | on when a move did not arrive, also not after a second try; attributes `target`, `position` (module positions). A repair issue says the same; both clear at the next move that arrives (see [How it works](how-it-works.md#did-the-move-arrive)) |
-| button *Resume automatic control* | ends a manual pause and moves the shutter to the wanted position |
+| select *Lock* | *None*, *Hold*, *Force open* or *Force closed*: shows the shutter's lock and sets one without an end time; attribute `until` (the end time of a lock set with a duration, otherwise empty). See [Locks](how-it-works.md#locks) and the [action](actions.md) |
+| button *Resume automatic control* | ends a manual pause and a lock, and moves the shutter to the wanted position |
 | button *Sun has left the window* | records where the sun leaves the window now as a point of its [horizon](how-it-works.md#sun-on-the-window) |
-| sensor *Reason* | why the shutter is where it is: idle, automatic control off, automatic control paused (all shutters), manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare, lockout, ventilation. Attributes `target_position`, `max_position`, `language`, `decision` (what every rule said, see [How it works](how-it-works.md#rules-and-priorities)) |
+| sensor *Reason* | why the shutter is where it is: idle, automatic control off, automatic control paused (all shutters), manual, calibrating, sun, schedule, sleep in, storm, frost, heat limit, cold limit, winter, glare, locked, lockout, ventilation. Attributes `target_position`, `max_position`, `language`, `decision` (what every rule said, see [How it works](how-it-works.md#rules-and-priorities)) |
 | sensor *Next action* | time of the next phase change; attributes `phase`, `position`, `following` (the two after it), `overrides` |
 | sensor *Phase* | night, slit, day or dusk |
 | sensor *State* | closed, slit (gaps open, bar on the sill), partly open, open; attributes `opening`, `module_position` |

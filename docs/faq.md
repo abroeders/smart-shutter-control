@@ -29,6 +29,11 @@ Turn its switch *Automatic control* off.
 Yes. Use the integration's cover entity of the shutter (its moves count as manual), the switches
 *Automatic control* and *Sleep in*, and the button *Resume automatic control*.
 
+**How do I close all shutters for a hail warning, or leave them alone while I wash the windows?**
+Lock them from an automation with the action `smart_shutter_control.set_lock`: *Force closed* for a while,
+*Force open*, or *Hold* to keep them where they are. Storm and frost still come first, and an open door still
+raises a closed shutter. See [Actions](actions.md).
+
 **Why does the shutter not open fully?**
 Check the *Maximum position* and the *Open position* of the schedule. Automatic control never goes above the
 maximum position; by hand it can.
