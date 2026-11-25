@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .core.model import Reason
+from .core.sunny import MIN_DAYS
 from .entity import BaseEntity, ShutterEntity, add_per_shutter
 
 
@@ -112,6 +113,9 @@ class SunFactorSensor(BaseEntity, SensorEntity):
             "lux": self.coordinator.sunny.value if self.coordinator.sun_source == "light" else None,
             "sun_azimuth": None if sun is None else round(sun.azimuth, 1),
             "sun_elevation": None if sun is None else round(sun.elevation, 1),
+            # learning progress of the clear-sky reference for this position of the sun (#107)
+            "learned_days": None if sun is None else self.coordinator.sunny.reference.days(sun),
+            "learned_days_needed": MIN_DAYS,
         }
 
 

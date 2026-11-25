@@ -104,6 +104,12 @@ Until a cell has 7 days of history:
 | PV power | a rough clear-sky curve from the PV peak power, if set |
 | Light sensors | sunny from a fixed limit (30 000 lx), not sunny below 80 % of it |
 
+The rough PV curve only models direct sunlight. Just after sunrise and before sunset most PV power is diffuse
+light, so the curve never drops below its value at **10°** sun elevation, and below 10° the weather entity's
+condition decides (`sunny` or `partlycloudy`: sunny); the factor is still shown, with `source`
+`pv_peak_weather`. A grey morning therefore does not count as bright sun. The sun factor's attributes
+`learned_days` and `learned_days_needed` show how far the current cell is learned.
+
 Without values (or without a sun source) it uses the weather entity's condition, and otherwise geometry only.
 
 **Light sensors:** the highest of the base controller's sensors counts. A shutter can have its own

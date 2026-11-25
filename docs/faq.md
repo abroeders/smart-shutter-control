@@ -33,6 +33,12 @@ Yes. Use the integration's cover entity of the shutter (its moves count as manua
 Check the *Maximum position* and the *Open position* of the schedule. Automatic control never goes above the
 maximum position; by hand it can.
 
+**My shutters went down for glare on a grey morning. Why?**
+In the first weeks the integration has not learned the clear-sky PV power for every position of the sun yet
+(sun factor attribute `learned_days` below `learned_days_needed`) and uses a rough curve from the PV peak
+power. With the sun low that curve is unreliable; below 10° elevation the weather entity then decides. Without
+a weather entity, add one, or raise *Glare from* for the first weeks.
+
 **Which wind sensor should I use?**
 A sheltered wind meter reads low. The storm page shows the highest values of the last 30 days; set the
 limits from those. A gust value from a weather service is often more representative.
