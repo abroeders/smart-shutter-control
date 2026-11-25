@@ -269,6 +269,7 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
         "glare_position",
         "glare_protection",
         "heat_protection",
+        "lock",
         "manual_pause",
         "max_position",
         "next_action",

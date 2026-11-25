@@ -12,6 +12,7 @@ proposal is not changed by lower rules.
 |---|---|---|
 | 10 | storm | fully open or fully closed (final) |
 | 11 | frost | do not move (final) |
+| 12 | lock | hold, fully open or fully closed, as set by an automation (final) |
 | 15 | temperature limits | closed above *Close above* or below *Close below* (final) |
 | 20 | manual pause | leave the shutter where it was put (final) |
 | 30 | sleep-in | closed during the slit and day phases |
@@ -183,6 +184,43 @@ Automatic control **resumes**:
 - when you move the shutter by hand to the position automatic control wants anyway.
 
 A manual action also ends sleep-in. Storm still acts during a pause.
+
+## Locks
+
+An automation can lock a shutter with the [action](actions.md) `smart_shutter_control.set_lock`, or you can
+set the select *Lock* of the shutter. The lock is a rule of its own, and while it is on it decides for
+everything below it. The modes:
+
+| Mode | The shutter |
+|---|---|
+| *Hold* | is not moved by the integration; it stays where it is |
+| *Force open* | goes fully open (100 %), also above the *Maximum position*: an explicit order, like manual operation |
+| *Force closed* | goes fully closed (0 %) |
+| *None* | is not locked |
+
+**Order.** Storm comes first, then frost, then the lock: in a storm the shutter goes to the storm position
+and in frost it is not moved, whatever the lock says; the lock applies again when they end. Temperature
+limits, manual pause, sleep-in, heat and glare protection, winter and the schedule are not used while the
+lock is on.
+
+**Door floors.** The lockout and ventilation floors apply after the rules (see below): a *Force closed*
+shutter is still raised to its lockout or ventilation position while the door is open or the window is
+tilted, and goes back to closed afterwards. The *Reason* is then *lockout* or *ventilation*.
+
+**How a lock ends.**
+
+- Its duration has passed (a lock set without a duration lasts until it is ended).
+- The action with mode *None*, or the select set to *None*.
+- Any manual action on that shutter (wall switch, remote, app, or the integration's own cover or opening
+  entity): the lock ends and the usual [manual handling](#manual-operation) follows.
+- The button *Resume automatic control*, which ends a manual pause too.
+
+When a lock ends, the shutter moves to what automatic control wants. A new lock replaces the one that is
+on, with its mode and end time. With the shutter's *Automatic control* switch off, or *Automatic control
+(all shutters)* off, nothing moves; the lock is kept and applies again when control is back on, unless it
+has expired. A lock and its end time survive a restart. While the calibration assistant runs, the lock waits.
+
+The sensor *Reason* shows *locked*, and the decision trace says which mode.
 
 ## Lockout and ventilation
 

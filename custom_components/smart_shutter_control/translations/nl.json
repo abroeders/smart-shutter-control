@@ -549,7 +549,8 @@
           "winter": "Winter",
           "glare": "Verblinding",
           "lockout": "Buitensluitbeveiliging",
-          "ventilation": "Ventilatie"
+          "ventilation": "Ventilatie",
+          "locked": "Vergrendeld"
         }
       },
       "next_action": {
@@ -632,6 +633,31 @@
           "on": "Aan",
           "off": "Uit"
         }
+      },
+      "lock": {
+        "name": "Vergrendeling",
+        "state": {
+          "none": "Geen",
+          "hold": "Vasthouden",
+          "force_open": "Geforceerd open",
+          "force_closed": "Geforceerd dicht"
+        }
+      }
+    }
+  },
+  "services": {
+    "set_lock": {
+      "name": "Vergrendeling instellen",
+      "description": "Houdt een rolluik vast, of dwingt het helemaal open of helemaal dicht, voor een tijd of tot je het opheft. Storm en vorst gaan nog voor; een open deur of gekanteld raam tilt een gesloten rolluik nog steeds op.",
+      "fields": {
+        "mode": {
+          "name": "Modus",
+          "description": "Geen heft de vergrendeling op; vasthouden: de regeling beweegt het rolluik niet; geforceerd open: helemaal open (100 %); geforceerd dicht: helemaal dicht (0 %)."
+        },
+        "duration": {
+          "name": "Duur",
+          "description": "Hoe lang de vergrendeling duurt. Leeg laten om hem te houden tot hij wordt opgeheven."
+        }
       }
     }
   },
@@ -689,6 +715,19 @@
         "light": "Lichtsensoren (lux)",
         "none": "Geen"
       }
+    },
+    "lock_mode": {
+      "options": {
+        "none": "Geen",
+        "hold": "Vasthouden",
+        "force_open": "Geforceerd open",
+        "force_closed": "Geforceerd dicht"
+      }
+    }
+  },
+  "exceptions": {
+    "not_a_shutter": {
+      "message": "Het apparaat {device_id} is geen rolluik van Smart Shutter Control."
     }
   }
 }

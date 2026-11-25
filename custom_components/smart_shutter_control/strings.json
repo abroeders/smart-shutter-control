@@ -549,7 +549,8 @@
           "winter": "Winter",
           "glare": "Glare",
           "lockout": "Lockout protection",
-          "ventilation": "Ventilation"
+          "ventilation": "Ventilation",
+          "locked": "Locked"
         }
       },
       "next_action": {
@@ -632,6 +633,31 @@
           "on": "On",
           "off": "Off"
         }
+      },
+      "lock": {
+        "name": "Lock",
+        "state": {
+          "none": "None",
+          "hold": "Hold",
+          "force_open": "Force open",
+          "force_closed": "Force closed"
+        }
+      }
+    }
+  },
+  "services": {
+    "set_lock": {
+      "name": "Set lock",
+      "description": "Holds a shutter, or forces it fully open or fully closed, for a while or until you end it. Storm and frost still come first; an open door or tilted window still raises a closed shutter.",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "None ends the lock; hold: the controller does not move the shutter; force open: fully open (100 %); force closed: fully closed (0 %)."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "How long the lock lasts. Leave empty to keep it until it is ended."
+        }
       }
     }
   },
@@ -689,6 +715,19 @@
         "light": "Light sensors (lux)",
         "none": "None"
       }
+    },
+    "lock_mode": {
+      "options": {
+        "none": "None",
+        "hold": "Hold",
+        "force_open": "Force open",
+        "force_closed": "Force closed"
+      }
+    }
+  },
+  "exceptions": {
+    "not_a_shutter": {
+      "message": "The device {device_id} is not a shutter of Smart Shutter Control."
     }
   }
 }

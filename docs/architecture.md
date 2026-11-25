@@ -31,6 +31,7 @@ flowchart LR
 |---|---|---|---|
 | 10 | `StormRule` | `core/weather.py` | final: 0 or 100 |
 | 11 | `FrostRule` | `core/weather.py` | final: no move |
+| 12 | `LockRule` | `core/lock.py` | final: no move (`hold`), 100 or 0 (#52) |
 | 15 | `TemperatureLimitRule` | `core/weather.py` | final: closed |
 | 20 | `ManualPauseRule` | `core/manual.py` | final: no move |
 | 30 | `SleepInRule` | `core/daily.py` | target |
@@ -56,7 +57,7 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover; the ends (100, 0) go by `open_cover`/`close_cover` when the cover supports them, so the module runs to its limit switch |
 | **Observer** | the entities listen to `BaseCoordinator` |
 | **Descriptor** | `StoredSetting`: one class attribute per entity setting of a shutter, read from and written to `RuntimeStore` with the subentry's value as default (#96) |
-| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
+| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, lock, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
 
 ## 3. Scaffold (#1)
 
@@ -1685,4 +1686,78 @@ classDiagram
     ShutterController ..> StoredSetting : class attributes
     StoredSetting ..> RuntimeStore
     ShutterRules o-- RuleChain
+```
+
+
+## 28. Locks from an automation (#52)
+
+Design: [`design/2026-11-25-lock.md`](design/2026-11-25-lock.md). The action `smart_shutter_control.set_lock`
+(`services.py`, registered in `async_setup`) resolves the target devices to shutter controllers and calls
+`set_lock`; the select *Lock* (`LockSelect`) does the same without a duration. `LockRule` (priority 12) comes
+after storm and frost; the door and window floors (#49) still apply to its decision (only frost and a manual
+pause leave the shutter where it is). `force_open` is not limited by the *Maximum position*. A manual action and
+the button *Resume automatic control* end the lock.
+
+```mermaid
+classDiagram
+    class LockMode {
+        <<enumeration>>
+        none
+        hold
+        force_open
+        force_closed
+    }
+    class Lock {
+        +mode LockMode
+        +until float|None
+        +on bool
+        +set(mode, now, duration_s)
+        +end()
+        +still(now) bool
+        +to_dict() dict
+        +from_dict(data)$
+    }
+    class LockRule {
+        +priority 12
+        +propose(ctx) Decision|None
+    }
+    class LockSelect {
+        +current_option str
+        +async_select_option(option)
+    }
+    Lock --> LockMode
+    LockRule o-- Lock
+    ShutterRules o-- LockRule
+    ShutterController o-- Lock : set_lock, end_lock, resume_all
+    ShutterController ..> RuntimeStore : key lock
+    LockSelect ..> ShutterController
+```
+
+```mermaid
+sequenceDiagram
+    participant AU as Automation
+    participant S as services.set_lock
+    participant SC as ShutterController
+    participant C as BaseCoordinator
+    participant R as RuleChain
+    AU->>S: set_lock(device_id, mode, duration)
+    S->>S: devices to controllers (all valid, else ServiceValidationError)
+    S->>SC: set_lock(mode, duration)
+    SC->>SC: store lock, clear last target
+    S->>C: async_tick()
+    C->>SC: async_evaluate(inputs)
+    SC->>R: decide(ctx)
+    R-->>SC: storm / frost, else LockRule: 100, 0 or no move
+    SC->>SC: door floor, then move
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unlocked
+    Unlocked --> Locked: set_lock or select (hold, force_open, force_closed)
+    Locked --> Locked: set_lock again (replaces mode and end time)
+    Locked --> Unlocked: duration over
+    Locked --> Unlocked: set_lock none or select none
+    Locked --> Unlocked: manual action
+    Locked --> Unlocked: Resume automatic control
 ```

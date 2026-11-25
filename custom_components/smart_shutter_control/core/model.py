@@ -29,6 +29,7 @@ class Reason(StrEnum):
     GLARE = "glare"  # (#36)
     LOCKOUT = "lockout"  # a door is open: not below the lockout position (#49)
     VENTILATION = "ventilation"  # a window is tilted: not below the ventilation position (#49)
+    LOCKED = "locked"  # held or forced by an automation (#52)
 
 
 class Kind(StrEnum):

@@ -6,6 +6,13 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Added
+
+- Action `smart_shutter_control.set_lock` and a select *Lock* per shutter: hold a shutter, or force it fully
+  open or fully closed, for a while or until it is ended, e.g. on a hail warning or while washing windows.
+  Storm and frost come first, and an open door or tilted window still raises the shutter; a manual action or
+  *Resume automatic control* ends the lock. Reason `locked` (#52).
+
 ### Fixed
 
 - The setting *Shading position* is now called *Heat protection position* (Dutch: *Hitteweringsstand*, was
