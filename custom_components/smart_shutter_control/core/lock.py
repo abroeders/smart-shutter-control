@@ -32,7 +32,7 @@ class Lock:
 
     def set(self, mode: LockMode | str, now: float, duration_s: float | None = None) -> None:
         self.mode = LockMode(mode)
-        self.until = now + duration_s if self.on and duration_s else None
+        self.until = now + duration_s if self.on and duration_s is not None else None
 
     def end(self) -> None:
         self.mode, self.until = LockMode.NONE, None

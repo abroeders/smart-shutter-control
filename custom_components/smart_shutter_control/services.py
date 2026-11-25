@@ -37,7 +37,9 @@ def async_register_services(hass: HomeAssistant) -> None:
         duration: timedelta | None = call.data.get(ATTR_DURATION)
         found = _controllers(hass, call.data[ATTR_DEVICE_ID])
         for _coordinator, controller in found:
-            controller.set_lock(call.data[ATTR_MODE], duration.total_seconds() if duration else None)
+            controller.set_lock(
+                call.data[ATTR_MODE], duration.total_seconds() if duration is not None else None
+            )
         for coordinator in {id(c): c for c, _ in found}.values():
             await coordinator.async_tick()
 

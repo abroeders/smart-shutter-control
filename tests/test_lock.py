@@ -128,3 +128,11 @@ def test_an_expired_stored_lock_is_dropped_when_asked():
     lock = Lock.from_dict({"mode": "hold", "until": 50})
     assert lock.on  # loading keeps it; the controller drops it at start with still()
     assert not lock.still(50) and lock.to_dict() == {"mode": "none", "until": None}
+
+
+def test_a_zero_duration_ends_at_once():
+    from core.lock import Lock, LockMode
+
+    lock = Lock()
+    lock.set(LockMode.FORCE_CLOSED, 100.0, 0.0)
+    assert lock.until == 100.0 and not lock.still(100.0)

@@ -218,3 +218,18 @@ async def test_force_open_goes_to_100_above_a_lower_maximum_position(
     await set_lock(hass, [device_of(hass, entry)], "force_open")
     assert calls[-1].data["position"] == 100
     assert hass.states.get(entity(hass, entry, "sensor", "reason")).state == "locked"
+
+
+async def test_an_expired_lock_ends_while_automatic_control_is_off(
+    hass: HomeAssistant, covers, noon, freezer
+) -> None:
+    """Review of #52: the select must not keep showing a lock whose time is over."""
+    entry, _calls = await shutter(hass)
+    await set_lock(hass, [device_of(hass, entry)], "force_closed", duration={"minutes": 30})
+    controller = next(iter(entry.runtime_data.shutters.values()))
+    controller.automatic = False
+    freezer.tick(45 * 60)
+    await entry.runtime_data.async_tick()
+    await hass.async_block_till_done()
+    assert lock_state(hass, entry).state == "none"
+    assert controller.store.get(controller.id, "lock") == {"mode": "none", "until": None}

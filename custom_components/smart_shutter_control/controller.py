@@ -109,7 +109,7 @@ class ShutterController:
         self.detector.observe(self.adapter.module_position(), self._motor_running(), time.time())
         self.pause = ManualPause.from_dict(store.get(self.id, KEY_PAUSE))
         self.lock = Lock.from_dict(store.get(self.id, KEY_LOCK))
-        self.lock.still(time.time())  # an expired lock is dropped at start
+        self._check_lock(time.time())  # an expired lock is dropped at start
         safety = safety or {}
         self.rules = build_rules(
             self.schedule,
@@ -159,6 +159,12 @@ class ShutterController:
 
     def end_lock(self) -> None:
         if self.lock.on:
+            self.set_lock(LockMode.NONE)
+
+    def _check_lock(self, now: float) -> None:
+        """End an expired lock (also while automatic control is off): stored, and the wanted position is
+        sent again at the next evaluation."""
+        if self.lock.on and not self.lock.still(now):
             self.set_lock(LockMode.NONE)
 
     # --- facade light sensor (sun source: light sensors) ---------------------------------------------
@@ -425,6 +431,7 @@ class ShutterController:
             self.resume()  # a door that opens ends a manual pause: the shutter goes up (#49)
         self.storm = inputs.storm
         self.paused_all = paused
+        self._check_lock(inputs.now)
         if self.paused or paused:
             self.arrival.cancel()
         if not self.automatic or self.paused or paused:
