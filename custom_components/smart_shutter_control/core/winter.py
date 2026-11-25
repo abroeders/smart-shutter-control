@@ -71,7 +71,7 @@ class WinterRule:
 
     priority = 50
     name = "winter"
-    why = None
+    why: tuple[str, dict] | None = None
 
     def __init__(
         self,

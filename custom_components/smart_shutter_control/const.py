@@ -21,6 +21,10 @@ CONF_OUTDOOR = "outdoor_temperature"
 CONF_WEATHER = "weather"
 CONF_PV_POWER = "pv_power"  # list of sensors, summed
 CONF_PV_PEAK = "pv_peak"  # kWp
+CONF_PV_TILT = "pv_tilt"  # degrees from horizontal (#110)
+CONF_PV_AZIMUTH = "pv_azimuth"  # degrees, 180 = south (#110)
+DEFAULT_PV_TILT = 35
+DEFAULT_PV_AZIMUTH = 180
 CONF_SUN_SOURCE = "sun_source"  # pv, light or none: never PV and light sensors together
 SUN_SOURCES = ["pv", "light", "none"]
 CONF_LIGHT = "light_sensors"  # list of illuminance sensors, the highest counts
@@ -55,6 +59,11 @@ OPT_HOLIDAYS_EXTRA = "holidays_extra"
 OPT_HOLIDAYS_EXCLUDED = "holidays_excluded"
 OPT_HOLIDAYS_DISABLED = "holidays_disabled"  # names of calendar holidays to ignore
 OPT_WEEKEND_DAYS = "weekend_days"
+OPT_PRESENCE = "presence"  # zone, person, device_tracker, group or binary_sensor; None: never away (#51)
+OPT_AWAY_DELAY = "away_delay"  # min nobody home before the house counts as away
+OPT_AWAY_HEAT_OFFSET = "away_heat_offset"  # °C: the heat limits are this much lower while away
+OPT_HOLIDAY_SHIFT = "holiday_shift"  # min: the largest random shift of the schedule times on holiday
+PRESENCE_DOMAINS = ["zone", "person", "device_tracker", "group", "binary_sensor"]
 DEFAULT_OPTIONS = {
     OPT_STORM_WIND_LIMIT: 50,
     OPT_STORM_GUST_LIMIT: 60,
@@ -70,6 +79,9 @@ DEFAULT_OPTIONS = {
     OPT_HOT_DAY: 28,
     OPT_CLOSE_DELAY: 5,
     OPT_OPEN_DELAY: 20,
+    OPT_AWAY_DELAY: 15,
+    OPT_AWAY_HEAT_OFFSET: 3,
+    OPT_HOLIDAY_SHIFT: 30,
 }
 
 # shutter subentry

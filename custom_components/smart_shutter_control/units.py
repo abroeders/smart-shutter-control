@@ -52,12 +52,16 @@ def _value(state: State | None) -> float | None:
 
 def temperature(state: State | None) -> float | None:
     """A temperature sensor's state in °C."""
+    if state is None:
+        return None
     value = _value(state)
     return None if value is None else to_celsius(value, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT))
 
 
 def speed(state: State | None) -> float | None:
     """A wind sensor's state in km/h."""
+    if state is None:
+        return None
     value = _value(state)
     return None if value is None else to_kmh(value, state.attributes.get(ATTR_UNIT_OF_MEASUREMENT))
 
@@ -113,6 +117,22 @@ class DisplayUnit:
 
 def temperature_unit(hass: HomeAssistant) -> DisplayUnit:
     return DisplayUnit(TemperatureConverter, UnitOfTemperature.CELSIUS, hass.config.units.temperature_unit)
+
+
+class _TemperatureInterval:
+    """A temperature difference: 3 °C is 5.4 °F, not 37.4 °F (#51)."""
+
+    @staticmethod
+    def convert(value: float, from_unit: str, to_unit: str) -> float:
+        return TemperatureConverter.convert_interval(value, from_unit, to_unit)
+
+
+def temperature_interval_unit(hass: HomeAssistant) -> DisplayUnit:
+    return DisplayUnit(
+        _TemperatureInterval,  # type: ignore[arg-type]  # only convert() is used
+        UnitOfTemperature.CELSIUS,
+        hass.config.units.temperature_unit,
+    )
 
 
 def speed_unit(hass: HomeAssistant) -> DisplayUnit:

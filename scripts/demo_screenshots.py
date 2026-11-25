@@ -346,6 +346,40 @@ def shots(browser: Browser, devices: dict[str, str]) -> dict:
         browser.open(f"/config/devices/device/{devices['living']}")
         browser.whole("ha-device.png")
 
+    def base_device() -> None:  # (#114)
+        browser.open(f"/config/devices/device/{devices['base']}")
+        browser.whole("ha-device-base.png")
+
+    def shutter_part(item: str, name: str) -> None:
+        living_room(item)
+        browser.dialog(name, tall=True)
+
+    def set_lock() -> None:
+        """The action set_lock in Developer tools, filled in (the page keeps its fields in localStorage)."""
+        action = {
+            "action": f"{DOMAIN}.set_lock",
+            "target": {"device_id": [devices["living"]]},
+            "data": {"mode": "force_closed", "duration": {"hours": 1, "minutes": 0, "seconds": 0}},
+        }
+        browser.open("/developer-tools/action")
+        page.evaluate(
+            "([state]) => { localStorage.setItem('panel-dev-action-state-service-data', state);"
+            " localStorage.setItem('panel-dev-action-state-yaml-mode', 'false'); }",
+            [json.dumps(action)],
+        )
+        browser.open("/developer-tools/action")
+        page.locator("ha-service-control").first.screenshot(path=OUT / "ha-action-set-lock.png")
+
+    def why() -> None:
+        """A shutter card with its decision list open."""
+        browser.open("/dashboard-shutters/shutters")
+        card = page.locator("smart-shutter-card").nth(1)
+        card.wait_for(timeout=60_000)
+        page.wait_for_timeout(3000)  # the drawings
+        card.locator(".why-toggle").click()
+        page.wait_for_timeout(1000)
+        card.screenshot(path=OUT / "card-why.png")
+
     return {
         "install": install,
         "add_shutter": add_shutter,
@@ -355,6 +389,16 @@ def shots(browser: Browser, devices: dict[str, str]) -> dict:
         "shutter": shutter_settings,
         "table": table,
         "device": device_page,
+        # (#114)
+        "schedule": lambda: options("Schedule", "ha-config-schedule.png"),
+        "holidays": lambda: options("Holidays", "ha-config-holidays.png"),
+        "language": lambda: options("Language", "ha-config-language.png"),
+        "away": lambda: options("Away and holiday", "ha-config-away.png"),
+        "contacts": lambda: shutter_part("Window and door contacts", "ha-config-contacts.png"),
+        "horizon": lambda: shutter_part("Horizon", "ha-config-horizon.png"),
+        "base_device": base_device,
+        "set_lock": set_lock,
+        "why": why,
         "assistant": assistant,  # last: it leaves the shutter calibrating
     }
 

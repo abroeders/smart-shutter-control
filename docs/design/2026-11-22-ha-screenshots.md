@@ -18,7 +18,10 @@ The home page of the documentation site gets a picture of a real dashboard, and 
 | Installation | *Add integration* with *Smart Shutter Control* found; the first setup step of the base controller; *Add shutter* |
 | Configuration | the base options *Sun and heat*, *Storm and frost* and *Winter*; a shutter's *Settings* |
 | Calibration | the assistant's start, a measuring step and the review; the calibration table |
-| Entities | a shutter's device page with its entities |
+| Entities | a shutter's device page with its entities; the base controller's device page (#114) |
+| Configuration (#114) | also *Schedule*, *Holidays*, *Language*, *Away and holiday*; a shutter's *Window and door contacts* and *Horizon* |
+| Actions (#114) | the action `set_lock` in Developer tools, filled in |
+| How it works (#114) | a shutter card with its decision list (*Why?*) open |
 
 - All screenshots are in English and in the light theme; only the dashboard on Home is also in dark.
 - On the site the dashboard image follows the site's light/dark switch; on GitHub it follows GitHub's theme.

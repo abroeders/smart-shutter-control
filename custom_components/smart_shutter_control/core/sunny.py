@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 from typing import ClassVar
 
-from .sun import SunPosition
+from .sun import SunPosition, WindowGeometry
 
 AZ_CELL = 10.0  # degrees
 EL_CELL = 5.0
@@ -15,6 +15,7 @@ KEEP_DAYS = 30
 MIN_DAYS = 7  # days with data before a cell is trusted
 PERCENTILE = 0.95
 HYSTERESIS = 0.15
+LOW_SUN = 10.0  # degrees: below this the young PV curve is unreliable (diffuse light), #107
 
 
 def _cell(sun: SunPosition) -> str:
@@ -50,6 +51,10 @@ class ClearSkyReference:
             return None
         return _percentile(list(days.values()), PERCENTILE)
 
+    def days(self, sun: SunPosition) -> int:
+        """Days with data in the sky cell of this position of the sun (learned from `MIN_DAYS`)."""
+        return len(self.cells.get(_cell(sun), {}))
+
     def to_dict(self) -> dict:
         return self.cells
 
@@ -65,19 +70,35 @@ LUX_HYSTERESIS = 0.2  # share of the limit
 
 @dataclass
 class PvBaseline:
-    """PV power: while young, a rough clear-sky curve from the panels' peak power (if known)."""
+    """PV power: while young, a rough clear-sky curve from the panels' peak power (if known), with the sun's
+    angle of incidence on the panels (#110). The curve only models direct light, so it never drops below
+    its value for flat panels with the sun at `LOW_SUN`; the weather takes part while young (#107, #110)."""
 
     pv_peak_kw: float | None = None
+    tilt: float = 35.0  # degrees from horizontal
+    azimuth: float = 180.0  # degrees, 180 = south
     learned: ClassVar[str] = "learned"
     young: ClassVar[str] = "pv_peak"
+    weather_source: ClassVar[str] = "pv_peak_weather"
 
     def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
         if not self.pv_peak_kw:
             return None
-        return 0.8 * self.pv_peak_kw * 1000 * math.sin(math.radians(sun.elevation))
+        incidence = WindowGeometry(self.azimuth, self.tilt).incidence(sun)
+        cos_i = max(math.cos(math.radians(incidence)), math.sin(math.radians(LOW_SUN)))
+        return 0.8 * self.pv_peak_kw * 1000 * cos_i
 
     def hysteresis(self, threshold: float, young: bool) -> float:
         return HYSTERESIS
+
+    def weather_rule(self, sun: SunPosition, weather: str | None, by_factor: bool) -> bool | None:
+        """While young: below `LOW_SUN` the weather decides, from `LOW_SUN` a weather that is not sunny
+        vetoes; None leaves it to the factor."""
+        if weather is None:
+            return None
+        if sun.elevation < LOW_SUN:
+            return weather in SUNNY_WEATHER
+        return False if by_factor and weather not in SUNNY_WEATHER else None
 
 
 @dataclass
@@ -88,12 +109,16 @@ class LuxBaseline:
     limit_lux: float = LUX_LIMIT
     learned: ClassVar[str] = "lux_learned"
     young: ClassVar[str] = "lux_limit"
+    weather_source: ClassVar[str] = "lux_limit"
 
     def young_reference(self, sun: SunPosition, threshold: float) -> float | None:
         return self.limit_lux / threshold if threshold > 0 else None
 
     def hysteresis(self, threshold: float, young: bool) -> float:
         return threshold * LUX_HYSTERESIS if young else HYSTERESIS
+
+    def weather_rule(self, sun: SunPosition, weather: str | None, by_factor: bool) -> bool | None:
+        return None  # a light sensor measures the light at the facade itself
 
 
 @dataclass
@@ -126,6 +151,7 @@ class SunnyDetector:
             self.factor, self.source, self.sunny = 0.0, "night", False
             return self.sunny
         base = self.baseline
+        assert base is not None  # set in __post_init__
         ref = self.reference.reference(sun) if value is not None else None
         young = False
         if ref is not None and ref > 0:
@@ -134,10 +160,12 @@ class SunnyDetector:
             self.source, young = base.young, True
         else:
             ref = None
-        if ref:
+        if ref and value is not None:
             self.factor = max(0.0, min(1.0, value / ref))
             limit = self.threshold - base.hysteresis(self.threshold, young) if self.sunny else self.threshold
             self.sunny = self.factor >= limit
+            if young and (by_weather := base.weather_rule(sun, weather, self.sunny)) is not None:
+                self.source, self.sunny = base.weather_source, by_weather
         elif weather is not None:
             self.factor, self.source = None, "weather"
             self.sunny = weather in SUNNY_WEATHER

@@ -11,8 +11,10 @@ from .const import (
     CONF_LIGHT,
     CONF_LUX_LIMIT,
     CONF_OUTDOOR,
+    CONF_PV_AZIMUTH,
     CONF_PV_PEAK,
     CONF_PV_POWER,
+    CONF_PV_TILT,
     CONF_SUN_DEPTH,
     CONF_SUN_SOURCE,
     CONF_WEATHER,
@@ -21,6 +23,8 @@ from .const import (
     CONF_WINDOW_HEIGHT,
     CONF_WINDOW_SILL,
     DEFAULT_LUX_LIMIT,
+    DEFAULT_PV_AZIMUTH,
+    DEFAULT_PV_TILT,
     OPT_CLOSE_ABOVE,
     OPT_CLOSE_BELOW,
     OPT_FROST_LIMIT,
@@ -32,22 +36,21 @@ from .const import (
     OPT_WINTER_LIMIT,
     SUN_SOURCES,
 )
-from .units import DisplayUnit, length_unit, speed_unit, temperature_unit
+from .units import DisplayUnit, length_unit, speed_unit, temperature_interval_unit, temperature_unit
 
 
 def _sensor(device_class: str | None = None, multiple: bool = False) -> selector.EntitySelector:
-    config: dict[str, Any] = {"domain": "sensor", "multiple": multiple}
+    config = selector.EntitySelectorConfig(domain="sensor", multiple=multiple)
     if device_class:
         config["device_class"] = device_class
-    return selector.EntitySelector(selector.EntitySelectorConfig(**config))
+    return selector.EntitySelector(config)
 
 
 def _number(low: float, high: float, step: float, unit: str | None = None) -> selector.NumberSelector:
-    return selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            min=low, max=high, step=step, unit_of_measurement=unit, mode=selector.NumberSelectorMode.BOX
-        )
-    )
+    config = selector.NumberSelectorConfig(min=low, max=high, step=step, mode=selector.NumberSelectorMode.BOX)
+    if unit is not None:
+        config["unit_of_measurement"] = unit
+    return selector.NumberSelector(config)
 
 
 def _with_defaults(schema: dict, values: dict[str, Any]) -> vol.Schema:
@@ -75,6 +78,7 @@ TEMPERATURE_FIELDS = {
     OPT_CLOSE_BELOW,
     "winter_closed_below",
 }
+TEMPERATURE_INTERVAL_FIELDS = {"away_heat_offset"}  # a difference, not a temperature (#51)
 SPEED_FIELDS = {OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT}
 # lengths stored in cm or m, shown in inches or feet with US customary units (#71): stored unit, shown step
 LENGTH_FIELDS = {
@@ -91,6 +95,8 @@ def _display_units(hass, schema: dict) -> dict[str, DisplayUnit]:
         name = str(key)
         if name in TEMPERATURE_FIELDS:
             out[name] = temperature_unit(hass)
+        elif name in TEMPERATURE_INTERVAL_FIELDS:
+            out[name] = temperature_interval_unit(hass)
         elif name in SPEED_FIELDS:
             out[name] = speed_unit(hass)
         elif name in LENGTH_FIELDS:
@@ -253,14 +259,16 @@ SOURCES = {
     vol.Optional(CONF_WIND_GUST): _sensor("wind_speed"),
 }
 # the second step: only the fields of the chosen sun source, so PV and light sensors are never both set
-SUN_FIELDS = {
+SUN_FIELDS: dict[str, dict] = {
     "pv": {
         vol.Required(CONF_PV_POWER): _sensor("power", multiple=True),
         vol.Optional(CONF_PV_PEAK): _number(0.1, 100, 0.1, "kWp"),
+        vol.Required(CONF_PV_TILT, default=DEFAULT_PV_TILT): _number(0, 90, 1, "°"),
+        vol.Required(CONF_PV_AZIMUTH, default=DEFAULT_PV_AZIMUTH): _number(0, 359, 1, "°"),
     },
     "light": {
         vol.Required(CONF_LIGHT): _sensor("illuminance", multiple=True),
         vol.Required(CONF_LUX_LIMIT, default=DEFAULT_LUX_LIMIT): _number(1000, 150000, 1000, "lx"),
     },
 }
-SUN_KEYS = (CONF_PV_POWER, CONF_PV_PEAK, CONF_LIGHT, CONF_LUX_LIMIT)
+SUN_KEYS = (CONF_PV_POWER, CONF_PV_PEAK, CONF_PV_TILT, CONF_PV_AZIMUTH, CONF_LIGHT, CONF_LUX_LIMIT)

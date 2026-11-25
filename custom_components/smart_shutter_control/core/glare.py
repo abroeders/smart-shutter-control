@@ -52,7 +52,8 @@ class GlareProtectionRule:
         window = WindowGeometry(cfg.azimuth, cfg.tilt, cfg.min_elevation, cfg.max_elevation, cfg.horizon)
         sun_on = window.sun_on(sun, self.settings.max_incidence)
         day = self.day_phase(now) is DayPhase.DAY
-        wanted = sun_on and day and self._bright(ctx, self.state.active)
+        away = ctx.inputs.away  # nobody to dazzle (#51): ends through the open delay
+        wanted = sun_on and day and not away and self._bright(ctx, self.state.active)
         s = self.settings
         self.state.step(wanted, not sun_on or not day, now, s.close_delay, s.open_delay)
         self.why = self._why(ctx, window, sun, day, self.state.active, now)
@@ -78,6 +79,8 @@ class GlareProtectionRule:
             return "leaving", {"seconds": self.state.remaining(now, self.settings.open_delay), **bright}
         if self.phase is Phase.SHADING:
             return ("bright", bright) if bright else None
+        if ctx.inputs.away:
+            return "away", {}
         if not day:
             return "not_day", {}
         off = window.why_not(sun, self.settings.max_incidence)

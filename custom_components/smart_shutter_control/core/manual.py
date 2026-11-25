@@ -12,6 +12,7 @@ MARGIN = 2  # % module position: reports within this range of the way count as t
 LATE = 30.0  # s after arrival: late reports of the target still belong to the command
 NO_POWER_TRAVEL = 120.0  # s: without a power sensor a command is active at most this long (#18: measured)
 MATCH = 2  # %: a manual position this close to the wanted one resumes automatic control
+SETTLE = 5.0  # s after the motor stopped short of the target: the module may still report its position (#108)
 
 
 @dataclass
@@ -21,6 +22,19 @@ class ActiveCommand:
     sent_at: float
     arrived_at: float | None = None
     started: bool = False  # the motor ran (with a power sensor)
+    closest: int | None = None  # smallest distance to the target reported so far (#108)
+    stopped_at: float | None = None  # the motor stopped short of the target (#108)
+
+    def __post_init__(self) -> None:
+        if self.start is not None:
+            self.closest = abs(self.start - self.target)
+
+    def away(self, position: int) -> bool:
+        """Further from the target than it has been: someone reversed the move (#108)."""
+        return self.closest is not None and abs(position - self.target) > self.closest + MARGIN
+
+    def reached(self, position: int | None) -> bool:
+        return position is not None and abs(position - self.target) <= MARGIN
 
 
 class ManualDetector:
@@ -49,8 +63,8 @@ class ManualDetector:
             self.command = None
         return self.command is not None
 
-    def _on_the_way(self, position: int) -> bool:
-        c = self.command
+    @staticmethod
+    def _on_the_way(c: ActiveCommand, position: int) -> bool:
         low = min(c.target, c.start if c.start is not None else c.target)
         high = max(c.target, c.start if c.start is not None else c.target)
         return low - MARGIN <= position <= high + MARGIN
@@ -62,14 +76,21 @@ class ManualDetector:
         if motor_running is not None:
             if motor_running and not self.motor and not active:
                 manual = True  # the motor started without a command
-            if motor_running and active:
-                self.command.started = True
+            c = self.command if active else None
+            if motor_running and c is not None:
+                c.started, c.stopped_at = True, None
+            elif not motor_running and self.motor and c is not None and c.started:
+                c.stopped_at = now
             self.motor = motor_running
         if position is not None and position != self.last_position:
+            c = self.command if active else None
             if self.last_position is not None:
-                if not active or not self._on_the_way(position):
+                if c is None or not self._on_the_way(c, position) or c.away(position):
                     manual = True
                 self.last_change = now
+            if c is not None:
+                distance = abs(position - c.target)
+                c.closest = distance if c.closest is None else min(c.closest, distance)
             self.last_position = position
         c = self.command
         if c is not None and position is not None and abs(position - c.target) <= 1 and not self.motor:
@@ -77,6 +98,24 @@ class ManualDetector:
         if manual:
             self.command = None
         return manual
+
+    def settling(self, now: float) -> float:
+        """Seconds until a stop short of the target can be judged (0: nothing to wait for)."""
+        c = self.command
+        if c is None or c.stopped_at is None or self.motor or c.reached(self.last_position):
+            return 0.0
+        return max(0.0, c.stopped_at + SETTLE - now)
+
+    def check(self, now: float) -> bool:
+        """True when the motor stopped short of the target and stayed there: someone stopped it (#108).
+        Only with a power sensor; a command the motor never started stays with the arrival check (#48)."""
+        c = self.command
+        if c is None or c.stopped_at is None or self.motor or c.reached(self.last_position):
+            return False
+        if now - c.stopped_at < SETTLE:
+            return False
+        self.command = None
+        return True
 
     def at_rest(self, now: float, stable: float = 15.0) -> bool:
         """Not moving: motor idle, no own command under way and no position change for a while."""
@@ -141,7 +180,7 @@ class ManualPauseRule:
 
     priority = 20
     name = "manual"
-    why = None
+    why: tuple[str, dict] | None = None
 
     def __init__(self, pause: ManualPause, phase_of) -> None:
         self.pause = pause

@@ -5,13 +5,14 @@ sunrise and sunset, weekends and holidays. No Home Assistant imports.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, tzinfo
 from enum import StrEnum
 from functools import lru_cache
 from typing import Any
 
+from .presence import NoShift, ScheduleShift
 from .sun import SunPosition
 
 SUN_ALTITUDE = -0.833  # degrees: sunrise and sunset (refraction and the sun's radius)
@@ -202,39 +203,34 @@ class DaySchedule:
     """When each phase starts on a given day, and the phase at any moment."""
 
     def __init__(
-        self, values: Mapping[str, Any], sun: SunTimes, calendar: HolidayCalendar, tz: tzinfo
+        self,
+        values: Mapping[str, Any],
+        sun: SunTimes,
+        calendar: HolidayCalendar,
+        tz: tzinfo,
+        shift: Callable[[], ScheduleShift] | None = None,
     ) -> None:
         self.values = dict(values)
         self.sun = sun
         self.calendar = calendar
         self.tz = tz
+        self.shift = shift or NoShift  # read per call: holiday on or off counts at the next evaluation (#51)
+
+    def shifts(self, day: date) -> tuple[int, int]:
+        """The shift of the morning and of the evening in minutes (only on holiday, #51)."""
+        shift = self.shift()
+        return shift.morning(day), shift.evening(day)
 
     def transitions(self, day: date) -> list[Transition]:
-        v, tz = self.values, self.tz
-        free = self.calendar.is_free(day)
-        prefix = "weekend" if free else "weekday"
-        sunrise, sunset = self.sun.sunrise_sunset(day, tz)
-
-        def at(t: time | None) -> datetime | None:
-            return None if t is None else datetime.combine(day, t, tz)
-
-        slit = at(_time(v[f"{prefix}_slit"])) if _on(v["slit_phase"]) else None
-        opened = at(_time(v[f"{prefix}_open"]))
-        if _on(v["not_before_sunrise"]) and sunrise is not None:
-            earliest = sunrise + timedelta(minutes=float(v["sunrise_offset"] or 0))
-            slit = max(slit, earliest) if slit else None
-            opened = max(opened, earliest) if opened else None
-        if sunset is None:  # polar day or night: fall back to the latest close time, or 21:00
-            sunset = at(_time(v["close_latest"])) or at(time(21, 0))
-        close = sunset + timedelta(minutes=float(v["close_offset"] or 0))
-        earliest, latest = at(_time(v["close_earliest"])), at(_time(v["close_latest"]))
-        if earliest and close < earliest:
-            close = earliest
-        if latest and close > latest:
-            close = latest
-        dusk = sunset + timedelta(minutes=float(v["dusk_offset"] or 0)) if _on(v["dusk_phase"]) else None
-        if dusk is not None and dusk >= close:
-            dusk = None
+        """When each phase starts on this day, in time order."""
+        sunrise, sunset = self.sun.sunrise_sunset(day, self.tz)
+        slit, opened = self._morning(day, sunrise)
+        dusk, close = self._evening(day, sunset)
+        morning, evening = (timedelta(minutes=m) for m in self.shifts(day))  # after the limits (#51)
+        slit = slit + morning if slit is not None else None
+        opened = opened + morning if opened is not None else None
+        dusk = dusk + evening if dusk is not None else None
+        close = close + evening
         out = []
         if slit is not None and (opened is None or slit < opened):
             out.append(Transition(slit, Phase.SLIT))
@@ -244,6 +240,39 @@ class DaySchedule:
             out.append(Transition(dusk, Phase.DUSK))
         out.append(Transition(close, Phase.NIGHT))
         return sorted(out, key=lambda t: t.at)
+
+    def _at(self, day: date, value: Any) -> datetime | None:
+        t = _time(value)
+        return None if t is None else datetime.combine(day, t, self.tz)
+
+    def _morning(self, day: date, sunrise: datetime | None) -> tuple[datetime | None, datetime | None]:
+        """The slit and the opening: the weekday or weekend times, not before sunrise when that is set."""
+        v = self.values
+        prefix = "weekend" if self.calendar.is_free(day) else "weekday"
+        slit = self._at(day, v[f"{prefix}_slit"]) if _on(v["slit_phase"]) else None
+        opened = self._at(day, v[f"{prefix}_open"])
+        if _on(v["not_before_sunrise"]) and sunrise is not None:
+            earliest = sunrise + timedelta(minutes=float(v["sunrise_offset"] or 0))
+            slit = max(slit, earliest) if slit else None
+            opened = max(opened, earliest) if opened else None
+        return slit, opened
+
+    def _evening(self, day: date, sunset: datetime | None) -> tuple[datetime | None, datetime]:
+        """Dusk (None when off or not before the closing) and the closing, kept between its earliest and
+        latest time."""
+        v = self.values
+        if sunset is None:  # polar day or night: fall back to the latest close time, or 21:00
+            sunset = self._at(day, v["close_latest"]) or datetime.combine(day, time(21, 0), self.tz)
+        close = sunset + timedelta(minutes=float(v["close_offset"] or 0))
+        earliest, latest = self._at(day, v["close_earliest"]), self._at(day, v["close_latest"])
+        if earliest and close < earliest:
+            close = earliest
+        if latest and close > latest:
+            close = latest
+        if not _on(v["dusk_phase"]):
+            return None, close
+        dusk = sunset + timedelta(minutes=float(v["dusk_offset"] or 0))
+        return (dusk if dusk < close else None), close
 
     def phase_at(self, now: datetime) -> Phase:
         local = now.astimezone(self.tz)

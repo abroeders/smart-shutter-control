@@ -16,56 +16,25 @@ from homeassistant.util import dt as dt_util
 
 from . import units
 from .adapter import CoverAdapter
-from .const import (
-    CONF_AZIMUTH,
-    CONF_CALIBRATION,
-    CONF_COVER,
-    CONF_FACADE_LIGHT,
-    CONF_GLARE_FROM,
-    CONF_GLARE_POSITION,
-    CONF_GLARE_PROTECTION,
-    CONF_HEAT_OUTDOOR,
-    CONF_HEAT_PROTECTION,
-    CONF_HEAT_ROOM,
-    CONF_HORIZON,
-    CONF_HOT_DAY,
-    CONF_LOCKOUT_POSITION,
-    CONF_MAX_ELEVATION,
-    CONF_MAX_POSITION,
-    CONF_MIN_ELEVATION,
-    CONF_MOTOR_POWER,
-    CONF_OPENED_CONTACT,
-    CONF_ROOM_TEMPERATURE,
-    CONF_SCHEDULE,
-    CONF_SHADING_POSITION,
-    CONF_SUN_DEPTH,
-    CONF_TILT,
-    CONF_TILTED_CONTACT,
-    CONF_TRAVEL_TIME,
-    CONF_VENTILATION_POSITION,
-    CONF_WINDOW_HEIGHT,
-    CONF_WINDOW_SILL,
-    DEFAULT_SHUTTER,
-    DOMAIN,
-)
+from .const import CONF_HORIZON, DOMAIN
 from .core.arrival import ArrivalCheck, State, Verdict
 from .core.calibration import Calibration, PositionMemory, RollerCalibration
 from .core.contacts import Floor, OpeningGuard, Target, raise_to
-from .core.daily import ScheduleRule, SleepIn, SleepInRule
-from .core.glare import GlareProtectionRule
-from .core.heat import HeatProtectionRule, SunSettings
+from .core.daily import SleepIn
+from .core.heat import SunSettings
 from .core.horizon import Horizon
 from .core.limits import PositionLimiter
-from .core.manual import ManualDetector, ManualPause, ManualPauseRule, matches
-from .core.model import Decision, Direction, Inputs, Reason, ShutterConfig, ShutterContext
+from .core.lock import Lock, LockMode
+from .core.manual import ManualDetector, ManualPause, matches
+from .core.model import Decision, Direction, Inputs, Reason, ShutterContext
+from .core.presence import ScheduleShift
+from .core.rule_factory import build_rules
 from .core.rules import RuleChain
-from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, merged, overridden
-from .core.shading import RoomGeometry
+from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, Transition, merged, overridden
 from .core.sun import SunPosition, WindowGeometry
 from .core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
-from .core.weather import FrostRule, StormRule, TemperatureLimitRule
-from .core.winter import WinterRule
-from .storage import RuntimeStore
+from .shutter_settings import ShutterSettings
+from .storage import RuntimeStore, StoredSetting
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,76 +48,43 @@ KEY_GLARE_POSITION = "glare_position"
 KEY_GLARE_FROM = "glare_from"
 KEY_SLEEP_IN = "sleep_in"
 KEY_PAUSE = "pause"
+KEY_LOCK = "lock"  # set by an automation (#52)
 KEY_POSITION = "position"  # the last command and direction (#75)
 RUNNING = 5.0  # W: the motor runs above this
 
 
-def shutter_config(data: dict) -> ShutterConfig:
-    values = {**DEFAULT_SHUTTER, **data}
-    return ShutterConfig(
-        cover=values[CONF_COVER],
-        azimuth=float(values[CONF_AZIMUTH]),
-        tilt=float(values[CONF_TILT]),
-        min_elevation=float(values[CONF_MIN_ELEVATION]),
-        max_elevation=float(values[CONF_MAX_ELEVATION]),
-        room_temperature=values.get(CONF_ROOM_TEMPERATURE),
-        horizon=Horizon.from_data(values.get(CONF_HORIZON)),
-        room=room_geometry(values),
-    )
-
-
-def room_geometry(values: dict) -> RoomGeometry | None:
-    """The room behind the window (#55), when all three are known; the window height may come from the
-    calibration."""
-    sill, depth = values.get(CONF_WINDOW_SILL), values.get(CONF_SUN_DEPTH)
-    height = values.get(CONF_WINDOW_HEIGHT) or (values.get(CONF_CALIBRATION) or {}).get("window_height_cm")
-    if sill is None or depth is None or not height:
-        return None
-    return RoomGeometry(float(sill), float(height), float(depth))
-
-
 class ShutterController:
+    # settings that are entities: stored per shutter, the subentry's value until a user changes it
+    automatic = StoredSetting(KEY_AUTOMATIC, bool, lambda c: True)
+    max_position = StoredSetting(KEY_MAX_POSITION, int, lambda c: c.settings.max_position)
+    heat_protection = StoredSetting(KEY_HEAT_PROTECTION, bool, lambda c: c.settings.heat_protection)
+    shading_position = StoredSetting(KEY_SHADING_POSITION, int, lambda c: c.settings.shading_position)
+    glare_protection = StoredSetting(KEY_GLARE_PROTECTION, bool, lambda c: c.settings.glare_protection)
+    glare_position = StoredSetting(KEY_GLARE_POSITION, int, lambda c: c.settings.glare_position)
+    glare_from = StoredSetting(KEY_GLARE_FROM, int, lambda c: c.settings.glare_from)  # % of the clear sky
+
     def __init__(
         self,
         hass: HomeAssistant,
         subentry: ConfigSubentry,
         store: RuntimeStore,
-        chain: RuleChain | None = None,
         calibration: Calibration | None = None,
         sun: SunSettings | None = None,
         base_schedule: dict | None = None,
         calendar: HolidayCalendar | None = None,
         safety: dict | None = None,
+        shift: Callable[[str], ScheduleShift] | None = None,
     ) -> None:
         self.hass = hass
         self.id = subentry.subentry_id
         self.title = subentry.title
-        self.subentry_data = dict(subentry.data)
-        self.config = shutter_config(dict(subentry.data))
-        self.default_max = int(subentry.data.get(CONF_MAX_POSITION, DEFAULT_SHUTTER[CONF_MAX_POSITION]))
+        self.subentry_data = dict(subentry.data)  # written back when a horizon point is recorded (#54)
+        self.settings = settings = ShutterSettings.from_data(subentry.data)
+        self.config = settings.config
         self.store = store
-        sun = sun or SunSettings()
-        overrides = {
-            "heat_outdoor": subentry.data.get(CONF_HEAT_OUTDOOR),
-            "heat_room": subentry.data.get(CONF_HEAT_ROOM),
-            "hot_day": subentry.data.get(CONF_HOT_DAY),
-        }
-        sun = SunSettings(**{**sun.__dict__, **{k: float(v) for k, v in overrides.items() if v is not None}})
-        self.default_heat = bool(
-            subentry.data.get(CONF_HEAT_PROTECTION, DEFAULT_SHUTTER[CONF_HEAT_PROTECTION])
-        )
-        self.default_shading = int(
-            subentry.data.get(CONF_SHADING_POSITION, DEFAULT_SHUTTER[CONF_SHADING_POSITION])
-        )
-        self.default_glare = {
-            key: subentry.data.get(key, DEFAULT_SHUTTER[key])
-            for key in (CONF_GLARE_PROTECTION, CONF_GLARE_POSITION, CONF_GLARE_FROM)
-        }
         self.limiter = PositionLimiter()
-        self.calibration: Calibration = calibration or RollerCalibration.from_data(
-            subentry.data.get(CONF_CALIBRATION)
-        )
-        self.adapter = CoverAdapter(hass, self.config.cover, subentry.data.get(CONF_MOTOR_POWER))
+        self.calibration: Calibration = calibration or RollerCalibration.from_data(settings.calibration)
+        self.adapter = CoverAdapter(hass, self.config.cover, settings.motor_power)
         self.adapter.on_send = self._on_send
         self.memory = PositionMemory.from_dict(store.get(self.id, KEY_POSITION))
         self.memory.observe(self.adapter.module_position())
@@ -158,114 +94,51 @@ class ShutterController:
         self.paused_all = False  # automatic control of the whole integration is off (#53)
 
         # schedule (#4): the base schedule with this shutter's overrides
-        self.schedule_overrides = dict(subentry.data.get(CONF_SCHEDULE) or {})
-        self.schedule_values = merged(base_schedule, self.schedule_overrides)
+        self.schedule_values = merged(base_schedule, settings.schedule_overrides)
         self.schedule = DaySchedule(
             self.schedule_values,
             SunTimes(hass.config.latitude, hass.config.longitude),
             calendar or HolidayCalendar(),
             dt_util.get_default_time_zone(),  # not ZoneInfo(...): that can read from disk (#87)
+            (lambda: shift(self.id)) if shift else None,  # random shifts on holiday (#51)
         )
-        self.schedule_rule = ScheduleRule(self.schedule, self.slit_module)
         stored_sleep = store.get(self.id, KEY_SLEEP_IN) or {}
         self.sleep_in = SleepIn(bool(stored_sleep.get("armed")), float(stored_sleep.get("armed_at", 0.0)))
         self.sleep_in.on_change = self._save_sleep_in
         # manual operation (#5)
-        travel = subentry.data.get(CONF_TRAVEL_TIME)
-        self.detector = ManualDetector(float(travel) if travel else None)
-        self.arrival = ArrivalCheck(float(travel) if travel else None)  # (#48)
+        self.detector = ManualDetector(settings.travel_time)
+        self.arrival = ArrivalCheck(settings.travel_time)  # (#48)
         self._checking = False
         self.detector.observe(self.adapter.module_position(), self._motor_running(), time.time())
         self.pause = ManualPause.from_dict(store.get(self.id, KEY_PAUSE))
-        self.pause_rule = ManualPauseRule(self.pause, lambda now: str(self.schedule_rule.phase(now)))
-        self.heat_rule = HeatProtectionRule(sun)
-        self.glare_rule = GlareProtectionRule(sun, self.schedule_rule.phase)
+        self.lock = Lock.from_dict(store.get(self.id, KEY_LOCK))
+        self._check_lock(time.time())  # an expired lock is dropped at start
         safety = safety or {}
-        self.storm_rule = StormRule(
-            lambda: str(self.schedule_values["storm_position"]), self._wanted_without_storm
+        self.rules = build_rules(
+            self.schedule,
+            self.schedule_values,
+            settings.sun(sun or SunSettings()),
+            self.sleep_in,
+            self.pause,
+            self.slit_module,
+            self._wanted_without_storm,
+            safety.get("close_above"),
+            safety.get("close_below"),
+            self.lock,
         )
-        self.chain = chain or RuleChain(
-            [
-                self.storm_rule,
-                FrostRule(),
-                TemperatureLimitRule(safety.get("close_above"), safety.get("close_below")),
-                self.pause_rule,
-                SleepInRule(self.sleep_in, self.schedule),
-                self.heat_rule,
-                self.glare_rule,
-                WinterRule(
-                    lambda: _on(self.schedule_values["winter"]),
-                    lambda: _number(self.schedule_values["winter_closed_below"]),
-                    self.schedule_rule.phase,
-                    lambda: int(self.schedule_values["dusk_position"]),
-                ),
-                self.schedule_rule,
-            ]
-        )
+        self.chain: RuleChain = self.rules.chain
         # window and door contacts (#49)
-        self.contacts = (subentry.data.get(CONF_OPENED_CONTACT), subentry.data.get(CONF_TILTED_CONTACT))
-        ventilation = subentry.data.get(CONF_VENTILATION_POSITION)
-        self.guard = OpeningGuard(
-            int(subentry.data.get(CONF_LOCKOUT_POSITION, DEFAULT_SHUTTER[CONF_LOCKOUT_POSITION])),
-            None if ventilation is None else int(ventilation),
-        )
+        self.contacts = (settings.opened_contact, settings.tilted_contact)
+        self.guard = OpeningGuard(settings.lockout_position, settings.ventilation_position)
         self.floor_entry: dict | None = None  # the contacts' line in the decision trace
         self.on_manual: Callable[[], None] | None = None
         self.storm = False  # the last evaluation was in a storm
         self.last_target: tuple[str, int] | None = None  # what was last sent: ("real" | "module", value)
 
-    # --- settings that are entities --------------------------------------------------------------
-    @property
-    def automatic(self) -> bool:
-        return bool(self.store.get(self.id, KEY_AUTOMATIC, True))
-
     def set_automatic(self, on: bool) -> None:
-        self.store.set(self.id, KEY_AUTOMATIC, on)
+        self.automatic = on
         if on:
             self.resume()
-
-    @property
-    def max_position(self) -> int:
-        return int(self.store.get(self.id, KEY_MAX_POSITION, self.default_max))
-
-    def set_max_position(self, value: int) -> None:
-        self.store.set(self.id, KEY_MAX_POSITION, int(value))
-
-    @property
-    def heat_protection(self) -> bool:
-        return bool(self.store.get(self.id, KEY_HEAT_PROTECTION, self.default_heat))
-
-    def set_heat_protection(self, on: bool) -> None:
-        self.store.set(self.id, KEY_HEAT_PROTECTION, on)
-
-    @property
-    def shading_position(self) -> int:
-        return int(self.store.get(self.id, KEY_SHADING_POSITION, self.default_shading))
-
-    def set_shading_position(self, value: int) -> None:
-        self.store.set(self.id, KEY_SHADING_POSITION, int(value))
-
-    @property
-    def glare_protection(self) -> bool:
-        return bool(self.store.get(self.id, KEY_GLARE_PROTECTION, self.default_glare[CONF_GLARE_PROTECTION]))
-
-    def set_glare_protection(self, on: bool) -> None:
-        self.store.set(self.id, KEY_GLARE_PROTECTION, on)
-
-    @property
-    def glare_position(self) -> int:
-        return int(self.store.get(self.id, KEY_GLARE_POSITION, self.default_glare[CONF_GLARE_POSITION]))
-
-    def set_glare_position(self, value: int) -> None:
-        self.store.set(self.id, KEY_GLARE_POSITION, int(value))
-
-    @property
-    def glare_from(self) -> int:
-        """% of the clear-sky value from which the sun dazzles."""
-        return int(self.store.get(self.id, KEY_GLARE_FROM, self.default_glare[CONF_GLARE_FROM]))
-
-    def set_glare_from(self, value: int) -> None:
-        self.store.set(self.id, KEY_GLARE_FROM, int(value))
 
     def set_sleep_in(self, on: bool) -> None:
         self.sleep_in.arm(on, time.time())
@@ -281,13 +154,29 @@ class ShutterController:
     def _save_pause(self) -> None:
         self.store.set(self.id, KEY_PAUSE, self.pause.to_dict())
 
+    def set_lock(self, mode: LockMode | str, duration_s: float | None = None) -> None:
+        """Hold or force the shutter (#52); `none` ends the lock. The next evaluation applies it."""
+        self.lock.set(mode, time.time(), duration_s)
+        self.last_target = None
+        self.store.set(self.id, KEY_LOCK, self.lock.to_dict())
+
+    def end_lock(self) -> None:
+        if self.lock.on:
+            self.set_lock(LockMode.NONE)
+
+    def _check_lock(self, now: float) -> None:
+        """End an expired lock (also while automatic control is off): stored, and the wanted position is
+        sent again at the next evaluation."""
+        if self.lock.on and not self.lock.still(now):
+            self.set_lock(LockMode.NONE)
+
     # --- facade light sensor (sun source: light sensors) ---------------------------------------------
     facade_light: str | None = None
     facade: SunnyDetector | None = None
 
     def use_facade(self, threshold: float, baseline: LuxBaseline) -> None:
         """Let this shutter's own light sensor decide whether it is sunny (only with the light source)."""
-        self.facade_light = self.subentry_data.get(CONF_FACADE_LIGHT) or None
+        self.facade_light = self.settings.facade_light
         if self.facade_light:
             stored = self.store.get(self.id, KEY_CLEAR_SKY_LUX)
             self.facade = SunnyDetector(ClearSkyReference.from_dict(stored), threshold, baseline=baseline)
@@ -319,7 +208,7 @@ class ShutterController:
         return int(slit if slit is not None else self.schedule_values["slit_module"])
 
     def overrides(self) -> list[str]:
-        return overridden(self.schedule_overrides)
+        return overridden(self.settings.schedule_overrides)
 
     # --- position ---------------------------------------------------------------------------------
     def _motor_running(self) -> bool | None:
@@ -343,7 +232,7 @@ class ShutterController:
 
     def _wanted_without_storm(self, ctx: ShutterContext) -> int | None:
         """The real position the other rules want now (the slit counts as closed), for the storm's end."""
-        decision = self.chain.decide(ctx, skip=self.storm_rule)
+        decision = self.chain.decide(ctx, skip=self.rules.storm)
         if decision.module is not None:
             return 0
         return decision.position
@@ -352,12 +241,13 @@ class ShutterController:
         """Someone moved the shutter: end sleep-in, pause automatic control (unless the mode is ignore)."""
         if self.sleep_in.armed:
             self.sleep_in.arm(False, now)
+        self.end_lock()  # a manual action ends a lock (#52)
         if source == "switch":  # moved by someone else: whatever we sent is no longer the goal
             self.arrival.cancel()
             self.memory.forget_sent()
         mode = str(self.schedule_values["manual_mode"])
         duration = float(self.schedule_values["manual_duration"])
-        self.pause.start(now, mode, duration, str(self.schedule_rule.phase(now)), source)
+        self.pause.start(now, mode, duration, str(self.rules.schedule.phase(now)), source)
         self.last_target = None  # whatever ends the pause sends the wanted position again
         self._save_pause()
         if self.on_manual is not None:
@@ -369,6 +259,11 @@ class ShutterController:
         self.last_target = None
         self._save_pause()
 
+    def resume_all(self) -> None:
+        """The button *Resume automatic control*: end the manual pause and a lock (#52)."""
+        self.end_lock()
+        self.resume()
+
     def direction(self) -> Direction:
         return self.memory.current(self.adapter.module_position())
 
@@ -377,14 +272,15 @@ class ShutterController:
         return self.memory.real(self.adapter.module_position(), self.calibration)
 
     def phase(self, now: float | None = None) -> Phase:
-        return self.schedule_rule.phase(time.time() if now is None else now)
+        return self.rules.schedule.phase(time.time() if now is None else now)
 
     def next_change(self):
         return self.schedule.next_change(datetime.now(UTC))
 
-    def next_changes(self, count: int) -> list:
+    def next_changes(self, count: int) -> list[Transition]:
         """The next `count` phase changes of the schedule."""
-        changes, at = [], datetime.now(UTC)
+        changes: list[Transition] = []
+        at = datetime.now(UTC)
         while len(changes) < count and (change := self.schedule.next_change(at)) is not None:
             changes.append(change)
             at = change.at
@@ -438,7 +334,8 @@ class ShutterController:
             return ("module", decision.module)
         if decision.position is None:
             return None
-        return ("real", self.limiter.limit(decision.position, self.max_position, storm))
+        highest = 100 if decision.reason == Reason.LOCKED else self.max_position  # force_open: fully (#52)
+        return ("real", self.limiter.limit(decision.position, highest, storm))
 
     def _there(self, target: tuple[str, int]) -> bool:
         kind, value = target
@@ -469,15 +366,25 @@ class ShutterController:
         now = time.time()
         if self._checking or not self.arrival.due(self._motor_running(), now):
             return
+        if self.detector.settling(now):  # stopped short: a late report may still come (#108)
+            return  # the coordinator checks again when the settle time is over
         self._checking = True
         try:
             await self.adapter.async_refresh()  # not every module reports by itself (#42)
+            self.observe()  # the refreshed report may itself be manual
+            if not self.arrival.active:
+                return
+            now = time.time()
+            if self.detector.check(now):  # someone stopped the move halfway (#108)
+                self._manual(now, "switch")
+                return
             position = self.adapter.module_position()
             verdict = self.arrival.judge(position)
             if verdict is Verdict.ARRIVED:
                 ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
             elif verdict is Verdict.RETRY:
                 command = self.adapter.last_command
+                assert self.arrival.target is not None  # a command is only awaited after `sent`
                 _LOGGER.info(
                     "%s did not reach %s %% (at %s %%): sending it again",
                     self.title,
@@ -527,6 +434,7 @@ class ShutterController:
             self.resume()  # a door that opens ends a manual pause: the shutter goes up (#49)
         self.storm = inputs.storm
         self.paused_all = paused
+        self._check_lock(inputs.now)
         if self.paused or paused:
             self.arrival.cancel()
         if not self.automatic or self.paused or paused:
@@ -537,7 +445,7 @@ class ShutterController:
         ctx = self._context(inputs)
         if self.pause.on and self.detector.at_rest(inputs.now):
             # moved by hand to where automatic control wants it: resume (#5)
-            wanted = self._limited(self.chain.decide(ctx, skip=self.pause_rule), storm)
+            wanted = self._limited(self.chain.decide(ctx, skip=self.rules.pause), storm)
             if wanted is not None and self._there(wanted):
                 self.resume()
                 self.last_target = wanted
@@ -562,7 +470,8 @@ class ShutterController:
     # --- contacts (#49) -------------------------------------------------------------------------------
     def _read_contacts(self, now: float) -> bool:
         """Read both contacts; true when the door or window has just opened."""
-        return self.guard.update(*(self._contact(e) for e in self.contacts), now)
+        opened, tilted = self.contacts
+        return self.guard.update(self._contact(opened), self._contact(tilted), now)
 
     def _contact(self, entity_id: str | None) -> bool | None:
         if not entity_id:
@@ -585,11 +494,11 @@ class ShutterController:
         """Keep the shutter at least at the lockout or ventilation position; frost and a manual pause
         leave it where it is."""
         floor = self.guard.floor(now, self.slit_module(), self.max_position)
-        leave = decision.final and decision.position is None
+        leave = decision.final and decision.position is None and decision.reason != Reason.LOCKED
         raised = target if leave else raise_to(target, self._current(), floor, storm)
         applied = floor is not None and raised != target
         self.floor_entry = _floor_entry(floor, applied, self.guard) if any(self.contacts) else None
-        if not applied:
+        if not applied or floor is None or raised is None:
             return decision, target
         kind, value = raised
         module = value if kind == "module" else None
@@ -609,7 +518,7 @@ class ShutterController:
         await self.adapter.async_stop()
 
     def calibration_points(self) -> dict:
-        return dict((self.subentry_data.get(CONF_CALIBRATION) or {}).get("points") or {})
+        return self.settings.calibration_points
 
     def next_action(self) -> dict[str, Any]:
         """The next schedule change as the next action sensor shows it; empty without one."""
@@ -641,6 +550,7 @@ class ShutterController:
                 "reason": str(self.decision.reason),
                 "target_position": self.decision.position,
                 "manual_pause": self.pause.on,
+                "lock": self.lock.to_dict(),
                 "stuck": self.stuck,
                 "calibrated": self.calibration.calibrated,
             },
@@ -679,14 +589,3 @@ def _floor_entry(floor: Floor | None, applied: bool, guard: OpeningGuard) -> dic
 
 def _iso(epoch: float | None) -> str | None:
     return None if epoch is None else datetime.fromtimestamp(epoch, UTC).isoformat()
-
-
-def _on(value) -> bool:
-    return value not in (False, "off", "none", "false", None)
-
-
-def _number(value) -> float | None:
-    try:
-        return None if value in (None, "", "none", "off") else float(value)
-    except (TypeError, ValueError):
-        return None

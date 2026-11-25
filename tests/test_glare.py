@@ -164,3 +164,24 @@ def test_a_final_target_is_the_applied_one():
     assert chain.decide(ctx).reason == Reason.STORM
     assert [e.applied for e in chain.last_trace] == [True, False]
     assert chain.last_trace[1].result == "cap"
+
+
+def away_glare(now, **kw):
+    ctx = glare_ctx(now, **kw)
+    object.__setattr__(ctx.inputs, "away", True)
+    return ctx
+
+
+def test_no_glare_protection_while_away():
+    r = rule(close_delay=0)
+    assert r.propose(away_glare(0)) is None
+    assert r.why == ("away", {})
+    assert r.propose(glare_ctx(10)) is not None  # home again
+
+
+def test_glare_that_was_active_ends_through_the_open_delay_when_away():
+    r = rule(close_delay=0, open_delay=1200)
+    assert r.propose(glare_ctx(0)) is not None
+    assert r.propose(away_glare(10)) is not None and r.phase is Phase.LEAVING
+    assert r.propose(away_glare(1209)) is not None
+    assert r.propose(away_glare(1210)) is None and r.phase is Phase.OPEN

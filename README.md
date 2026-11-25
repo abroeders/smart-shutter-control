@@ -64,10 +64,11 @@ Read it on the documentation site: **<https://abroeders.github.io/smart-shutter-
 
 ## Development
 
-- Logic in `custom_components/smart_shutter_control/core/` (no Home Assistant imports): `pytest`.
-- Home Assistant tests: `pytest tests_ha -o pythonpath=. -o testpaths=tests_ha -o asyncio_mode=auto` with
-  `pytest-homeassistant-custom-component`.
+- Logic in `custom_components/smart_shutter_control/core/` (no Home Assistant imports): `pytest tests`.
+- All tests, the Home Assistant ones included, with `pytest-homeassistant-custom-component` installed:
+  `pytest`; with coverage (minimum in `pyproject.toml`): `pytest --cov`.
 - Code style: `ruff check .` and `ruff format .`.
+- Types: `mypy` (configured in `pyproject.toml`; CI runs it against the minimum Home Assistant version).
 - Designs: [`docs/design/`](docs/design/), architecture and UML: [`docs/architecture.md`](docs/architecture.md).
 - Icons: edit `brand/*.svg`, then `python scripts/render_icons.py`.
 - Card: in `frontend/`, `npm ci`, `npm test`, `npm run build` (the bundle in
@@ -79,7 +80,9 @@ Read it on the documentation site: **<https://abroeders.github.io/smart-shutter-
 
 ## Support
 
-Do your shutters run themselves now? A coffee keeps the project going. Thank you!
+Smart Shutter Control is free and built in spare time. If it keeps your house cool in summer and warm in
+winter, please consider buying me a coffee: your support lets me keep developing the integration, add new
+features and keep up with every Home Assistant release. Thank you!
 
 <a href="https://www.buymeacoffee.com/abroeders"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="50"></a>
 

@@ -33,10 +33,11 @@ async def test_base_flow_creates_entry_and_device(hass: HomeAssistant, covers) -
         result["flow_id"], {"outdoor_temperature": OUTDOOR, "sun_source": "pv"}
     )
     assert result["step_id"] == "pv"  # only the PV fields
-    assert {str(k) for k in result["data_schema"].schema} == {"pv_power", "pv_peak"}
+    assert {str(k) for k in result["data_schema"].schema} == {"pv_power", "pv_peak", "pv_tilt", "pv_azimuth"}
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"pv_power": ["sensor.pv"]})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"]["sun_source"] == "pv" and result["data"]["pv_power"] == ["sensor.pv"]
+    assert result["data"]["pv_tilt"] == 35 and result["data"]["pv_azimuth"] == 180  # defaults (#110)
     await hass.async_block_till_done()
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     assert entry.state is ConfigEntryState.LOADED
@@ -268,6 +269,7 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
         "glare_position",
         "glare_protection",
         "heat_protection",
+        "lock",
         "manual_pause",
         "max_position",
         "next_action",
@@ -289,9 +291,11 @@ async def test_add_shutters_as_devices_under_the_base(hass: HomeAssistant, cover
     base_keys = sorted(e.unique_id.removeprefix(f"{entry.entry_id}_") for e in base)
     assert base_keys == [
         "automatic_all",
+        "away",
         "forecast_max",
         "frost",
         "holiday",
+        "holiday_mode",
         "hot_day",
         "sleep_in_all",
         "storm",
@@ -388,3 +392,25 @@ async def test_the_unused_pv_forecast_source_is_removed(hass: HomeAssistant) -> 
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert "pv_forecast" not in entry.data
+
+
+async def test_panel_orientation_is_stored_and_used(hass: HomeAssistant, covers) -> None:
+    """#110: tilt and direction of the panels in the PV step; old entries without them get the defaults."""
+    entry = await setup_base(hass)
+    assert "pv_tilt" not in entry.data
+    baseline = entry.runtime_data.baseline()
+    assert (baseline.tilt, baseline.azimuth) == (35.0, 180.0)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reconfigure", "entry_id": entry.entry_id}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"outdoor_temperature": OUTDOOR, "sun_source": "pv"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"pv_power": ["sensor.pv"], "pv_peak": 2.6, "pv_tilt": 40, "pv_azimuth": 182}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    assert entry.data["pv_tilt"] == 40 and entry.data["pv_azimuth"] == 182
+    baseline = entry.runtime_data.baseline()
+    assert (baseline.tilt, baseline.azimuth, baseline.pv_peak_kw) == (40.0, 182.0, 2.6)

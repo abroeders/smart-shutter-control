@@ -6,6 +6,59 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+## [2026.11.31] - 2026-11-25
+
+### Added
+
+- Action `smart_shutter_control.set_lock` and a select *Lock* per shutter: hold a shutter, or force it fully
+  open or fully closed, for a while or until it is ended, e.g. on a hail warning or while washing windows.
+  Storm and frost come first, and an open door or tilted window still raises the shutter; a manual action or
+  *Resume automatic control* ends the lock. Reason `locked` (#52).
+- Away and holiday: an optional presence entity (zone, person, device tracker, group or binary sensor) makes
+  the house count as away after a delay; while away, heat protection starts at lower temperatures and glare
+  protection is skipped. A switch *Holiday* also counts as away and shifts the morning and evening times at
+  random per day and per shutter, so the house looks lived in. New binary sensor *Away* (#51).
+- User guide completed with worked examples, the learning period, the PV peak power of the panels, common
+  pitfalls and screenshots of every page (#113, #114, #115).
+
+### Fixed
+
+- The setting *Shading position* is now called *Heat protection position* (Dutch: *Hitteweringsstand*, was
+  *Schaduwstand*), so it is clear that heat protection uses it. Entity IDs do not change (#112).
+
+## [2026.11.30] - 2026-11-25
+
+### Fixed
+
+- While the clear-sky PV reference is still being learned, the expected clear-sky power now follows the sun's
+  angle on the panels: new settings *Panel tilt* (default 35°) and *Panel direction* (default 180°, south) next
+  to *PV peak power*. A cloudy, rainy or foggy sky from the weather entity now prevents bright sun at every sun
+  elevation, not only below 10° (#110).
+
+## [2026.11.29] - 2026-11-25
+
+### Fixed
+
+- Glare and heat protection no longer take a grey morning or evening for bright sun while the clear-sky PV
+  reference is still being learned: the rough curve from the PV peak power never drops below its value at 10°
+  sun elevation, and below 10° the weather condition decides. The sun factor shows the learning progress in the
+  attributes `learned_days` and `learned_days_needed` (#107).
+- Pressing the switch against the direction of an automatic move, or stopping it halfway (with a motor power
+  sensor), now counts as a manual action: the manual pause starts and the shutter is not sent back (#108).
+
+## [2026.11.28] - 2026-11-24
+
+### Changed
+
+- Development: the core and the Home Assistant tests run in one `pytest` run, and CI fails below a minimum test
+  coverage. The day schedule and the calibration assistant's waiting are split into smaller steps, without a
+  change in behaviour (#99).
+- Development: the weather forecast and the holiday calendar are read by their own providers instead of the base
+  controller (#98).
+- Development: a shutter's settings are read once into one typed object, its rule chain is built by a factory,
+  and the settings its entities change share one stored-setting helper (#96).
+- Development: CI type-checks the integration with mypy (#92).
+
 ## [2026.11.27] - 2026-11-24
 
 ### Fixed
@@ -483,7 +536,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
   maximum position and sensors for the reason and the next action. No rules yet: nothing moves automatically
   (#2).
 
-[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.27...HEAD
+[Unreleased]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.31...HEAD
+[2026.11.31]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.30...2026.11.31
+[2026.11.30]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.29...2026.11.30
+[2026.11.29]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.28...2026.11.29
+[2026.11.28]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.27...2026.11.28
 [2026.11.27]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.26...2026.11.27
 [2026.11.26]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.25...2026.11.26
 [2026.11.25]: https://github.com/abroeders/smart-shutter-control/compare/2026.11.24...2026.11.25

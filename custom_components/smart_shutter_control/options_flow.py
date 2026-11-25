@@ -16,6 +16,8 @@ from .const import (
     CONF_WIND_SPEED,
     DEFAULT_OPTIONS,
     LANGUAGES,
+    OPT_AWAY_DELAY,
+    OPT_AWAY_HEAT_OFFSET,
     OPT_CLOSE_ABOVE,
     OPT_CLOSE_BELOW,
     OPT_CLOSE_DELAY,
@@ -24,6 +26,7 @@ from .const import (
     OPT_HEAT_OUTDOOR,
     OPT_HEAT_ROOM,
     OPT_HOLIDAY_CALENDAR,
+    OPT_HOLIDAY_SHIFT,
     OPT_HOLIDAYS_DISABLED,
     OPT_HOLIDAYS_EXCLUDED,
     OPT_HOLIDAYS_EXTRA,
@@ -31,6 +34,7 @@ from .const import (
     OPT_LANGUAGE,
     OPT_MAX_INCIDENCE,
     OPT_OPEN_DELAY,
+    OPT_PRESENCE,
     OPT_SCHEDULE,
     OPT_STORM_GUST_LIMIT,
     OPT_STORM_LIMIT,
@@ -39,8 +43,8 @@ from .const import (
     OPT_SUNNY_THRESHOLD,
     OPT_WEEKEND_DAYS,
     OPT_WINTER_LIMIT,
+    PRESENCE_DOMAINS,
 )
-from .coordinator import read_calendar
 from .core.schedule import DEFAULT_SCHEDULE, HolidayCalendar, merged, parse_holidays, weekend_set
 from .flow_common import (
     _number,
@@ -49,6 +53,7 @@ from .flow_common import (
     _with_defaults,
     schedule_fields,
 )
+from .providers import read_calendar
 from .recorder_stats import _max_30_days
 
 
@@ -75,7 +80,9 @@ def _disable_field(calendar: HolidayCalendar, current: dict[str, Any]) -> dict:
     """Check boxes for the holidays of the calendar; a checked one is ignored by the schedules."""
     names = calendar.calendar_names()
     disabled = list(current.get(OPT_HOLIDAYS_DISABLED) or [])
-    options = [{"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names]
+    options: list[selector.SelectOptionDict] = [
+        {"value": n, "label": f"{n} ({d.strftime('%d-%m-%Y')})"} for n, d in names
+    ]
     options += [{"value": n, "label": n} for n in disabled if n not in {o["value"] for o in options}]
     if not options:
         return {}
@@ -93,7 +100,8 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
-            step_id="init", menu_options=["schedule", "holidays", "sun", "storm", "winter", "language"]
+            step_id="init",
+            menu_options=["schedule", "holidays", "sun", "storm", "winter", "away", "language"],
         )
 
     async def async_step_language(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -213,6 +221,23 @@ class SmartShutterControlOptionsFlow(OptionsFlow):
             # an emptied "hot day from" switches it off: keep None, not the old value (#50)
             return self.async_create_entry(data={**current, OPT_HOT_DAY: None, **user_input})
         return self.async_show_form(step_id="sun", data_schema=_shown_form(self.hass, schema, current))
+
+    async def async_step_away(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Away and holiday (#51): the presence entity and how away and holiday change the control."""
+        current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        schema = {
+            vol.Optional(OPT_PRESENCE): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=PRESENCE_DOMAINS)
+            ),
+            vol.Required(OPT_AWAY_DELAY): _number(0, 240, 1, "min"),
+            vol.Required(OPT_AWAY_HEAT_OFFSET): _number(0, 10, 0.5, "°C"),
+            vol.Required(OPT_HOLIDAY_SHIFT): _number(0, 120, 5, "min"),
+        }
+        if user_input is not None:
+            user_input = _stored_input(self.hass, schema, user_input, current)
+            # an emptied presence entity: never away (only holiday)
+            return self.async_create_entry(data={**current, OPT_PRESENCE: None, **user_input})
+        return self.async_show_form(step_id="away", data_schema=_shown_form(self.hass, schema, current))
 
     async def async_step_storm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}

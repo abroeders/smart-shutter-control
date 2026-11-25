@@ -88,6 +88,8 @@ async def test_sunny_afternoon(hass: HomeAssistant, covers, monkeypatch, freezer
         hass.states.get(entity_id(hass, entry, None, "sensor", "sun_factor")).attributes["source"]
         == "geometry"
     )
+    factor = hass.states.get(entity_id(hass, entry, None, "sensor", "sun_factor")).attributes
+    assert factor["learned_days"] == 0 and factor["learned_days_needed"] == 7  # (#107)
 
     calls.clear()
     switch = entity_id(hass, entry, south, "switch", "heat_protection")

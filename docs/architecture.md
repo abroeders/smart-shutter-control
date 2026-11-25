@@ -31,11 +31,12 @@ flowchart LR
 |---|---|---|---|
 | 10 | `StormRule` | `core/weather.py` | final: 0 or 100 |
 | 11 | `FrostRule` | `core/weather.py` | final: no move |
+| 12 | `LockRule` | `core/lock.py` | final: no move (`hold`), 100 or 0 (#52) |
 | 15 | `TemperatureLimitRule` | `core/weather.py` | final: closed |
 | 20 | `ManualPauseRule` | `core/manual.py` | final: no move |
 | 30 | `SleepInRule` | `core/daily.py` | target |
-| 40 | `HeatProtectionRule` | `core/heat.py` | cap |
-| 41 | `GlareProtectionRule` | `core/glare.py` | cap |
+| 40 | `HeatProtectionRule` | `core/heat.py` | cap; lower limits while away (#51) |
+| 41 | `GlareProtectionRule` | `core/glare.py` | cap; nothing while away (#51) |
 | 50 | `WinterRule` | `core/winter.py` | target or cap |
 | 60 | `ScheduleRule` | `core/daily.py` | target |
 
@@ -50,12 +51,13 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | **Chain of responsibility** | `RuleChain` asks every `Rule` by priority: the first target wins, caps may lower it, a final target (safety) is not lowered (#2, #3) |
 | **State** | `ProtectionState` phases open → pending → shading → leaving, shared by heat and glare protection (#3, #95); `DaySchedule` phases night → slit → day → dusk (#4); `ManualDetector` idle → commanded → manual (#5) |
 | **Template / inheritance of settings** | `merged(base, overrides)`: every shutter takes the base schedule unless it overrides a setting (#4) |
-| **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
+| **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`), `Curve` (`QuadraticCurve`, `MonotoneCurve`) and `ScheduleShift` (`NoShift`, `RandomShift` on holiday, #51) |
 | **Decorator (floor)** | `raise_to` puts the window and door contacts' floor over the chain's decision without the rules knowing about it (#49) |
-| **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data` |
+| **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data`; `build_rules` builds a shutter's rule chain (#96); `ShutterSettings.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover; the ends (100, 0) go by `open_cover`/`close_cover` when the cover supports them, so the module runs to its limit switch |
 | **Observer** | the entities listen to `BaseCoordinator` |
-| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
+| **Descriptor** | `StoredSetting`: one class attribute per entity setting of a shutter, read from and written to `RuntimeStore` with the subentry's value as default (#96) |
+| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, lock, last target) and globals (winter mode, holiday and the shift seed (#51), 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
 
 ## 3. Scaffold (#1)
 
@@ -112,7 +114,9 @@ classDiagram
     }
     class ShutterController {
         +id str
+        +settings ShutterSettings
         +config ShutterConfig
+        +rules ShutterRules
         +chain RuleChain
         +limiter PositionLimiter
         +calibration Calibration
@@ -193,7 +197,7 @@ classDiagram
     ShutterController o-- Calibration
     Calibration <|.. IdentityCalibration
     ShutterController o-- CoverAdapter
-    ShutterController ..> RuntimeStore : automatic, max position
+    ShutterController ..> RuntimeStore : stored settings such as automatic and max position
     ShutterEntity ..> ShutterController
 ```
 
@@ -417,7 +421,7 @@ sequenceDiagram
         loop at most 3 attempts
             S->>A: async_move(target)
             A->>M: set position
-            S->>P: wait for the motor to start, then to stop (no sensor: distance × travel time + 5 s)
+            S->>P: wait for the motor to start, then to stop (no sensor: distance × travel time + 5 s,<br/>no travel time either: until the position stops changing)
             S->>M: update_entity (poll)
             S->>S: wait for a report after the stop (max 30 s)
             alt within 1 % of the target
@@ -465,6 +469,7 @@ classDiagram
         +cells dict
         +observe(sun, pv_power, now)
         +reference(sun) float|None
+        +days(sun) int
         +to_dict() dict
         +from_dict(data)$
     }
@@ -507,7 +512,7 @@ classDiagram
     HeatProtectionRule *-- ProtectionState
     BaseCoordinator o-- SunnyDetector
     BaseCoordinator ..> SunPosition : once per tick
-    ShutterController o-- HeatProtectionRule
+    ShutterRules o-- HeatProtectionRule : built by build_rules
 ```
 
 ### 6.2 A tick with the sun
@@ -522,7 +527,7 @@ sequenceDiagram
     participant H as HeatProtectionRule
     C->>SP: at(latitude, longitude, now)
     C->>SD: update(sun, PV power or lux, weather)
-    SD-->>C: sunny, factor, source (learned / pv_peak / lux_learned / lux_limit / weather / geometry)
+    SD-->>C: sunny, factor, source (learned / pv_peak / pv_peak_weather / lux_learned / lux_limit / weather / geometry)
     C->>SC: async_evaluate(inputs with sun and sunny)
     SC->>R: decide(ctx: room temperature, heat protection, shading position)
     R->>H: propose(ctx)
@@ -601,7 +606,17 @@ classDiagram
         +command ActiveCommand|None
         +sent(target, start, now)
         +observe(position, motor_running, now) bool
+        +settling(now) float
+        +check(now) bool
         +at_rest(now) bool
+    }
+    class ActiveCommand {
+        +target int
+        +start int|None
+        +closest int|None
+        +stopped_at float|None
+        +away(position) bool
+        +reached(position) bool
     }
     class ManualPause {
         +since
@@ -622,10 +637,12 @@ classDiagram
     SleepInRule ..> DaySchedule
     ManualPauseRule o-- ManualPause
     ShutterController o-- ManualDetector
+    ManualDetector o-- ActiveCommand
     ShutterController o-- ManualPause
-    ShutterController o-- ScheduleRule
+    ShutterRules o-- ScheduleRule : built by build_rules
     ShutterController o-- SleepIn
-    BaseCoordinator o-- HolidayCalendar : shared, filled daily from a calendar entity
+    HolidayProvider o-- HolidayCalendar : shared, filled daily from a calendar entity
+    BaseCoordinator o-- HolidayProvider
 ```
 
 The rule chain per shutter, by priority: `ManualPauseRule` (20, final while paused) → `SleepInRule` (30) →
@@ -658,7 +675,41 @@ sequenceDiagram
 
 The controller moves only when the target changes (a phase change, a setting, the end of a pause or of
 sleep-in, heat protection starting or ending). A shutter moved by hand is recognised by `ManualDetector`:
-any change that is not on the way of an own command, or the motor running without one.
+any change that is not on the way of an own command, or the motor running without one. During an own
+command, a report further from the target than the closest one so far (+2 %) is a reversal, and with a power
+sensor a motor that stops short of the target and stays there for 5 s is a stop: both are manual (#108,
+[`design/2026-11-25-manual-during-move.md`](design/2026-11-25-manual-during-move.md)). A command the motor
+never started stays with the arrival check (#48).
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant MD as ManualDetector
+    participant AC as ArrivalCheck
+    participant A as CoverAdapter
+    C->>SC: observe() (cover or power sensor reported)
+    SC->>MD: observe(position, motor)
+    alt reversal: further from the target than before
+        MD-->>SC: manual
+        SC->>AC: cancel()
+        SC->>SC: start the manual pause
+    else motor stopped short of the target
+        C->>SC: async_check_arrival()
+        SC->>MD: settling(now) > 0: not judged yet
+        C->>C: _check_arrival_later(settle time)
+        C->>SC: async_check_arrival() (settle time over)
+        SC->>A: async_refresh(), then observe()
+        SC->>MD: check(now)
+        alt still short of the target
+            MD-->>SC: manual
+            SC->>AC: cancel()
+            SC->>SC: start the manual pause
+        else arrived
+            SC->>AC: judge(position)
+        end
+    end
+```
 
 ### 7.3 Manual operation
 
@@ -708,9 +759,9 @@ classDiagram
     }
     BaseCoordinator o-- StormDetector
     BaseCoordinator o-- FrostDetector
-    ShutterController o-- StormRule
-    ShutterController o-- FrostRule
-    ShutterController o-- TemperatureLimitRule
+    ShutterRules o-- StormRule : built by build_rules
+    RuleChain o-- FrostRule : built by build_rules
+    RuleChain o-- TemperatureLimitRule : built by build_rules
     StormRule ..> RuleChain : wanted = decide(ctx, skip storm)
 ```
 
@@ -756,7 +807,7 @@ classDiagram
     BaseCoordinator o-- OutdoorMean : stored in RuntimeStore.globals
     BaseCoordinator o-- WinterDetector
     WinterModeSelect ..> WinterDetector : mode
-    ShutterController o-- WinterRule
+    RuleChain o-- WinterRule : built by build_rules
 ```
 
 `WinterRule` gives a target *closed* on a very cold day (below the manual pause, so a manual action
@@ -834,14 +885,18 @@ classDiagram
     class PvBaseline {
         <<strategy>>
         +pv_peak_kw
+        +tilt
+        +azimuth
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
+        +weather_rule(sun, weather, by_factor) bool|None
     }
     class LuxBaseline {
         <<strategy>>
         +limit_lux
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
+        +weather_rule(sun, weather, by_factor) bool|None
     }
     SunnyDetector o-- ClearSkyReference
     SunnyDetector o-- PvBaseline
@@ -853,6 +908,12 @@ classDiagram
 `BaseCoordinator.sun_value()` gives the PV sum or the highest lux, by the sun source. The learned references
 are stored under `clear_sky` (PV) and `clear_sky_lux` (light), a facade sensor's with its shutter. A shutter
 with a facade sensor replaces `sunny` and `sun_factor` in its copy of the inputs before the rules run.
+
+While the PV reference is young, `PvBaseline` computes the rough curve from the sun's angle of incidence on
+the panels (`tilt`, `azimuth`, via `WindowGeometry.incidence`, #110) and never lets it drop below its value
+for flat panels at 10° elevation. `weather_rule()` lets the weather condition decide below 10° and veto a
+bright sun from 10° when the sky is not sunny (`source` `pv_peak_weather`); `LuxBaseline.weather_rule()` has
+no opinion. Design: [`design/2026-11-25-panel-orientation.md`](design/2026-11-25-panel-orientation.md) (#110). Design: [`design/2026-11-25-low-sun-factor.md`](design/2026-11-25-low-sun-factor.md) (#107).
 
 ## 12. The view through the window (#30, #34)
 
@@ -953,7 +1014,7 @@ classDiagram
     GlareProtectionRule ..> ScheduleRule : day phase
     GlareProtectionRule *-- ProtectionState
     HeatProtectionRule *-- ProtectionState
-    ShutterController o-- GlareProtectionRule
+    ShutterRules o-- GlareProtectionRule : built by build_rules
 ```
 
 ```mermaid
@@ -1245,7 +1306,7 @@ sequenceDiagram
 
 ## 21. Heat protection from the weather forecast (#50)
 
-`BaseCoordinator.async_refresh_forecast` calls `weather.get_forecasts` (`type: daily`) at start, once Home
+`ForecastProvider.async_refresh` (#98) calls `weather.get_forecasts` (`type: daily`) at start, once Home
 Assistant has started, when the weather entity appears or becomes available (#67), and every 30 minutes; `today_max` (`core/forecast.py`, pure) takes the `temperature` of the entry whose local date is
 today, and `ForecastMaximum` keeps it for that day only (a failed call keeps today's value, never
 yesterday's). `Inputs.forecast_max` carries it to every shutter. `HeatProtectionRule._warm` is true on a hot
@@ -1262,11 +1323,16 @@ classDiagram
         +update(value, today)
         +today(today) float|None
     }
+    class ForecastProvider {
+        +maximum ForecastMaximum
+        +value float|None
+        +async_refresh()
+        +track(on_update) list
+    }
     class BaseCoordinator {
-        +forecast ForecastMaximum
+        +forecast ForecastProvider
         +forecast_max float|None
         +hot_day bool
-        +async_refresh_forecast()
     }
     class Inputs {
         +forecast_max float|None
@@ -1284,7 +1350,8 @@ classDiagram
     class HotDaySensor {
         <<BinarySensorEntity>>
     }
-    BaseCoordinator o-- ForecastMaximum
+    BaseCoordinator o-- ForecastProvider
+    ForecastProvider o-- ForecastMaximum
     BaseCoordinator ..> Inputs
     HeatProtectionRule ..> Inputs
     HeatProtectionRule o-- SunSettings
@@ -1295,12 +1362,14 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant C as BaseCoordinator
+    participant F as ForecastProvider
     participant W as weather.get_forecasts
     participant SC as ShutterController
     participant H as HeatProtectionRule
-    C->>W: type daily (start, started, entity appears, every 30 min)
-    W-->>C: forecast list
-    C->>C: today_max → ForecastMaximum
+    F->>W: type daily (start, started, entity appears, every 30 min)
+    W-->>F: forecast list
+    F->>F: today_max → ForecastMaximum
+    C->>F: value (each tick)
     C->>SC: async_evaluate(Inputs(forecast_max))
     SC->>H: propose(ctx)
     H->>H: hot day? then warm without the outdoor and room limits
@@ -1402,6 +1471,10 @@ screenshots of Home Assistant itself: it starts a made-up demo (`scripts/demo/co
 covers and sensors) in a temporary directory, chooses the longitude so it is about 13:00 solar time, onboards
 and sets up the integration through the REST API, saves a dashboard through the websocket API and takes each
 screenshot with Playwright. Design: [`design/2026-11-22-ha-screenshots.md`](design/2026-11-22-ha-screenshots.md).
+Since #114 it also takes every base options page, a shutter's contacts and horizon, the base controller's
+device page, the card with its decision list open, and the action `set_lock` in Developer tools (filled in
+through the page's own `localStorage` keys, `panel-dev-action-state-*`). Every new or changed form, options
+page, entity group or card view gets its screenshot this way.
 
 ```mermaid
 sequenceDiagram
@@ -1474,4 +1547,306 @@ classDiagram
     CalibrationSteps ..> flow_common
     SmartShutterControlConfigFlow ..> recorder_stats : light sensor maxima
     SmartShutterControlOptionsFlow ..> recorder_stats : wind maxima
+```
+
+## 26. Base controller providers (#98)
+
+`BaseCoordinator` reads the inputs, runs the tick and wires the parts; the weather forecast and the holiday
+calendar are providers in `providers.py`, each with its own listeners. `async_start` creates the shutter
+controllers, refreshes both providers once and collects every listener's unsubscribe function, which
+`async_stop` calls. A provider calls `on_update` (the coordinator's `async_update_listeners`) when its entity
+appears late, so the base entities show the new value at once.
+
+```mermaid
+classDiagram
+    class BaseCoordinator {
+        <<DataUpdateCoordinator>>
+        +forecast ForecastProvider
+        +holidays HolidayProvider
+        +calendar HolidayCalendar
+        +async_start()
+        +async_stop()
+        -_create_shutters()
+        -_track_entities() list
+    }
+    class ForecastProvider {
+        +entity_id str|None
+        +maximum ForecastMaximum
+        +value float|None
+        +day date|None
+        +async_refresh()
+        +track(on_update) list
+    }
+    class HolidayProvider {
+        +entity_id str|None
+        +calendar HolidayCalendar
+        +async_refresh()
+        +track(on_update) list
+    }
+    class read_calendar {
+        <<function>>
+        +read_calendar(hass, entity_id) dict|None
+    }
+    BaseCoordinator o-- ForecastProvider
+    BaseCoordinator o-- HolidayProvider
+    ForecastProvider o-- ForecastMaximum
+    HolidayProvider o-- HolidayCalendar
+    HolidayProvider ..> read_calendar
+    SmartShutterControlOptionsFlow ..> read_calendar : holiday listing
+```
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant H as HolidayProvider
+    participant F as ForecastProvider
+    C->>C: _create_shutters()
+    C->>H: async_refresh()
+    C->>F: async_refresh()
+    C->>C: _track_entities(): tick, covers, inputs, contacts
+    C->>H: track(async_update_listeners): every night, calendar appears
+    C->>F: track(async_update_listeners): every 30 min, weather appears
+    Note over C: async_stop calls every unsubscribe function
+```
+
+## 27. Shutter controller parts (#96)
+
+`ShutterController` decides, limits and moves; three parts it used to do itself are separate:
+
+- `ShutterSettings` (`shutter_settings.py`) reads the subentry once into typed values: the `ShutterConfig`,
+  the defaults of the entity settings, contacts, motor power sensor, travel time, calibration, schedule
+  overrides and the shutter's heat limits (`sun(base)`). The controller reads no raw subentry data; it keeps
+  a copy only to write a recorded horizon point back and for the diagnostics.
+- `build_rules` (`core/rule_factory.py`, pure) builds the rule chain from the day schedule, the schedule
+  settings, the sun settings, sleep-in, the manual pause and the temperature limits, and returns
+  `ShutterRules`: the chain and the rules the controller and its entities talk to.
+- `StoredSetting` (`storage.py`) is a descriptor: `automatic`, `max_position`, `heat_protection`,
+  `shading_position`, `glare_protection`, `glare_position` and `glare_from` are class attributes that read
+  the runtime store with the subentry's value as default; the entities assign to them.
+
+```mermaid
+classDiagram
+    class ShutterController {
+        +settings ShutterSettings
+        +rules ShutterRules
+        +chain RuleChain
+        +automatic StoredSetting~bool~
+        +max_position StoredSetting~int~
+        +heat_protection StoredSetting~bool~
+        +shading_position StoredSetting~int~
+        +glare_protection StoredSetting~bool~
+        +glare_position StoredSetting~int~
+        +glare_from StoredSetting~int~
+        +set_automatic(on)
+    }
+    class ShutterSettings {
+        <<frozen>>
+        +config ShutterConfig
+        +max_position int
+        +heat_protection bool
+        +shading_position int
+        +glare_protection bool
+        +glare_position int
+        +glare_from int
+        +lockout_position int
+        +ventilation_position int|None
+        +opened_contact str|None
+        +tilted_contact str|None
+        +facade_light str|None
+        +motor_power str|None
+        +travel_time float|None
+        +calibration dict|None
+        +schedule_overrides dict
+        +sun_overrides dict
+        +from_data(data)$ ShutterSettings
+        +sun(base) SunSettings
+        +calibration_points dict
+    }
+    class ShutterRules {
+        <<frozen>>
+        +chain RuleChain
+        +schedule ScheduleRule
+        +pause ManualPauseRule
+        +heat HeatProtectionRule
+        +glare GlareProtectionRule
+        +storm StormRule
+    }
+    class build_rules {
+        <<function core/rule_factory.py>>
+        +build_rules(schedule, values, sun, sleep_in, pause, slit_module, wanted_without_storm, close_above, close_below) ShutterRules
+    }
+    class StoredSetting~T~ {
+        <<descriptor>>
+        +key str
+        +kind bool|int
+        +default(owner) T
+        +__get__(owner) T
+        +__set__(owner, value)
+    }
+    ShutterController *-- ShutterSettings
+    ShutterController o-- ShutterRules
+    build_rules ..> ShutterRules : creates
+    ShutterController ..> build_rules
+    ShutterController ..> StoredSetting : class attributes
+    StoredSetting ..> RuntimeStore
+    ShutterRules o-- RuleChain
+```
+
+
+## 28. Locks from an automation (#52)
+
+Design: [`design/2026-11-25-lock.md`](design/2026-11-25-lock.md). The action `smart_shutter_control.set_lock`
+(`services.py`, registered in `async_setup`) resolves the target devices to shutter controllers and calls
+`set_lock`; the select *Lock* (`LockSelect`) does the same without a duration. `LockRule` (priority 12) comes
+after storm and frost; the door and window floors (#49) still apply to its decision (only frost and a manual
+pause leave the shutter where it is). `force_open` is not limited by the *Maximum position*. A manual action and
+the button *Resume automatic control* end the lock.
+
+```mermaid
+classDiagram
+    class LockMode {
+        <<enumeration>>
+        none
+        hold
+        force_open
+        force_closed
+    }
+    class Lock {
+        +mode LockMode
+        +until float|None
+        +on bool
+        +set(mode, now, duration_s)
+        +end()
+        +still(now) bool
+        +to_dict() dict
+        +from_dict(data)$
+    }
+    class LockRule {
+        +priority 12
+        +propose(ctx) Decision|None
+    }
+    class LockSelect {
+        +current_option str
+        +async_select_option(option)
+    }
+    Lock --> LockMode
+    LockRule o-- Lock
+    ShutterRules o-- LockRule
+    ShutterController o-- Lock : set_lock, end_lock, resume_all
+    ShutterController ..> RuntimeStore : key lock
+    LockSelect ..> ShutterController
+```
+
+```mermaid
+sequenceDiagram
+    participant AU as Automation
+    participant S as services.set_lock
+    participant SC as ShutterController
+    participant C as BaseCoordinator
+    participant R as RuleChain
+    AU->>S: set_lock(device_id, mode, duration)
+    S->>S: devices to controllers (all valid, else ServiceValidationError)
+    S->>SC: set_lock(mode, duration)
+    SC->>SC: store lock, clear last target
+    S->>C: async_tick()
+    C->>SC: async_evaluate(inputs)
+    SC->>R: decide(ctx)
+    R-->>SC: storm / frost, else LockRule: 100, 0 or no move
+    SC->>SC: door floor, then move
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unlocked
+    Unlocked --> Locked: set_lock or select (hold, force_open, force_closed)
+    Locked --> Locked: set_lock again (replaces mode and end time)
+    Locked --> Unlocked: duration over
+    Locked --> Unlocked: set_lock none or select none
+    Locked --> Unlocked: manual action
+    Locked --> Unlocked: Resume automatic control
+```
+
+## 29. Away and holiday (#51)
+
+Design: [`design/2026-11-25-away-holiday.md`](design/2026-11-25-away-holiday.md). `BaseCoordinator` reads the
+optional presence entity (`is_home` per domain; unknown counts as home) and steps an `AwayState` every tick:
+away once nobody has been home for *Away after*, home again at once, and always away while the switch
+*Holiday* is on. A timer evaluates once more when the delay is over. `Inputs.away` lowers both heat limits by
+`SunSettings.away_offset` in `HeatProtectionRule` and stops `GlareProtectionRule` from wanting shade (it ends
+through its open delay). On holiday every shutter's `DaySchedule` gets a `RandomShift`: one shift for the
+morning (slit, open) and one for the evening (dusk, close), within ±*Holiday: time shift up to*, from a seed
+made once and stored, the shutter's subentry id and the date, so a restart gives the same times. The shift is
+applied after the schedule's own limits; `ScheduleRule` puts it in the decision trace.
+
+```mermaid
+classDiagram
+    class AwayState {
+        +nobody_since float|None
+        +away_since float|None
+        +step(home, holiday, now, delay) bool
+        +remaining(now, delay) float|None
+    }
+    class ScheduleShift {
+        <<strategy>>
+        +morning(day) int
+        +evening(day) int
+    }
+    class NoShift
+    class RandomShift {
+        +seed int
+        +shutter_id str
+        +minutes int
+    }
+    class HolidaySwitch {
+        +is_on bool
+    }
+    class AwaySensor {
+        +is_on bool
+        +since
+    }
+    ScheduleShift <|-- NoShift
+    ScheduleShift <|-- RandomShift
+    BaseCoordinator o-- AwayState
+    BaseCoordinator ..> ScheduleShift : schedule_shift(shutter_id)
+    BaseCoordinator ..> RuntimeStore : globals holiday, shift_seed
+    DaySchedule ..> ScheduleShift : shifts(day), read per call
+    ShutterController o-- DaySchedule
+    HeatProtectionRule ..> Inputs : away, away_offset
+    GlareProtectionRule ..> Inputs : away
+    HolidaySwitch ..> BaseCoordinator : set_holiday
+    AwaySensor ..> BaseCoordinator : away
+```
+
+```mermaid
+sequenceDiagram
+    participant P as Presence entity
+    participant C as BaseCoordinator
+    participant A as AwayState
+    participant SC as ShutterController
+    P->>C: state changed (nobody home)
+    C->>A: step(home=false, holiday, now, delay)
+    A-->>C: not away yet
+    C->>C: timer for the rest of the delay
+    Note over C: delay over
+    C->>A: step(home=false, ...)
+    A-->>C: away
+    C->>SC: async_evaluate(inputs with away)
+    SC->>SC: heat limits lower, no glare
+    P->>C: state changed (somebody home)
+    C->>A: step(home=true, ...)
+    A-->>C: home at once
+    C->>SC: async_evaluate(inputs without away)
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Home
+    Home --> Waiting: nobody home
+    Waiting --> Home: somebody home
+    Waiting --> Away: Away after has passed
+    Away --> Home: somebody home (holiday off)
+    Home --> Away: Holiday on
+    Waiting --> Away: Holiday on
+    Away --> Waiting: Holiday off, nobody home for less than Away after
+    Away --> Home: Holiday off, somebody home
 ```

@@ -14,7 +14,16 @@ from homeassistant.util.unit_system import METRIC_SYSTEM
 from .const import DOMAIN
 
 REDACTED = "**REDACTED**"
-TO_REDACT = {"latitude", "longitude", "elevation", "location_name", "home_zone", "location", "address"}
+TO_REDACT = {
+    "latitude",
+    "longitude",
+    "elevation",
+    "location_name",
+    "home_zone",
+    "location",
+    "address",
+    "presence",  # the presence entity (#51)
+}
 PRIVATE_PREFIXES = ("person.", "device_tracker.")
 
 

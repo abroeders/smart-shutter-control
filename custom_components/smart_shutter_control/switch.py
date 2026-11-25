@@ -1,4 +1,4 @@
-"""Automatic control on/off per shutter, and for the whole integration (#53)."""
+"""Automatic control on/off per shutter, and for the whole integration (#53); holiday mode (#51)."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ async def async_setup_entry(
         [
             SleepInAllSwitch(entry.runtime_data, "sleep_in_all"),
             AutomaticAllSwitch(entry.runtime_data, "automatic_all"),
+            HolidaySwitch(entry.runtime_data, "holiday_mode"),
         ]
     )
     add_per_shutter(
@@ -57,11 +58,11 @@ class HeatProtectionSwitch(ShutterEntity, SwitchEntity):
         return self.controller.heat_protection
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        self.controller.set_heat_protection(True)
+        self.controller.heat_protection = True
         await self.coordinator.async_tick()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        self.controller.set_heat_protection(False)
+        self.controller.heat_protection = False
         await self.coordinator.async_tick()
 
 
@@ -73,11 +74,11 @@ class GlareProtectionSwitch(ShutterEntity, SwitchEntity):
         return self.controller.glare_protection
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        self.controller.set_glare_protection(True)
+        self.controller.glare_protection = True
         await self.coordinator.async_tick()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        self.controller.set_glare_protection(False)
+        self.controller.glare_protection = False
         await self.coordinator.async_tick()
 
 
@@ -126,4 +127,20 @@ class AutomaticAllSwitch(BaseEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self.coordinator.set_automatic_all(False)
+        await self.coordinator.async_tick()
+
+
+class HolidaySwitch(BaseEntity, SwitchEntity):
+    """On: the house counts as away and the schedule times shift at random (#51); set only by the user."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.holiday
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        self.coordinator.set_holiday(True)
+        await self.coordinator.async_tick()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        self.coordinator.set_holiday(False)
         await self.coordinator.async_tick()

@@ -26,6 +26,7 @@ async def async_setup_entry(
             FrostSensor(entry.runtime_data, "frost"),
             WinterSensor(entry.runtime_data, "winter"),
             HotDaySensor(entry.runtime_data, "hot_day"),
+            AwaySensor(entry.runtime_data, "away"),
         ]
     )
     add_per_shutter(
@@ -45,20 +46,33 @@ class SunnySensor(BaseEntity, BinarySensorEntity):
         return self.coordinator.sunny.sunny
 
 
+class AwaySensor(BaseEntity, BinarySensorEntity):
+    """Nobody home for the away delay, or holiday (#51). No device class: `presence` means the opposite."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.away
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        since = self.coordinator.away_state.away_since
+        return {"since": None if since is None else dt_util.utc_from_timestamp(since).isoformat()}
+
+
 class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):
     """Geometry only: the sun is in front of the window and not blocked."""
 
     @property
     def is_on(self) -> bool:
-        return self.controller.heat_rule.sun_on
+        return self.controller.rules.heat.sun_on
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        incidence = self.controller.heat_rule.incidence
+        incidence = self.controller.rules.heat.incidence
         attributes = {
             "incidence": None if incidence is None else round(incidence, 1),
-            "phase": str(self.controller.heat_rule.phase),
-            "glare_phase": str(self.controller.glare_rule.phase),
+            "phase": str(self.controller.rules.heat.phase),
+            "glare_phase": str(self.controller.rules.glare.phase),
             # for the view through the window in the card (#30)
             "window_azimuth": self.controller.config.azimuth,
             "window_tilt": self.controller.config.tilt,
