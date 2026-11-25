@@ -13,6 +13,7 @@ from homeassistant.loader import async_get_integration
 
 from .const import CARD_FILE, CARD_URL, CONF_PV_POWER, CONF_SUN_SOURCE, DOMAIN, PLATFORMS
 from .coordinator import BaseCoordinator
+from .services import async_register_services
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -20,7 +21,9 @@ type ShutterConfigEntry = ConfigEntry[BaseCoordinator]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Serve the Lovelace card and load it on every dashboard (no manual resource needed)."""
+    """Serve the Lovelace card and load it on every dashboard (no manual resource needed); register the
+    actions (#52)."""
+    async_register_services(hass)
     await async_register_card(hass)
     return True
 

@@ -24,8 +24,10 @@ from .core.daily import SleepIn
 from .core.heat import SunSettings
 from .core.horizon import Horizon
 from .core.limits import PositionLimiter
+from .core.lock import Lock, LockMode
 from .core.manual import ManualDetector, ManualPause, matches
 from .core.model import Decision, Direction, Inputs, Reason, ShutterContext
+from .core.presence import ScheduleShift
 from .core.rule_factory import build_rules
 from .core.rules import RuleChain
 from .core.schedule import DaySchedule, HolidayCalendar, Phase, SunTimes, Transition, merged, overridden
@@ -46,6 +48,7 @@ KEY_GLARE_POSITION = "glare_position"
 KEY_GLARE_FROM = "glare_from"
 KEY_SLEEP_IN = "sleep_in"
 KEY_PAUSE = "pause"
+KEY_LOCK = "lock"  # set by an automation (#52)
 KEY_POSITION = "position"  # the last command and direction (#75)
 RUNNING = 5.0  # W: the motor runs above this
 
@@ -70,6 +73,7 @@ class ShutterController:
         base_schedule: dict | None = None,
         calendar: HolidayCalendar | None = None,
         safety: dict | None = None,
+        shift: Callable[[str], ScheduleShift] | None = None,
     ) -> None:
         self.hass = hass
         self.id = subentry.subentry_id
@@ -96,6 +100,7 @@ class ShutterController:
             SunTimes(hass.config.latitude, hass.config.longitude),
             calendar or HolidayCalendar(),
             dt_util.get_default_time_zone(),  # not ZoneInfo(...): that can read from disk (#87)
+            (lambda: shift(self.id)) if shift else None,  # random shifts on holiday (#51)
         )
         stored_sleep = store.get(self.id, KEY_SLEEP_IN) or {}
         self.sleep_in = SleepIn(bool(stored_sleep.get("armed")), float(stored_sleep.get("armed_at", 0.0)))
@@ -106,6 +111,8 @@ class ShutterController:
         self._checking = False
         self.detector.observe(self.adapter.module_position(), self._motor_running(), time.time())
         self.pause = ManualPause.from_dict(store.get(self.id, KEY_PAUSE))
+        self.lock = Lock.from_dict(store.get(self.id, KEY_LOCK))
+        self._check_lock(time.time())  # an expired lock is dropped at start
         safety = safety or {}
         self.rules = build_rules(
             self.schedule,
@@ -117,6 +124,7 @@ class ShutterController:
             self._wanted_without_storm,
             safety.get("close_above"),
             safety.get("close_below"),
+            self.lock,
         )
         self.chain: RuleChain = self.rules.chain
         # window and door contacts (#49)
@@ -145,6 +153,22 @@ class ShutterController:
 
     def _save_pause(self) -> None:
         self.store.set(self.id, KEY_PAUSE, self.pause.to_dict())
+
+    def set_lock(self, mode: LockMode | str, duration_s: float | None = None) -> None:
+        """Hold or force the shutter (#52); `none` ends the lock. The next evaluation applies it."""
+        self.lock.set(mode, time.time(), duration_s)
+        self.last_target = None
+        self.store.set(self.id, KEY_LOCK, self.lock.to_dict())
+
+    def end_lock(self) -> None:
+        if self.lock.on:
+            self.set_lock(LockMode.NONE)
+
+    def _check_lock(self, now: float) -> None:
+        """End an expired lock (also while automatic control is off): stored, and the wanted position is
+        sent again at the next evaluation."""
+        if self.lock.on and not self.lock.still(now):
+            self.set_lock(LockMode.NONE)
 
     # --- facade light sensor (sun source: light sensors) ---------------------------------------------
     facade_light: str | None = None
@@ -217,6 +241,7 @@ class ShutterController:
         """Someone moved the shutter: end sleep-in, pause automatic control (unless the mode is ignore)."""
         if self.sleep_in.armed:
             self.sleep_in.arm(False, now)
+        self.end_lock()  # a manual action ends a lock (#52)
         if source == "switch":  # moved by someone else: whatever we sent is no longer the goal
             self.arrival.cancel()
             self.memory.forget_sent()
@@ -233,6 +258,11 @@ class ShutterController:
         self.pause.end()
         self.last_target = None
         self._save_pause()
+
+    def resume_all(self) -> None:
+        """The button *Resume automatic control*: end the manual pause and a lock (#52)."""
+        self.end_lock()
+        self.resume()
 
     def direction(self) -> Direction:
         return self.memory.current(self.adapter.module_position())
@@ -304,7 +334,8 @@ class ShutterController:
             return ("module", decision.module)
         if decision.position is None:
             return None
-        return ("real", self.limiter.limit(decision.position, self.max_position, storm))
+        highest = 100 if decision.reason == Reason.LOCKED else self.max_position  # force_open: fully (#52)
+        return ("real", self.limiter.limit(decision.position, highest, storm))
 
     def _there(self, target: tuple[str, int]) -> bool:
         kind, value = target
@@ -403,6 +434,7 @@ class ShutterController:
             self.resume()  # a door that opens ends a manual pause: the shutter goes up (#49)
         self.storm = inputs.storm
         self.paused_all = paused
+        self._check_lock(inputs.now)
         if self.paused or paused:
             self.arrival.cancel()
         if not self.automatic or self.paused or paused:
@@ -462,7 +494,7 @@ class ShutterController:
         """Keep the shutter at least at the lockout or ventilation position; frost and a manual pause
         leave it where it is."""
         floor = self.guard.floor(now, self.slit_module(), self.max_position)
-        leave = decision.final and decision.position is None
+        leave = decision.final and decision.position is None and decision.reason != Reason.LOCKED
         raised = target if leave else raise_to(target, self._current(), floor, storm)
         applied = floor is not None and raised != target
         self.floor_entry = _floor_entry(floor, applied, self.guard) if any(self.contacts) else None
@@ -518,6 +550,7 @@ class ShutterController:
                 "reason": str(self.decision.reason),
                 "target_position": self.decision.position,
                 "manual_pause": self.pause.on,
+                "lock": self.lock.to_dict(),
                 "stuck": self.stuck,
                 "calibrated": self.calibration.calibrated,
             },

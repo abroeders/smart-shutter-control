@@ -29,6 +29,7 @@ class Reason(StrEnum):
     GLARE = "glare"  # (#36)
     LOCKOUT = "lockout"  # a door is open: not below the lockout position (#49)
     VENTILATION = "ventilation"  # a window is tilted: not below the ventilation position (#49)
+    LOCKED = "locked"  # held or forced by an automation (#52)
 
 
 class Kind(StrEnum):
@@ -71,6 +72,8 @@ class Inputs:
     frost: bool = False
     winter: bool = False
     forecast_max: float | None = None  # today's forecast maximum temperature (#50)
+    away: bool = False  # nobody home, or holiday (#51)
+    holiday: bool = False
     extra: dict = field(default_factory=dict)
 
 

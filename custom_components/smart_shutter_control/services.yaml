@@ -1,0 +1,24 @@
+set_lock:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          multiple: true
+          filter:
+            integration: smart_shutter_control
+            model: Shutter controller
+    mode:
+      required: true
+      selector:
+        select:
+          translation_key: lock_mode
+          options:
+            - none
+            - hold
+            - force_open
+            - force_closed
+    duration:
+      required: false
+      selector:
+        duration:

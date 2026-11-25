@@ -20,6 +20,7 @@ class SunSettings:
     close_delay: float = 300.0  # s
     open_delay: float = 1200.0  # s
     hot_day: float | None = 28.0  # °C forecast maximum from which the temperature limits do not apply (#50)
+    away_offset: float = 3.0  # °C: both heat limits are this much lower while nobody is home (#51)
 
 
 class HeatProtectionRule:
@@ -40,15 +41,19 @@ class HeatProtectionRule:
         forecast, limit = ctx.inputs.forecast_max, self.settings.hot_day
         return forecast is not None and limit is not None and forecast >= limit
 
+    def limits(self, ctx: ShutterContext) -> tuple[float, float]:
+        """The outdoor and the room limit in use: lower while away (#51)."""
+        lower = self.settings.away_offset if ctx.inputs.away else 0.0
+        return self.settings.heat_outdoor - lower, self.settings.heat_room - lower
+
     def _warm(self, ctx: ShutterContext) -> bool:
         if self._hot_day(ctx):
             return True
         outdoor, room = ctx.inputs.outdoor, ctx.room
         if outdoor is None and room is None:
             return True
-        return (outdoor is not None and outdoor >= self.settings.heat_outdoor) or (
-            room is not None and room >= self.settings.heat_room
-        )
+        outdoor_limit, room_limit = self.limits(ctx)
+        return (outdoor is not None and outdoor >= outdoor_limit) or (room is not None and room >= room_limit)
 
     @property
     def phase(self) -> Phase:
@@ -87,9 +92,12 @@ class HeatProtectionRule:
             return off
         if not ctx.inputs.sunny:
             return "not_sunny", {}
-        values = {"outdoor": ctx.inputs.outdoor, "limit": self.settings.heat_outdoor}
+        outdoor_limit, room_limit = self.limits(ctx)
+        values: dict = {"outdoor": ctx.inputs.outdoor, "limit": outdoor_limit}
         if ctx.room is not None:
-            values |= {"room": ctx.room, "room_limit": self.settings.heat_room}
+            values |= {"room": ctx.room, "room_limit": room_limit}
+        if ctx.inputs.away:
+            values |= {"away": True}
         if ctx.inputs.forecast_max is not None and self.settings.hot_day is not None:
             values |= {"forecast": ctx.inputs.forecast_max, "forecast_limit": self.settings.hot_day}
         return "too_cold", values

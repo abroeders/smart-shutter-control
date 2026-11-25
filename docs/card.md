@@ -12,6 +12,8 @@ type: custom:smart-shutter-card
 device_id: <the shutter's device>
 ```
 
+To use the card in YAML, copy the shutter's *device* from the device page's address or pick it in the card editor.
+
 - **Drawing:** the shutter at its real (calibrated) position. Drag the blue grip on the bottom bar up or
   down: a shadow bar shows the target, releasing moves the shutter there. Only the grip moves the shutter,
   so scrolling over the drawing on a phone does nothing. This counts as a manual action, so automatic control pauses
@@ -60,6 +62,11 @@ Choose the **base controller** as the device: a tile per shutter with a small dr
 reason, and open/stop/close. Tapping a tile opens the shutter's dialog. *Sleep in (all)* and the storm and
 frost warnings are at the top.
 
+```yaml
+type: custom:smart-shutter-card
+device_id: <the base controller's device>
+```
+
 ![All shutters](images/card-overview.png)
 
 ## Language
@@ -68,6 +75,12 @@ frost warnings are at the top.
 |---|---|
 | card `language: en` or `nl` | this card in that language |
 | none | the integration's *Configure → Language*; with *System language*, your profile language |
+
+```yaml
+type: custom:smart-shutter-card
+device_id: <the shutter's device>
+language: nl
+```
 
 The integration's language setting also names its entities. Settings screens and state values in Home
 Assistant's own cards always follow your profile language.

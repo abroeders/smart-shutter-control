@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from core.daily import ScheduleRule, SleepIn, SleepInRule
 from core.manual import ManualDetector, ManualPause, ManualPauseRule, matches
 from core.model import Decision, Inputs, Kind, Reason, ShutterConfig, ShutterContext
+from core.presence import NoShift, RandomShift, ScheduleShift
 from core.rules import RuleChain
 from core.schedule import (
     DaySchedule,
@@ -215,3 +216,68 @@ def test_disabled_calendar_holidays_count_as_normal_days_every_year():
     assert cal.holiday(date(2026, 4, 6)) is None and cal.holiday(date(2027, 3, 29)) is None
     assert cal.holiday(date(2026, 12, 25)) == "Christmas"
     assert cal.calendar_names() == [("Easter Monday", date(2026, 4, 6)), ("Christmas", date(2026, 12, 25))]
+
+
+class Fixed(ScheduleShift):
+    def __init__(self, morning, evening):
+        self._m, self._e = morning, evening
+
+    def morning(self, day):
+        return self._m
+
+    def evening(self, day):
+        return self._e
+
+
+def shifted(shift, values=None):
+    return DaySchedule(merged(None, values), SUN, HolidayCalendar(), TZ, lambda: shift)
+
+
+def test_no_shift_without_holiday():
+    wed = date(2026, 11, 18)
+    assert [t.at for t in shifted(NoShift()).transitions(wed)] == [t.at for t in schedule().transitions(wed)]
+    assert schedule().shifts(wed) == (0, 0)
+
+
+def test_shift_moves_the_morning_and_the_evening_by_their_own_amount():
+    wed = date(2026, 11, 18)
+    plain = {t.phase: t.at for t in schedule().transitions(wed)}
+    moved = {t.phase: t.at for t in shifted(Fixed(-18, 21)).transitions(wed)}
+    assert moved[Phase.SLIT] == plain[Phase.SLIT] - timedelta(minutes=18)
+    assert moved[Phase.DAY] == plain[Phase.DAY] - timedelta(minutes=18)
+    assert moved[Phase.DUSK] == plain[Phase.DUSK] + timedelta(minutes=21)
+    assert moved[Phase.NIGHT] == plain[Phase.NIGHT] + timedelta(minutes=21)
+
+
+def test_shift_is_applied_after_the_limits():
+    winter = {"not_before_sunrise": True, "weekday_slit": "07:00", "weekday_open": "07:30"}
+    day = date(2026, 12, 21)
+    rise = SUN.sunrise_sunset(day, TZ)[0]
+    assert shifted(Fixed(-30, 0), winter).transitions(day)[0].at == rise - timedelta(minutes=30)
+    summer = shifted(Fixed(0, 20), {"close_latest": "21:00"}).transitions(date(2026, 6, 21))
+    assert summer[-1].at == local(2026, 6, 21, 21, 20)
+
+
+def test_random_shift_stays_within_the_limit_and_keeps_the_order():
+    s = RandomShift(1234, "sub1", 30)
+    for n in range(60):
+        day = date(2026, 5, 1) + timedelta(days=n)
+        assert -30 <= s.morning(day) <= 30 and -30 <= s.evening(day) <= 30
+        t = shifted(s).transitions(day)
+        assert [x.at for x in t] == sorted(x.at for x in t)
+        assert [x.phase for x in t][:2] == [Phase.SLIT, Phase.DAY] and t[-1].phase is Phase.NIGHT
+
+
+def test_random_shift_is_the_same_for_the_same_seed_day_and_shutter():
+    day = date(2026, 11, 18)
+    a, b = RandomShift(7, "sub1", 30), RandomShift(7, "sub1", 30)
+    assert (a.morning(day), a.evening(day)) == (b.morning(day), b.evening(day))
+    days = [date(2026, 11, 1) + timedelta(days=n) for n in range(30)]
+    assert len({a.morning(d) for d in days}) > 5  # other days differ
+    assert [a.morning(d) for d in days] != [RandomShift(7, "sub2", 30).morning(d) for d in days]
+    assert [a.morning(d) for d in days] != [RandomShift(8, "sub1", 30).morning(d) for d in days]
+
+
+def test_random_shift_of_zero_minutes_is_no_shift():
+    s = RandomShift(1, "sub1", 0)
+    assert (s.morning(date(2026, 11, 18)), s.evening(date(2026, 11, 18))) == (0, 0)

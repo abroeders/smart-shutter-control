@@ -212,6 +212,41 @@ def test_too_cold_trace_includes_forecast_and_limit():
     )
 
 
+def away_ctx(now, away, outdoor=20.0, room=None, forecast_max=None):
+    c = sun_ctx(now, outdoor=outdoor, forecast_max=forecast_max)
+    object.__setattr__(c.inputs, "away", away)
+    object.__setattr__(c, "room", room)
+    return c
+
+
+def test_away_lowers_both_heat_limits():
+    assert HeatProtectionRule(SunSettings(close_delay=0)).propose(away_ctx(0, False)) is None  # 20 < 22
+    away = HeatProtectionRule(SunSettings(close_delay=0))
+    assert away.propose(away_ctx(0, True)) == Decision(30, "sun", Kind.CAP)  # 20 >= 19
+    assert HeatProtectionRule(SunSettings(close_delay=0)).propose(away_ctx(0, True, outdoor=18.9)) is None
+    room = away_ctx(0, True, outdoor=10.0, room=21.0)
+    assert HeatProtectionRule(SunSettings(close_delay=0)).propose(room) is not None  # room limit 24 - 3
+    room = away_ctx(0, False, outdoor=10.0, room=21.0)
+    assert HeatProtectionRule(SunSettings(close_delay=0)).propose(room) is None
+
+
+def test_away_offset_is_a_setting_and_shown_in_the_trace():
+    rule = HeatProtectionRule(SunSettings(close_delay=0, away_offset=5))
+    assert rule.propose(away_ctx(0, True, outdoor=17.0)) is not None
+    cool = HeatProtectionRule(SunSettings(close_delay=0, away_offset=5))
+    assert cool.propose(away_ctx(0, True, outdoor=16.9)) is None
+    assert cool.why == ("too_cold", {"outdoor": 16.9, "limit": 17.0, "away": True})
+    home = HeatProtectionRule(SunSettings(close_delay=0))
+    home.propose(away_ctx(0, False, outdoor=15.0))
+    assert home.why[1] == {"outdoor": 15.0, "limit": 22.0}
+
+
+def test_away_does_not_change_the_hot_day_limit():
+    rule = HeatProtectionRule(SunSettings(close_delay=0, hot_day=28))
+    assert rule.propose(away_ctx(0, True, outdoor=10.0, forecast_max=27.9)) is None
+    assert rule.propose(away_ctx(0, True, outdoor=10.0, forecast_max=28.0)) is not None
+
+
 def test_lux_start_limit_with_hysteresis_then_learned():
     from core.sunny import ClearSkyReference, LuxBaseline, SunnyDetector
 

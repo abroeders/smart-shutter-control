@@ -47,7 +47,7 @@
         },
         "data_description": {
           "pv_power": "One or more sensors; they are added up. Used as a measure of clouds.",
-          "pv_peak": "Peak power of the panels, for the expected power in clear sky.",
+          "pv_peak": "Total peak power of the panels behind the PV power sensors: the sum of their Wp ratings (20 × 400 Wp = 8 kWp), not the inverter's rating. Used for the expected clear-sky power while the integration is still learning.",
           "pv_tilt": "Degrees from horizontal: 0 = flat, 90 = vertical. For the expected power in clear sky while the integration is still learning.",
           "pv_azimuth": "Direction the panels face: 0 = north, 90 = east, 180 = south, 270 = west."
         }
@@ -82,7 +82,8 @@
           "schedule": "Schedule",
           "holidays": "Holidays",
           "winter": "Winter",
-          "language": "Language"
+          "language": "Language",
+          "away": "Away and holiday"
         }
       },
       "storm": {
@@ -197,6 +198,22 @@
         "data": {
           "language": "Language"
         }
+      },
+      "away": {
+        "title": "Away and holiday",
+        "description": "When nobody is home, heat protection starts at lower temperatures and glare protection is skipped. On holiday the house also counts as away, and the schedule times shift at random per day and per shutter, so the house looks lived in.",
+        "data": {
+          "presence": "Presence entity",
+          "away_delay": "Away after",
+          "away_heat_offset": "Away: heat protection lower by",
+          "holiday_shift": "Holiday: time shift up to"
+        },
+        "data_description": {
+          "presence": "A zone (number of persons in it), a person or device tracker, a group, or a binary sensor that is on while somebody is home. Empty: never away, unless the Holiday switch is on.",
+          "away_delay": "Minutes nobody must be home before the house counts as away. Coming home counts at once.",
+          "away_heat_offset": "Both heat protection limits (outdoor and room) are this much lower while away.",
+          "holiday_shift": "The morning and the evening times shift by a random number of minutes up to this, earlier or later, per day and per shutter."
+        }
       }
     },
     "error": {
@@ -223,7 +240,7 @@
             "room_temperature": "Room temperature sensor",
             "max_position": "Maximum position",
             "heat_protection": "Heat protection",
-            "shading_position": "Shading position",
+            "shading_position": "Heat protection position",
             "window_sill": "Window bottom above the floor",
             "window_height": "Window height",
             "sun_depth": "Sun into the room",
@@ -245,10 +262,10 @@
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
-            "shading_position": "Position while the sun shines on the window.",
+            "shading_position": "Position during heat protection: sun on the window, sunny and warm.",
             "window_sill": "The glass's lower edge above the floor.",
             "window_height": "The glass height. Defaults to the calibration's window height.",
-            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
+            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed heat protection or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "hot_day": "Override of the base value. Empty: the base value.",
@@ -272,7 +289,7 @@
             "room_temperature": "Room temperature sensor",
             "max_position": "Maximum position",
             "heat_protection": "Heat protection",
-            "shading_position": "Shading position",
+            "shading_position": "Heat protection position",
             "window_sill": "Window bottom above the floor",
             "window_height": "Window height",
             "sun_depth": "Sun into the room",
@@ -294,10 +311,10 @@
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
-            "shading_position": "Position while the sun shines on the window.",
+            "shading_position": "Position during heat protection: sun on the window, sunny and warm.",
             "window_sill": "The glass's lower edge above the floor.",
             "window_height": "The glass height. Defaults to the calibration's window height.",
-            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
+            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed heat protection or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "hot_day": "Override of the base value. Empty: the base value.",
@@ -511,6 +528,9 @@
       },
       "automatic_all": {
         "name": "Automatic control (all shutters)"
+      },
+      "holiday_mode": {
+        "name": "Holiday"
       }
     },
     "number": {
@@ -518,7 +538,7 @@
         "name": "Maximum position"
       },
       "shading_position": {
-        "name": "Shading position"
+        "name": "Heat protection position"
       },
       "glare_position": {
         "name": "Glare position"
@@ -549,7 +569,8 @@
           "winter": "Winter",
           "glare": "Glare",
           "lockout": "Lockout protection",
-          "ventilation": "Ventilation"
+          "ventilation": "Ventilation",
+          "locked": "Locked"
         }
       },
       "next_action": {
@@ -614,6 +635,14 @@
       },
       "hot_day": {
         "name": "Hot day"
+      },
+      "away": {
+        "name": "Away",
+        "state_attributes": {
+          "since": {
+            "name": "Since"
+          }
+        }
       }
     },
     "button": {
@@ -631,6 +660,35 @@
           "auto": "Auto",
           "on": "On",
           "off": "Off"
+        }
+      },
+      "lock": {
+        "name": "Lock",
+        "state": {
+          "none": "None",
+          "hold": "Hold",
+          "force_open": "Force open",
+          "force_closed": "Force closed"
+        }
+      }
+    }
+  },
+  "services": {
+    "set_lock": {
+      "name": "Set lock",
+      "description": "Holds a shutter, or forces it fully open or fully closed, for a while or until you end it. Storm and frost still come first; an open door or tilted window still raises a closed shutter.",
+      "fields": {
+        "device_id": {
+          "name": "Shutters",
+          "description": "The shutter controllers to lock or release."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "None ends the lock; hold: the controller does not move the shutter; force open: fully open (100 %); force closed: fully closed (0 %)."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "How long the lock lasts. Leave empty to keep it until it is ended."
         }
       }
     }
@@ -689,6 +747,19 @@
         "light": "Light sensors (lux)",
         "none": "None"
       }
+    },
+    "lock_mode": {
+      "options": {
+        "none": "None",
+        "hold": "Hold",
+        "force_open": "Force open",
+        "force_closed": "Force closed"
+      }
+    }
+  },
+  "exceptions": {
+    "not_a_shutter": {
+      "message": "The device {device_id} is not a shutter of Smart Shutter Control."
     }
   }
 }

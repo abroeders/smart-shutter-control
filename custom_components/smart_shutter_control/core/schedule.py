@@ -5,13 +5,14 @@ sunrise and sunset, weekends and holidays. No Home Assistant imports.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, tzinfo
 from enum import StrEnum
 from functools import lru_cache
 from typing import Any
 
+from .presence import NoShift, ScheduleShift
 from .sun import SunPosition
 
 SUN_ALTITUDE = -0.833  # degrees: sunrise and sunset (refraction and the sun's radius)
@@ -202,18 +203,34 @@ class DaySchedule:
     """When each phase starts on a given day, and the phase at any moment."""
 
     def __init__(
-        self, values: Mapping[str, Any], sun: SunTimes, calendar: HolidayCalendar, tz: tzinfo
+        self,
+        values: Mapping[str, Any],
+        sun: SunTimes,
+        calendar: HolidayCalendar,
+        tz: tzinfo,
+        shift: Callable[[], ScheduleShift] | None = None,
     ) -> None:
         self.values = dict(values)
         self.sun = sun
         self.calendar = calendar
         self.tz = tz
+        self.shift = shift or NoShift  # read per call: holiday on or off counts at the next evaluation (#51)
+
+    def shifts(self, day: date) -> tuple[int, int]:
+        """The shift of the morning and of the evening in minutes (only on holiday, #51)."""
+        shift = self.shift()
+        return shift.morning(day), shift.evening(day)
 
     def transitions(self, day: date) -> list[Transition]:
         """When each phase starts on this day, in time order."""
         sunrise, sunset = self.sun.sunrise_sunset(day, self.tz)
         slit, opened = self._morning(day, sunrise)
         dusk, close = self._evening(day, sunset)
+        morning, evening = (timedelta(minutes=m) for m in self.shifts(day))  # after the limits (#51)
+        slit = slit + morning if slit is not None else None
+        opened = opened + morning if opened is not None else None
+        dusk = dusk + evening if dusk is not None else None
+        close = close + evening
         out = []
         if slit is not None and (opened is None or slit < opened):
             out.append(Transition(slit, Phase.SLIT))

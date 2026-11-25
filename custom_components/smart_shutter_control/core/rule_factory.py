@@ -9,6 +9,7 @@ from typing import Any
 from .daily import ScheduleRule, SleepIn, SleepInRule
 from .glare import GlareProtectionRule
 from .heat import HeatProtectionRule, SunSettings
+from .lock import Lock, LockRule
 from .manual import ManualPause, ManualPauseRule
 from .model import ShutterContext
 from .rules import RuleChain
@@ -24,6 +25,7 @@ class ShutterRules:
     chain: RuleChain
     schedule: ScheduleRule
     pause: ManualPauseRule
+    lock: LockRule
     heat: HeatProtectionRule
     glare: GlareProtectionRule
     storm: StormRule
@@ -39,6 +41,7 @@ def build_rules(
     wanted_without_storm: Callable[[ShutterContext], int | None],
     close_above: float | None = None,
     close_below: float | None = None,
+    lock: Lock | None = None,
 ) -> ShutterRules:
     """`values` are the shutter's schedule settings (the base schedule with its overrides), read when a rule
     decides; `wanted_without_storm` gives the position the other rules want, for the end of a storm."""
@@ -47,10 +50,12 @@ def build_rules(
     heat = HeatProtectionRule(sun)
     glare = GlareProtectionRule(sun, schedule_rule.phase)
     storm = StormRule(lambda: str(values["storm_position"]), wanted_without_storm)
+    lock_rule = LockRule(lock if lock is not None else Lock())
     chain = RuleChain(
         [
             storm,
             FrostRule(),
+            lock_rule,
             TemperatureLimitRule(close_above, close_below),
             pause_rule,
             SleepInRule(sleep_in, schedule),
@@ -65,7 +70,7 @@ def build_rules(
             schedule_rule,
         ]
     )
-    return ShutterRules(chain, schedule_rule, pause_rule, heat, glare, storm)
+    return ShutterRules(chain, schedule_rule, pause_rule, lock_rule, heat, glare, storm)
 
 
 def _on(value: Any) -> bool:

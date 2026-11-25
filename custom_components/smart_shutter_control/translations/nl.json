@@ -47,7 +47,7 @@
         },
         "data_description": {
           "pv_power": "Eén of meer sensoren; ze worden opgeteld. Dient als maat voor bewolking.",
-          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht.",
+          "pv_peak": "Totaal piekvermogen van de panelen achter de PV-vermogenssensoren: de som van hun Wp (20 × 400 Wp = 8 kWp), niet het vermogen van de omvormer. Gebruikt voor het verwachte vermogen bij heldere lucht zolang de integratie nog leert.",
           "pv_tilt": "Graden ten opzichte van horizontaal: 0 = plat, 90 = verticaal. Voor het verwachte vermogen bij heldere lucht zolang de integratie nog leert.",
           "pv_azimuth": "Richting waarin de panelen kijken: 0 = noord, 90 = oost, 180 = zuid, 270 = west."
         }
@@ -82,7 +82,8 @@
           "schedule": "Schema",
           "holidays": "Feestdagen",
           "winter": "Winter",
-          "language": "Taal"
+          "language": "Taal",
+          "away": "Afwezig en vakantie"
         }
       },
       "storm": {
@@ -197,6 +198,22 @@
         "data": {
           "language": "Taal"
         }
+      },
+      "away": {
+        "title": "Afwezig en vakantie",
+        "description": "Als er niemand thuis is, begint de warmtebescherming bij lagere temperaturen en vervalt de verblindingsbescherming. Met vakantie telt het huis ook als afwezig en verschuiven de tijden van het schema willekeurig per dag en per rolluik, zodat het huis bewoond lijkt.",
+        "data": {
+          "presence": "Aanwezigheidsentiteit",
+          "away_delay": "Afwezig na",
+          "away_heat_offset": "Afwezig: warmtebescherming lager met",
+          "holiday_shift": "Vakantie: verschuiving tot"
+        },
+        "data_description": {
+          "presence": "Een zone (aantal personen erin), een persoon of device tracker, een groep, of een binaire sensor die aan is als er iemand thuis is. Leeg: nooit afwezig, behalve als de schakelaar Vakantie aan staat.",
+          "away_delay": "Minuten dat er niemand thuis moet zijn voordat het huis als afwezig telt. Thuiskomen telt meteen.",
+          "away_heat_offset": "Beide grenzen van de warmtebescherming (buiten en kamer) zijn zoveel lager als je afwezig bent.",
+          "holiday_shift": "De tijden van de ochtend en de avond verschuiven willekeurig tot zoveel minuten, eerder of later, per dag en per rolluik."
+        }
       }
     },
     "error": {
@@ -223,7 +240,7 @@
             "room_temperature": "Kamertemperatuursensor",
             "max_position": "Maximale stand",
             "heat_protection": "Hittewering",
-            "shading_position": "Schaduwstand",
+            "shading_position": "Hitteweringsstand",
             "window_sill": "Onderkant raam boven de vloer",
             "window_height": "Raamhoogte",
             "sun_depth": "Zon de kamer in",
@@ -245,10 +262,10 @@
             "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
-            "shading_position": "Stand terwijl de zon op het raam staat.",
+            "shading_position": "Stand tijdens hittewering: zon op het raam, zonnig en warm.",
             "window_sill": "Onderkant van het glas boven de vloer.",
             "window_height": "Hoogte van het glas. Standaard wordt de hoogte uit de kalibratie gebruikt.",
-            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
+            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste hitteweringsstand of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "hot_day": "Overschrijft de basiswaarde. Leeg: de basiswaarde.",
@@ -272,7 +289,7 @@
             "room_temperature": "Kamertemperatuursensor",
             "max_position": "Maximale stand",
             "heat_protection": "Hittewering",
-            "shading_position": "Schaduwstand",
+            "shading_position": "Hitteweringsstand",
             "window_sill": "Onderkant raam boven de vloer",
             "window_height": "Raamhoogte",
             "sun_depth": "Zon de kamer in",
@@ -294,10 +311,10 @@
             "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
-            "shading_position": "Stand terwijl de zon op het raam staat.",
+            "shading_position": "Stand tijdens hittewering: zon op het raam, zonnig en warm.",
             "window_sill": "Onderkant van het glas boven de vloer.",
             "window_height": "Hoogte van het glas. Standaard wordt de hoogte uit de kalibratie gebruikt.",
-            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
+            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste hitteweringsstand of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "hot_day": "Overschrijft de basiswaarde. Leeg: de basiswaarde.",
@@ -511,6 +528,9 @@
       },
       "automatic_all": {
         "name": "Automatische sturing (alle rolluiken)"
+      },
+      "holiday_mode": {
+        "name": "Vakantie"
       }
     },
     "number": {
@@ -518,7 +538,7 @@
         "name": "Maximale stand"
       },
       "shading_position": {
-        "name": "Schaduwstand"
+        "name": "Hitteweringsstand"
       },
       "glare_position": {
         "name": "Verblindingsstand"
@@ -549,7 +569,8 @@
           "winter": "Winter",
           "glare": "Verblinding",
           "lockout": "Buitensluitbeveiliging",
-          "ventilation": "Ventilatie"
+          "ventilation": "Ventilatie",
+          "locked": "Vergrendeld"
         }
       },
       "next_action": {
@@ -614,6 +635,14 @@
       },
       "hot_day": {
         "name": "Hete dag"
+      },
+      "away": {
+        "name": "Afwezig",
+        "state_attributes": {
+          "since": {
+            "name": "Sinds"
+          }
+        }
       }
     },
     "button": {
@@ -631,6 +660,35 @@
           "auto": "Automatisch",
           "on": "Aan",
           "off": "Uit"
+        }
+      },
+      "lock": {
+        "name": "Vergrendeling",
+        "state": {
+          "none": "Geen",
+          "hold": "Vasthouden",
+          "force_open": "Geforceerd open",
+          "force_closed": "Geforceerd dicht"
+        }
+      }
+    }
+  },
+  "services": {
+    "set_lock": {
+      "name": "Vergrendeling instellen",
+      "description": "Houdt een rolluik vast, of dwingt het helemaal open of helemaal dicht, voor een tijd of tot je het opheft. Storm en vorst gaan nog voor; een open deur of gekanteld raam tilt een gesloten rolluik nog steeds op.",
+      "fields": {
+        "device_id": {
+          "name": "Rolluiken",
+          "description": "De rolluikregelaars die je vergrendelt of vrijgeeft."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Geen heft de vergrendeling op; vasthouden: de regeling beweegt het rolluik niet; geforceerd open: helemaal open (100 %); geforceerd dicht: helemaal dicht (0 %)."
+        },
+        "duration": {
+          "name": "Duur",
+          "description": "Hoe lang de vergrendeling duurt. Leeg laten om hem te houden tot hij wordt opgeheven."
         }
       }
     }
@@ -689,6 +747,19 @@
         "light": "Lichtsensoren (lux)",
         "none": "Geen"
       }
+    },
+    "lock_mode": {
+      "options": {
+        "none": "Geen",
+        "hold": "Vasthouden",
+        "force_open": "Geforceerd open",
+        "force_closed": "Geforceerd dicht"
+      }
+    }
+  },
+  "exceptions": {
+    "not_a_shutter": {
+      "message": "Het apparaat {device_id} is geen rolluik van Smart Shutter Control."
     }
   }
 }

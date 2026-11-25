@@ -54,9 +54,10 @@ On the integration's page: **Add shutter** (once per shutter).
 
 ![Add shutter form](images/ha-install-shutter.png)
 
-1. **Shutter**: the existing cover entity. Each cover can have one controller.
+1. **Shutter**: the existing cover entity; it must support setting a position. Each cover can have one controller.
 2. **Window direction** in degrees: 0 = north, 90 = east, 180 = south, 270 = west. A compass app held
-   against the glass, facing outward, gives it within a few degrees.
+   against the glass, facing outward, gives it within a few degrees. A window that looks south-west has 225°,
+   one a little west of south 200° (more examples in [Configuration](configuration.md#window-direction-tilt-and-sun-elevations)).
 3. The other fields have sensible defaults; see [Configuration](configuration.md#a-shutter).
 
 Each shutter becomes a device under the base controller with its own entities, among them a new cover
@@ -68,7 +69,11 @@ commands count as manual at once. Moves by a wall switch or the module's own app
 - [Calibrate](calibration.md) each shutter, so positions are real positions.
 - Check the [base schedule](configuration.md#schedule) (morning and evening times).
 - Add the [card](card.md) to a dashboard.
-- Turn off any automations that already move these shutters, or they will fight each other.
+- Turn off any automations that already move these shutters, or they will fight each other. Moving over one
+  shutter at a time? Switch *Automatic control* off for the shutters your automations still move.
+- Expect a **learning period**: in the first weeks the integration learns how much sun your PV panels or
+  light sensors see in a clear sky (see [Learning](how-it-works.md#learning-the-first-weeks)). Until then it
+  estimates from the *PV peak power* and the weather, so enter the panels' peak power correctly.
 
 ## Update and remove
 
