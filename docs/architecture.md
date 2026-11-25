@@ -468,6 +468,7 @@ classDiagram
         +cells dict
         +observe(sun, pv_power, now)
         +reference(sun) float|None
+        +days(sun) int
         +to_dict() dict
         +from_dict(data)$
     }
@@ -525,7 +526,7 @@ sequenceDiagram
     participant H as HeatProtectionRule
     C->>SP: at(latitude, longitude, now)
     C->>SD: update(sun, PV power or lux, weather)
-    SD-->>C: sunny, factor, source (learned / pv_peak / lux_learned / lux_limit / weather / geometry)
+    SD-->>C: sunny, factor, source (learned / pv_peak / pv_peak_weather / lux_learned / lux_limit / weather / geometry)
     C->>SC: async_evaluate(inputs with sun and sunny)
     SC->>R: decide(ctx: room temperature, heat protection, shading position)
     R->>H: propose(ctx)
@@ -604,7 +605,17 @@ classDiagram
         +command ActiveCommand|None
         +sent(target, start, now)
         +observe(position, motor_running, now) bool
+        +settling(now) float
+        +check(now) bool
         +at_rest(now) bool
+    }
+    class ActiveCommand {
+        +target int
+        +start int|None
+        +closest int|None
+        +stopped_at float|None
+        +away(position) bool
+        +reached(position) bool
     }
     class ManualPause {
         +since
@@ -625,6 +636,7 @@ classDiagram
     SleepInRule ..> DaySchedule
     ManualPauseRule o-- ManualPause
     ShutterController o-- ManualDetector
+    ManualDetector o-- ActiveCommand
     ShutterController o-- ManualPause
     ShutterRules o-- ScheduleRule : built by build_rules
     ShutterController o-- SleepIn
@@ -662,7 +674,41 @@ sequenceDiagram
 
 The controller moves only when the target changes (a phase change, a setting, the end of a pause or of
 sleep-in, heat protection starting or ending). A shutter moved by hand is recognised by `ManualDetector`:
-any change that is not on the way of an own command, or the motor running without one.
+any change that is not on the way of an own command, or the motor running without one. During an own
+command, a report further from the target than the closest one so far (+2 %) is a reversal, and with a power
+sensor a motor that stops short of the target and stays there for 5 s is a stop: both are manual (#108,
+[`design/2026-11-25-manual-during-move.md`](design/2026-11-25-manual-during-move.md)). A command the motor
+never started stays with the arrival check (#48).
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant MD as ManualDetector
+    participant AC as ArrivalCheck
+    participant A as CoverAdapter
+    C->>SC: observe() (cover or power sensor reported)
+    SC->>MD: observe(position, motor)
+    alt reversal: further from the target than before
+        MD-->>SC: manual
+        SC->>AC: cancel()
+        SC->>SC: start the manual pause
+    else motor stopped short of the target
+        C->>SC: async_check_arrival()
+        SC->>MD: settling(now) > 0: not judged yet
+        C->>C: _check_arrival_later(settle time)
+        C->>SC: async_check_arrival() (settle time over)
+        SC->>A: async_refresh(), then observe()
+        SC->>MD: check(now)
+        alt still short of the target
+            MD-->>SC: manual
+            SC->>AC: cancel()
+            SC->>SC: start the manual pause
+        else arrived
+            SC->>AC: judge(position)
+        end
+    end
+```
 
 ### 7.3 Manual operation
 
@@ -840,12 +886,14 @@ classDiagram
         +pv_peak_kw
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
+        +low_sun(sun, weather) bool|None
     }
     class LuxBaseline {
         <<strategy>>
         +limit_lux
         +young_reference(sun, threshold)
         +hysteresis(threshold, young)
+        +low_sun(sun, weather) bool|None
     }
     SunnyDetector o-- ClearSkyReference
     SunnyDetector o-- PvBaseline
@@ -857,6 +905,10 @@ classDiagram
 `BaseCoordinator.sun_value()` gives the PV sum or the highest lux, by the sun source. The learned references
 are stored under `clear_sky` (PV) and `clear_sky_lux` (light), a facade sensor's with its shutter. A shutter
 with a facade sensor replaces `sunny` and `sun_factor` in its copy of the inputs before the rules run.
+
+While the PV reference is young, `PvBaseline` never lets the rough curve drop below its value at 10°
+elevation, and below 10° `low_sun()` lets the weather condition decide (`source` `pv_peak_weather`);
+`LuxBaseline.low_sun()` has no opinion. Design: [`design/2026-11-25-low-sun-factor.md`](design/2026-11-25-low-sun-factor.md) (#107).
 
 ## 12. The view through the window (#30, #34)
 

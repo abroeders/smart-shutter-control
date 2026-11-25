@@ -335,9 +335,18 @@ class ShutterController:
         now = time.time()
         if self._checking or not self.arrival.due(self._motor_running(), now):
             return
+        if self.detector.settling(now):  # stopped short: a late report may still come (#108)
+            return  # the coordinator checks again when the settle time is over
         self._checking = True
         try:
             await self.adapter.async_refresh()  # not every module reports by itself (#42)
+            self.observe()  # the refreshed report may itself be manual
+            if not self.arrival.active:
+                return
+            now = time.time()
+            if self.detector.check(now):  # someone stopped the move halfway (#108)
+                self._manual(now, "switch")
+                return
             position = self.adapter.module_position()
             verdict = self.arrival.judge(position)
             if verdict is Verdict.ARRIVED:

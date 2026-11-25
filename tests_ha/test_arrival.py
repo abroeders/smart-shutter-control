@@ -1,8 +1,11 @@
 """Arrival checks retry one move and report shutters that never arrive."""
 
+import time
+
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.smart_shutter_control.core.model import Decision
 from custom_components.smart_shutter_control.core.rules import RuleChain
@@ -129,3 +132,64 @@ async def test_manual_report_cancels_arrival_check(hass: HomeAssistant, covers, 
     assert moves == [50]
     assert not controller.arrival.active
     assert not controller.stuck
+
+
+async def test_reversal_during_the_move_pauses_and_is_not_retried(
+    hass: HomeAssistant, covers, freezer
+) -> None:
+    """#108: the user presses up while the controller moves the shutter down."""
+    freezer.move_to("2026-11-21 20:00:00+00:00")
+    entry, _subentry_id, controller = await prepare(hass)
+    moves: list[int] = []
+
+    async def move(call: ServiceCall) -> None:
+        moves.append(position_of(call))
+
+    register_moves(hass, move)
+    await entry.runtime_data.async_tick()
+    assert moves == [50]
+    controller.chain = RuleChain([])  # only a retry of the arrival check could move it now
+    for position in (70, 60, 66):  # on its way down, then back up
+        hass.states.async_set(LIVING, "open", {"current_position": position, "supported_features": 15})
+        await hass.async_block_till_done()
+    assert controller.pause.on and not controller.arrival.active
+
+    freezer.move_to("2026-11-21 20:03:01+00:00")
+    await entry.runtime_data.async_tick()
+    await hass.async_block_till_done()
+    assert moves == [50]
+    assert not controller.stuck
+
+
+async def test_stop_halfway_with_a_power_sensor_pauses(hass: HomeAssistant, covers, freezer) -> None:
+    """#108: the motor stops short of the target and the module stays there."""
+    freezer.move_to("2026-11-21 20:00:00+00:00")
+    entry, _subentry_id, controller = await prepare(hass)
+    power = "sensor.living_power"
+    hass.states.async_set(power, "0", {"device_class": "power", "unit_of_measurement": "W"})
+    controller.adapter.power_entity = power
+    controller.observe()
+    moves: list[int] = []
+
+    async def move(call: ServiceCall) -> None:
+        moves.append(position_of(call))
+
+    register_moves(hass, move)
+    await entry.runtime_data.async_tick()
+    assert moves == [50]
+    hass.states.async_set(power, "120", {"device_class": "power", "unit_of_measurement": "W"})
+    hass.states.async_set(LIVING, "open", {"current_position": 70, "supported_features": 15})
+    controller.observe()
+    freezer.move_to("2026-11-21 20:00:20+00:00")
+    hass.states.async_set(power, "0", {"device_class": "power", "unit_of_measurement": "W"})
+    controller.observe()
+    assert not controller.pause.on
+
+    await controller.async_check_arrival()  # due, but a late report may still come
+    assert not controller.pause.on and controller.arrival.active
+    entry.runtime_data._check_arrival_later(controller.detector.settling(time.time()))
+    freezer.tick(6)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert controller.pause.on and not controller.arrival.active
+    assert moves == [50]
