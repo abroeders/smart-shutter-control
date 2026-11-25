@@ -80,7 +80,9 @@ Read it on the documentation site: **<https://abroeders.github.io/smart-shutter-
 
 ## Support
 
-Do your shutters run themselves now? A coffee keeps the project going. Thank you!
+Smart Shutter Control is free and built in spare time. If it keeps your house cool in summer and warm in
+winter, please consider buying me a coffee: your support lets me keep developing the integration, add new
+features and keep up with every Home Assistant release. Thank you!
 
 <a href="https://www.buymeacoffee.com/abroeders"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="50"></a>
 
