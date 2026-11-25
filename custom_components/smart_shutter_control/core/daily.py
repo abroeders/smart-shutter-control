@@ -31,6 +31,10 @@ class ScheduleRule:
     def propose(self, ctx: ShutterContext) -> Decision | None:
         phase = self.phase(ctx.inputs.now)
         self.why = ("phase", {"phase": str(phase)})
+        if ctx.inputs.holiday:  # presence simulation (#51)
+            today = moment(ctx.inputs.now).astimezone(self.schedule.tz).date()
+            morning, evening = self.schedule.shifts(today)
+            self.why[1].update(shift_morning=morning, shift_evening=evening)
         if phase is Phase.SLIT:
             return Decision(0, Reason.SCHEDULE, module=self.slit_module())
         return Decision(self.schedule.target(phase), Reason.SCHEDULE)

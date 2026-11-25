@@ -172,12 +172,14 @@ function decisionNumber(value: unknown, language: string): string {
   }
 }
 
+const FORMATTED_KEYS = new Set(["duration", "morning", "evening"]);
+
 function decisionTemplate(template: string, values: Record<string, unknown>, language: string, t: Translate): string {
   return template.replace(/\{(\w+)\}/g, (_match, key: string) => {
     const value = values[key];
     if (value === undefined || value === null) return "–";
     if (key === "phase") return t(`phase_${value}`);
-    if (key === "duration") return String(value);
+    if (FORMATTED_KEYS.has(key)) return String(value); // already formatted: keep the sign of a shift (#51)
     return decisionNumber(value, language);
   });
 }
@@ -223,7 +225,12 @@ export function decisionLines(decisions: Decision[], t: Translate, language = "e
       if (values.room !== undefined && values.room_limit !== undefined) whyKey += "_room";
       if (values.forecast !== undefined && values.forecast_limit !== undefined) whyKey += "_forecast";
     }
-    const why = entry.why ? decisionTemplate(t(whyKey), whyValues, language, t) : "";
+    let why = entry.why ? decisionTemplate(t(whyKey), whyValues, language, t) : "";
+    if (why && values.away === true) why += `; ${t("why_away_limits")}`; // lower heat limits while away (#51)
+    if (why && typeof values.shift_morning === "number" && typeof values.shift_evening === "number") {
+      const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : "±"}${decisionNumber(Math.abs(n), language)}`;
+      why += `; ${decisionTemplate(t("why_shift"), { morning: signed(values.shift_morning), evening: signed(values.shift_evening) }, language, t)}`;
+    }
     const position = entry.position === undefined ? null : entry.position;
     const result = position === null
       ? t(entry.result === "final" ? "decision_hold" : entry.result === "floor" ? "decision_at_least_slit" : "decision_nothing")

@@ -376,3 +376,46 @@ when the select *Winter mode* is *On*). In winter:
   already closed **stays closed**;
 - with sun on the window during the day the schedule opens it for free solar heat (heat protection does not
   act in the cold).
+
+## Away and holiday
+
+The house counts as **away** when the presence entity (a zone, person, device tracker, group or binary sensor,
+set under *Away and holiday*) has said for *Away after* (15 minutes) without a break that nobody is home, or
+when the switch *Holiday* is on. Coming home counts at once. An `unknown` or `unavailable` state counts as
+home, so nothing changes when a sensor drops out. After a restart with nobody home the house counts as away
+again *Away after* from the start. Without a presence entity the house is never away, unless it is holiday.
+The binary sensor *Away* shows it.
+
+While away:
+
+- **Heat protection** starts at lower temperatures: both limits are *Away: heat protection lower by* (3 °C)
+  lower, for every shutter, also one with its own limits. The shading position, the sun, the sunny check and
+  the hot-day forecast limit stay as they are. Example: with the defaults a shutter shades at an outdoor
+  temperature of 22 °C or a room temperature of 24 °C; while away it shades at **19 °C or 21 °C**.
+- **Glare protection** does nothing. A shutter lowered for glare goes back up through the usual open delay.
+- Everything else (schedule, winter, storm, frost, locks, manual operation, doors and windows) is unchanged. In
+  cool weather there is no extra shading: winter solar gain stays.
+
+When someone comes home the usual limits apply again at the next evaluation. Heat protection then ends through
+its usual open delay, so a shutter does not jump up the moment the door opens.
+
+### Holiday: a lived-in house
+
+On holiday every schedule time shifts a little, so the shutters do not open and close at exactly the same
+minute every day. The morning (slit and opening) shifts by one random number of minutes, the evening (dusk and
+closing) by another, each between −*Holiday: time shift up to* and +*Holiday: time shift up to* (30 minutes by
+default). The order slit → open and dusk → close is kept.
+
+- The shifts differ per day and per shutter, but not per restart: they come from a random number made once and
+  stored, the date and the shutter, so a restart or reload gives the same times for the same day.
+- The shift comes **after** the usual limits, so on holiday a shutter may open up to 30 minutes before sunrise
+  or close up to 30 minutes after the latest close time.
+- Weekday and weekend times follow the calendar as usual. *Sleep in* is unchanged.
+
+Example: a shutter that opens at 07:30 opens at 07:12 on one holiday day (morning shift −18) and at 07:51 on
+another (+21). The evening shifts independently: with a close at 20:00 and an evening shift of +21 it closes
+at 20:21. The decision trace of the schedule shows the shifts of today as `shift_morning` and `shift_evening`
+(minutes). Away and holiday add no new reason: a shutter in heat protection still shows *Sun*.
+
+The integration never switches *Holiday* on by itself; use an automation (a calendar, a long absence) if you
+want that.

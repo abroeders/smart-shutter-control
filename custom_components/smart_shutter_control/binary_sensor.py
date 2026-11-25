@@ -26,6 +26,7 @@ async def async_setup_entry(
             FrostSensor(entry.runtime_data, "frost"),
             WinterSensor(entry.runtime_data, "winter"),
             HotDaySensor(entry.runtime_data, "hot_day"),
+            AwaySensor(entry.runtime_data, "away"),
         ]
     )
     add_per_shutter(
@@ -43,6 +44,19 @@ class SunnySensor(BaseEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self.coordinator.sunny.sunny
+
+
+class AwaySensor(BaseEntity, BinarySensorEntity):
+    """Nobody home for the away delay, or holiday (#51). No device class: `presence` means the opposite."""
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.away
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        since = self.coordinator.away_state.away_since
+        return {"since": None if since is None else dt_util.utc_from_timestamp(since).isoformat()}
 
 
 class SunOnWindowSensor(ShutterEntity, BinarySensorEntity):

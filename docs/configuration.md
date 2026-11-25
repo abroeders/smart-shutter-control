@@ -150,6 +150,18 @@ limit applies (see [which rule wins](how-it-works.md#which-rule-wins-examples)).
 |---|---|---|
 | Winter below (24-hour mean) | 12 °C | winter mode is on while the time-weighted mean outdoor temperature of the last 24 hours is below this (1 °C hysteresis), with the select *Winter mode* on *Auto* |
 
+### Away and holiday
+
+When nobody is home the heat can be kept out earlier and glare does not matter; on holiday the schedule times
+also shift a little each day so the house looks lived in. See [Away and holiday](how-it-works.md#away-and-holiday).
+
+| Setting | Default | Effect |
+|---|---|---|
+| Presence entity | none | a `zone.home` (counts the persons in the zone), a `person` or `device_tracker`, a `group` or a `binary_sensor` (on: somebody is home). Empty: the house is never away, unless the *Holiday* switch is on |
+| Away after | 15 min | how long nobody must be home before the house counts as away; coming home counts at once |
+| Away: heat protection lower by | 3 °C | both heat limits (outdoor and room) are this much lower while away |
+| Holiday: time shift up to | 30 min | the largest random shift of the schedule times on holiday; 0: no shift |
+
 ### Language
 
 | Setting | Default | Effect |

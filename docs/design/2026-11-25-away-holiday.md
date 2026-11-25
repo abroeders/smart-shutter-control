@@ -142,3 +142,13 @@ The presence entity counts as **home** when:
 - Switching holiday on automatically (calendar, long absence): an automation can do that.
 - Extra shading in cool weather while away, or keeping shutters closed during a holiday for security.
 - Turning lights on and off.
+
+## 7. As built
+
+- The schedule's decision trace shows `shift_morning` and `shift_evening` whenever holiday is on, also when a
+  shift is 0 (with *Holiday: time shift up to* 0, or a draw of 0).
+- *Away: heat protection lower by* is a temperature difference: shown in °F as 1.8 × the °C value, without the
+  32 offset (`temperature_interval_unit`).
+- Diagnostics redact the `presence` option, like the location.
+- The base controller's switch has the key `holiday_mode`: the binary sensor `holiday` (weekend or holiday)
+  already used `holiday`.

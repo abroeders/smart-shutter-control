@@ -36,7 +36,7 @@ from .const import (
     OPT_WINTER_LIMIT,
     SUN_SOURCES,
 )
-from .units import DisplayUnit, length_unit, speed_unit, temperature_unit
+from .units import DisplayUnit, length_unit, speed_unit, temperature_interval_unit, temperature_unit
 
 
 def _sensor(device_class: str | None = None, multiple: bool = False) -> selector.EntitySelector:
@@ -78,6 +78,7 @@ TEMPERATURE_FIELDS = {
     OPT_CLOSE_BELOW,
     "winter_closed_below",
 }
+TEMPERATURE_INTERVAL_FIELDS = {"away_heat_offset"}  # a difference, not a temperature (#51)
 SPEED_FIELDS = {OPT_STORM_WIND_LIMIT, OPT_STORM_GUST_LIMIT}
 # lengths stored in cm or m, shown in inches or feet with US customary units (#71): stored unit, shown step
 LENGTH_FIELDS = {
@@ -94,6 +95,8 @@ def _display_units(hass, schema: dict) -> dict[str, DisplayUnit]:
         name = str(key)
         if name in TEMPERATURE_FIELDS:
             out[name] = temperature_unit(hass)
+        elif name in TEMPERATURE_INTERVAL_FIELDS:
+            out[name] = temperature_interval_unit(hass)
         elif name in SPEED_FIELDS:
             out[name] = speed_unit(hass)
         elif name in LENGTH_FIELDS:

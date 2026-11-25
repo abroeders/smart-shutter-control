@@ -119,6 +119,22 @@ def temperature_unit(hass: HomeAssistant) -> DisplayUnit:
     return DisplayUnit(TemperatureConverter, UnitOfTemperature.CELSIUS, hass.config.units.temperature_unit)
 
 
+class _TemperatureInterval:
+    """A temperature difference: 3 °C is 5.4 °F, not 37.4 °F (#51)."""
+
+    @staticmethod
+    def convert(value: float, from_unit: str, to_unit: str) -> float:
+        return TemperatureConverter.convert_interval(value, from_unit, to_unit)
+
+
+def temperature_interval_unit(hass: HomeAssistant) -> DisplayUnit:
+    return DisplayUnit(
+        _TemperatureInterval,  # type: ignore[arg-type]  # only convert() is used
+        UnitOfTemperature.CELSIUS,
+        hass.config.units.temperature_unit,
+    )
+
+
 def speed_unit(hass: HomeAssistant) -> DisplayUnit:
     """mph with US customary units, otherwise km/h (the metric system's wind unit is m/s)."""
     unit = (

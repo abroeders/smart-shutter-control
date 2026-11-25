@@ -143,6 +143,24 @@ describe("view model", () => {
     expect(decisionLines(decisions, localizer("en"), "en")[0].text).toBe("not warm (10 °C < 22 °C)");
   });
 
+  it("formats away and holiday: no glare, lowered heat limits and the schedule shifts", () => {
+    const decisions = [
+      { rule: "glare", priority: 41, result: "none" as const, why: "away", values: {} },
+      { rule: "heat", priority: 40, result: "none" as const, why: "too_cold", values: { outdoor: 17, limit: 19, away: true } },
+      { rule: "schedule", priority: 60, result: "target" as const, position: 100, applied: true, why: "phase", values: { phase: "day", shift_morning: -18, shift_evening: 21 } },
+      { rule: "schedule", priority: 60, result: "target" as const, position: 100, applied: true, why: "phase", values: { phase: "day", shift_morning: 0, shift_evening: 0 } },
+    ];
+    const en = decisionLines(decisions, localizer("en"), "en").map((l) => l.text);
+    expect(en[0]).toBe("nobody home");
+    expect(en[1]).toBe("not warm (17 °C < 19 °C); limits lowered: nobody home");
+    expect(en[2]).toContain("holiday: morning −18 min, evening +21 min");
+    expect(en[3]).toContain("holiday: morning ±0 min, evening ±0 min");
+    const nl = decisionLines(decisions, localizer("nl"), "nl").map((l) => l.text);
+    expect(nl[0]).toBe("niemand thuis");
+    expect(nl[1]).toBe("niet warm (17 °C < 19 °C); grenzen verlaagd: niemand thuis");
+    expect(nl[2]).toContain("vakantie: ochtend −18 min, avond +21 min");
+  });
+
   it("formats the floor of the window and door contacts", () => {
     const decisions = [
       { rule: "contacts", priority: 0, result: "floor" as const, position: 100, applied: true, why: "opened" },

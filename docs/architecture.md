@@ -35,8 +35,8 @@ flowchart LR
 | 15 | `TemperatureLimitRule` | `core/weather.py` | final: closed |
 | 20 | `ManualPauseRule` | `core/manual.py` | final: no move |
 | 30 | `SleepInRule` | `core/daily.py` | target |
-| 40 | `HeatProtectionRule` | `core/heat.py` | cap |
-| 41 | `GlareProtectionRule` | `core/glare.py` | cap |
+| 40 | `HeatProtectionRule` | `core/heat.py` | cap; lower limits while away (#51) |
+| 41 | `GlareProtectionRule` | `core/glare.py` | cap; nothing while away (#51) |
 | 50 | `WinterRule` | `core/winter.py` | target or cap |
 | 60 | `ScheduleRule` | `core/daily.py` | target |
 
@@ -51,13 +51,13 @@ The chain is built in `ShutterController.__init__`; `PositionLimiter` applies th
 | **Chain of responsibility** | `RuleChain` asks every `Rule` by priority: the first target wins, caps may lower it, a final target (safety) is not lowered (#2, #3) |
 | **State** | `ProtectionState` phases open → pending → shading → leaving, shared by heat and glare protection (#3, #95); `DaySchedule` phases night → slit → day → dusk (#4); `ManualDetector` idle → commanded → manual (#5) |
 | **Template / inheritance of settings** | `merged(base, overrides)`: every shutter takes the base schedule unless it overrides a setting (#4) |
-| **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`) and `Curve` (`QuadraticCurve`, `MonotoneCurve`) |
+| **Strategy** | `Calibration` (`IdentityCalibration`, `RollerCalibration`), `Curve` (`QuadraticCurve`, `MonotoneCurve`) and `ScheduleShift` (`NoShift`, `RandomShift` on holiday, #51) |
 | **Decorator (floor)** | `raise_to` puts the window and door contacts' floor over the chain's decision without the rules knowing about it (#49) |
 | **Factory method** | `fit_curve` picks the roller model or the monotone fallback; `RollerCalibration.from_data`; `build_rules` builds a shutter's rule chain (#96); `ShutterSettings.from_data` |
 | **Adapter** | `CoverAdapter` is the only code that moves a physical cover; the ends (100, 0) go by `open_cover`/`close_cover` when the cover supports them, so the module runs to its limit switch |
 | **Observer** | the entities listen to `BaseCoordinator` |
 | **Descriptor** | `StoredSetting`: one class attribute per entity setting of a shutter, read from and written to `RuntimeStore` with the subentry's value as default (#96) |
-| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, lock, last target) and globals (winter mode, 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
+| **Repository** | `RuntimeStore` keeps the runtime state per shutter (automatic on/off, maximum position, sleep-in, manual pause, lock, last target) and globals (winter mode, holiday and the shift seed (#51), 24-hour outdoor temperatures, the learned clear-sky references for PV and lux). Settings are saved within 5 s, learned data within 5 minutes; a later, longer delay never postpones an earlier save, and unloading writes at once |
 
 ## 3. Scaffold (#1)
 
@@ -1760,4 +1760,89 @@ stateDiagram-v2
     Locked --> Unlocked: set_lock none or select none
     Locked --> Unlocked: manual action
     Locked --> Unlocked: Resume automatic control
+```
+
+## 29. Away and holiday (#51)
+
+Design: [`design/2026-11-25-away-holiday.md`](design/2026-11-25-away-holiday.md). `BaseCoordinator` reads the
+optional presence entity (`is_home` per domain; unknown counts as home) and steps an `AwayState` every tick:
+away once nobody has been home for *Away after*, home again at once, and always away while the switch
+*Holiday* is on. A timer evaluates once more when the delay is over. `Inputs.away` lowers both heat limits by
+`SunSettings.away_offset` in `HeatProtectionRule` and stops `GlareProtectionRule` from wanting shade (it ends
+through its open delay). On holiday every shutter's `DaySchedule` gets a `RandomShift`: one shift for the
+morning (slit, open) and one for the evening (dusk, close), within ±*Holiday: time shift up to*, from a seed
+made once and stored, the shutter's subentry id and the date, so a restart gives the same times. The shift is
+applied after the schedule's own limits; `ScheduleRule` puts it in the decision trace.
+
+```mermaid
+classDiagram
+    class AwayState {
+        +nobody_since float|None
+        +away_since float|None
+        +step(home, holiday, now, delay) bool
+        +remaining(now, delay) float|None
+    }
+    class ScheduleShift {
+        <<strategy>>
+        +morning(day) int
+        +evening(day) int
+    }
+    class NoShift
+    class RandomShift {
+        +seed int
+        +shutter_id str
+        +minutes int
+    }
+    class HolidaySwitch {
+        +is_on bool
+    }
+    class AwaySensor {
+        +is_on bool
+        +since
+    }
+    ScheduleShift <|-- NoShift
+    ScheduleShift <|-- RandomShift
+    BaseCoordinator o-- AwayState
+    BaseCoordinator ..> ScheduleShift : schedule_shift(shutter_id)
+    BaseCoordinator ..> RuntimeStore : globals holiday, shift_seed
+    DaySchedule ..> ScheduleShift : shifts(day), read per call
+    ShutterController o-- DaySchedule
+    HeatProtectionRule ..> Inputs : away, away_offset
+    GlareProtectionRule ..> Inputs : away
+    HolidaySwitch ..> BaseCoordinator : set_holiday
+    AwaySensor ..> BaseCoordinator : away
+```
+
+```mermaid
+sequenceDiagram
+    participant P as Presence entity
+    participant C as BaseCoordinator
+    participant A as AwayState
+    participant SC as ShutterController
+    P->>C: state changed (nobody home)
+    C->>A: step(home=false, holiday, now, delay)
+    A-->>C: not away yet
+    C->>C: timer for the rest of the delay
+    Note over C: delay over
+    C->>A: step(home=false, ...)
+    A-->>C: away
+    C->>SC: async_evaluate(inputs with away)
+    SC->>SC: heat limits lower, no glare
+    P->>C: state changed (somebody home)
+    C->>A: step(home=true, ...)
+    A-->>C: home at once
+    C->>SC: async_evaluate(inputs without away)
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Home
+    Home --> Waiting: nobody home
+    Waiting --> Home: somebody home
+    Waiting --> Away: Away after has passed
+    Away --> Home: somebody home (holiday off)
+    Home --> Away: Holiday on
+    Waiting --> Away: Holiday on
+    Away --> Waiting: Holiday off, nobody home for less than Away after
+    Away --> Home: Holiday off, somebody home
 ```
