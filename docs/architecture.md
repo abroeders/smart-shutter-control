@@ -694,8 +694,10 @@ sequenceDiagram
         SC->>SC: start the manual pause
     else motor stopped short of the target
         C->>SC: async_check_arrival()
-        SC->>MD: settling(now)
-        SC->>SC: wait, then refresh and observe
+        SC->>MD: settling(now) > 0: not judged yet
+        C->>C: _check_arrival_later(settle time)
+        C->>SC: async_check_arrival() (settle time over)
+        SC->>A: async_refresh(), then observe()
         SC->>MD: check(now)
         alt still short of the target
             MD-->>SC: manual

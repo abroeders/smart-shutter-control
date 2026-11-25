@@ -1,8 +1,11 @@
 """Arrival checks retry one move and report shutters that never arrive."""
 
+import time
+
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.smart_shutter_control.core.model import Decision
 from custom_components.smart_shutter_control.core.rules import RuleChain
@@ -158,13 +161,8 @@ async def test_reversal_during_the_move_pauses_and_is_not_retried(
     assert not controller.stuck
 
 
-async def test_stop_halfway_with_a_power_sensor_pauses(
-    hass: HomeAssistant, covers, freezer, monkeypatch
-) -> None:
+async def test_stop_halfway_with_a_power_sensor_pauses(hass: HomeAssistant, covers, freezer) -> None:
     """#108: the motor stops short of the target and the module stays there."""
-    from custom_components.smart_shutter_control.core import manual
-
-    monkeypatch.setattr(manual, "SETTLE", 0.0)
     freezer.move_to("2026-11-21 20:00:00+00:00")
     entry, _subentry_id, controller = await prepare(hass)
     power = "sensor.living_power"
@@ -187,7 +185,11 @@ async def test_stop_halfway_with_a_power_sensor_pauses(
     controller.observe()
     assert not controller.pause.on
 
-    await controller.async_check_arrival()
+    await controller.async_check_arrival()  # due, but a late report may still come
+    assert not controller.pause.on and controller.arrival.active
+    entry.runtime_data._check_arrival_later(controller.detector.settling(time.time()))
+    freezer.tick(6)
+    async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert controller.pause.on and not controller.arrival.active
     assert moves == [50]

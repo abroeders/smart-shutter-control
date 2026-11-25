@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from collections.abc import Callable
@@ -336,10 +335,10 @@ class ShutterController:
         now = time.time()
         if self._checking or not self.arrival.due(self._motor_running(), now):
             return
+        if self.detector.settling(now):  # stopped short: a late report may still come (#108)
+            return  # the coordinator checks again when the settle time is over
         self._checking = True
         try:
-            if wait := self.detector.settling(now):  # stopped short: a late report may still come (#108)
-                await asyncio.sleep(wait)
             await self.adapter.async_refresh()  # not every module reports by itself (#42)
             self.observe()  # the refreshed report may itself be manual
             if not self.arrival.active:

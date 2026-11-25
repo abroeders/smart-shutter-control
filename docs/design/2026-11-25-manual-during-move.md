@@ -75,6 +75,8 @@ As today (`Controller._manual`, source `switch`): the command is dropped, the ar
     new `check(now)` once the settle time has passed, so the controller's existing arrival timer can call it.
 - `controller.py`: call `detector.check(now)` from `async_check_arrival` before judging arrival; when it reports
   manual, call `_manual(now, "switch")` and skip the arrival verdict.
+- While `detector.settling(now)` is above 0, `async_check_arrival` does not judge yet; the coordinator schedules
+  one cancellable re-check (`_check_arrival_later`) for when the settle time is over, so a tick never waits.
 - `docs/architecture.md`: state diagram of `ManualDetector` (idle → command → arrived / manual) and the
   sequence diagram of a manual action during a move.
 - User docs: `how-it-works.md` (manual operation), FAQ ("I moved the shutter but it went back").
