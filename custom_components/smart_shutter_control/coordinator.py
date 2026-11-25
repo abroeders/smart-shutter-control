@@ -138,10 +138,11 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
     def baseline(self) -> PvBaseline | LuxBaseline:
         if self.sun_source == "light":
             return self._lux_baseline()
+        tilt, azimuth = self.sources.get(CONF_PV_TILT), self.sources.get(CONF_PV_AZIMUTH)
         return PvBaseline(
             self.sources.get(CONF_PV_PEAK),
-            float(self.sources.get(CONF_PV_TILT, DEFAULT_PV_TILT)),
-            float(self.sources.get(CONF_PV_AZIMUTH, DEFAULT_PV_AZIMUTH)),
+            float(DEFAULT_PV_TILT if tilt is None else tilt),
+            float(DEFAULT_PV_AZIMUTH if azimuth is None else azimuth),
         )
 
     def sun_value(self) -> float | None:

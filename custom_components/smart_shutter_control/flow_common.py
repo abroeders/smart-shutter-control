@@ -260,8 +260,8 @@ SUN_FIELDS: dict[str, dict] = {
     "pv": {
         vol.Required(CONF_PV_POWER): _sensor("power", multiple=True),
         vol.Optional(CONF_PV_PEAK): _number(0.1, 100, 0.1, "kWp"),
-        vol.Optional(CONF_PV_TILT, default=DEFAULT_PV_TILT): _number(0, 90, 1, "°"),
-        vol.Optional(CONF_PV_AZIMUTH, default=DEFAULT_PV_AZIMUTH): _number(0, 359, 1, "°"),
+        vol.Required(CONF_PV_TILT, default=DEFAULT_PV_TILT): _number(0, 90, 1, "°"),
+        vol.Required(CONF_PV_AZIMUTH, default=DEFAULT_PV_AZIMUTH): _number(0, 359, 1, "°"),
     },
     "light": {
         vol.Required(CONF_LIGHT): _sensor("illuminance", multiple=True),

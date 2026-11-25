@@ -49,7 +49,8 @@ Example (2.6 kWp, 35° south, sun 11° / 146°): `cos_i` ≈ 0.62, reference ≈
 | 10° and higher | yes | the factor reaches the threshold **and** the weather is `sunny` or `partlycloudy` |
 | any | no | the factor reaches the threshold |
 
-`source` is `pv_peak_weather` whenever the weather changed the outcome, else `pv_peak`. A learned reference and
+`source` is `pv_peak_weather` below 10° (the weather decides) and from 10° when the weather vetoed bright sun,
+else `pv_peak`. A learned reference and
 light sensors ignore the weather, as now.
 
 ### Defaults and existing installations
