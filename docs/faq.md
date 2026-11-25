@@ -39,6 +39,11 @@ In the first weeks the integration has not learned the clear-sky PV power for ev
 power. With the sun low that curve is unreliable; below 10° elevation the weather entity then decides. Without
 a weather entity, add one, or raise *Glare from* for the first weeks.
 
+**I stopped or reversed the shutter while it was moving, and it went back. Why?**
+Since #108 a reversal during an automatic move is recognised as manual. Stopping halfway is recognised only
+with a motor power sensor; without one the integration cannot tell a stop from a slow module and sends its
+position once more. Press the switch again, or use the button *Resume automatic control* afterwards.
+
 **Which wind sensor should I use?**
 A sheltered wind meter reads low. The storm page shows the highest values of the last 30 days; set the
 limits from those. A gust value from a weather service is often more representative.

@@ -605,7 +605,17 @@ classDiagram
         +command ActiveCommand|None
         +sent(target, start, now)
         +observe(position, motor_running, now) bool
+        +settling(now) float
+        +check(now) bool
         +at_rest(now) bool
+    }
+    class ActiveCommand {
+        +target int
+        +start int|None
+        +closest int|None
+        +stopped_at float|None
+        +away(position) bool
+        +reached(position) bool
     }
     class ManualPause {
         +since
@@ -626,6 +636,7 @@ classDiagram
     SleepInRule ..> DaySchedule
     ManualPauseRule o-- ManualPause
     ShutterController o-- ManualDetector
+    ManualDetector o-- ActiveCommand
     ShutterController o-- ManualPause
     ShutterRules o-- ScheduleRule : built by build_rules
     ShutterController o-- SleepIn
@@ -663,7 +674,41 @@ sequenceDiagram
 
 The controller moves only when the target changes (a phase change, a setting, the end of a pause or of
 sleep-in, heat protection starting or ending). A shutter moved by hand is recognised by `ManualDetector`:
-any change that is not on the way of an own command, or the motor running without one.
+any change that is not on the way of an own command, or the motor running without one. During an own
+command, a report further from the target than the closest one so far (+2 %) is a reversal, and with a power
+sensor a motor that stops short of the target and stays there for 5 s is a stop: both are manual (#108,
+[`design/2026-11-25-manual-during-move.md`](design/2026-11-25-manual-during-move.md)). A command the motor
+never started stays with the arrival check (#48).
+
+```mermaid
+sequenceDiagram
+    participant C as BaseCoordinator
+    participant SC as ShutterController
+    participant MD as ManualDetector
+    participant AC as ArrivalCheck
+    participant A as CoverAdapter
+    C->>SC: observe() (cover or power sensor reported)
+    SC->>MD: observe(position, motor)
+    alt reversal: further from the target than before
+        MD-->>SC: manual
+        SC->>AC: cancel()
+        SC->>SC: start the manual pause
+    else motor stopped short of the target
+        C->>SC: async_check_arrival()
+        SC->>MD: settling(now) > 0: not judged yet
+        C->>C: _check_arrival_later(settle time)
+        C->>SC: async_check_arrival() (settle time over)
+        SC->>A: async_refresh(), then observe()
+        SC->>MD: check(now)
+        alt still short of the target
+            MD-->>SC: manual
+            SC->>AC: cancel()
+            SC->>SC: start the manual pause
+        else arrived
+            SC->>AC: judge(position)
+        end
+    end
+```
 
 ### 7.3 Manual operation
 

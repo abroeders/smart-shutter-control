@@ -96,6 +96,7 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
             "close_below": _num(o.get(OPT_CLOSE_BELOW)),
         }
         self._quick: CALLBACK_TYPE | None = None
+        self._settle: CALLBACK_TYPE | None = None  # check arrival after a stop short of the target (#108)
         self.outdoor_mean = OutdoorMean()
         self.winter = WinterDetector(float(o[OPT_WINTER_LIMIT]))
         self.language: str | None = None if o[OPT_LANGUAGE] == "system" else str(o[OPT_LANGUAGE])
@@ -225,6 +226,9 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
         if self._quick:
             self._quick()
             self._quick = None
+        if self._settle:
+            self._settle()
+            self._settle = None
         if self._release:
             self._release()
             self._release = None
@@ -401,6 +405,21 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
 
         self._quick = async_call_later(self.hass, 3, _run)
 
+    def _check_arrival_later(self, wait: float) -> None:
+        """A motor stopped short of its target: judge it once the settle time is over (#108)."""
+        if self._settle:
+            self._settle()
+
+        async def _run(_now: datetime) -> None:
+            self._settle = None
+            for controller in self.shutters.values():
+                await controller.async_check_arrival()
+            waits = [w for c in self.shutters.values() if (w := c.detector.settling(time.time()))]
+            if waits:  # another shutter stopped later
+                self._check_arrival_later(min(waits))
+
+        self._settle = async_call_later(self.hass, wait + 0.1, _run)
+
     def set_sleep_in_all(self, on: bool) -> None:
         for controller in self.shutters.values():
             controller.set_sleep_in(on)
@@ -417,6 +436,8 @@ class BaseCoordinator(DataUpdateCoordinator[None]):
                 controller.observe()
                 if controller.arrival.active:  # the motor stopped or the module reported (#48)
                     self.hass.async_create_task(controller.async_check_arrival())
+                    if wait := controller.detector.settling(time.time()):
+                        self._check_arrival_later(wait)
         self.async_update_listeners()  # positions shown by our entities
 
     @callback

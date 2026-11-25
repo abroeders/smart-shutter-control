@@ -164,7 +164,9 @@ the window or the day phase ends. With heat protection active as well, the lower
 
 A position change the integration did not send is **manual**: a wall switch, a remote, the module's app, or
 the integration's own cover and *Opening* entities. With a motor power sensor a manual move is seen within a
-second. Then:
+second. This also holds while the integration itself is moving the shutter: pressing the switch against the
+direction of an automatic move, or stopping it halfway (with a power sensor), counts as manual, and the
+integration does not send its position again. Then:
 
 | After a manual action | Effect |
 |---|---|
