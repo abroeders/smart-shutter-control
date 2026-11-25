@@ -223,7 +223,7 @@
             "room_temperature": "Kamertemperatuursensor",
             "max_position": "Maximale stand",
             "heat_protection": "Hittewering",
-            "shading_position": "Schaduwstand",
+            "shading_position": "Hitteweringsstand",
             "window_sill": "Onderkant raam boven de vloer",
             "window_height": "Raamhoogte",
             "sun_depth": "Zon de kamer in",
@@ -245,10 +245,10 @@
             "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
-            "shading_position": "Stand terwijl de zon op het raam staat.",
+            "shading_position": "Stand tijdens hittewering: zon op het raam, zonnig en warm.",
             "window_sill": "Onderkant van het glas boven de vloer.",
             "window_height": "Hoogte van het glas. Standaard wordt de hoogte uit de kalibratie gebruikt.",
-            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
+            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste hitteweringsstand of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "hot_day": "Overschrijft de basiswaarde. Leeg: de basiswaarde.",
@@ -272,7 +272,7 @@
             "room_temperature": "Kamertemperatuursensor",
             "max_position": "Maximale stand",
             "heat_protection": "Hittewering",
-            "shading_position": "Schaduwstand",
+            "shading_position": "Hitteweringsstand",
             "window_sill": "Onderkant raam boven de vloer",
             "window_height": "Raamhoogte",
             "sun_depth": "Zon de kamer in",
@@ -294,10 +294,10 @@
             "min_elevation": "Onder deze hoogte wordt de zon geblokkeerd, bijv. door gebouwen.",
             "max_elevation": "Boven deze hoogte wordt de zon geblokkeerd, bijv. door een overstek.",
             "max_position": "De automaat opent het rolluik nooit verder; met de hand wel.",
-            "shading_position": "Stand terwijl de zon op het raam staat.",
+            "shading_position": "Stand tijdens hittewering: zon op het raam, zonnig en warm.",
             "window_sill": "Onderkant van het glas boven de vloer.",
             "window_height": "Hoogte van het glas. Standaard wordt de hoogte uit de kalibratie gebruikt.",
-            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste schaduw- of verblindingsstand.",
+            "sun_depth": "Hittewering en verblinding laten het rolluik alleen zakken voor zover nodig om direct zonlicht binnen deze diepte te houden, nooit lager dan de vaste hitteweringsstand of verblindingsstand.",
             "heat_outdoor": "Leeg laten voor de waarde van de basiscontroller.",
             "heat_room": "Leeg laten voor de waarde van de basiscontroller.",
             "hot_day": "Overschrijft de basiswaarde. Leeg: de basiswaarde.",
@@ -518,7 +518,7 @@
         "name": "Maximale stand"
       },
       "shading_position": {
-        "name": "Schaduwstand"
+        "name": "Hitteweringsstand"
       },
       "glare_position": {
         "name": "Verblindingsstand"

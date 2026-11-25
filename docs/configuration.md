@@ -152,7 +152,7 @@ The calendar is read when Home Assistant has started, when the calendar becomes 
 | Travel time | – | seconds from fully open to fully closed; measured by the calibration when there is no motor power sensor |
 | Maximum position | 100 % | automatic control never opens the shutter further; by hand it can. Below 100 % the shutter closes in a storm |
 | Heat protection | on | lower the shutter when the sun shines on the window and it is warm |
-| Shading position | 30 % | position during heat protection; with the three room fields below the lowest it uses |
+| Heat protection position | 30 % | position during heat protection; with the three room fields below the lowest it uses |
 | Window bottom above the floor | – | cm (inches with US customary units); with *Window height* and *Sun into the room*: the [shading position follows the sun](how-it-works.md#heat-protection) |
 | Window height | the calibration's | cm (inches with US customary units); the height of the glass |
 | Sun into the room | – | m (feet with US customary units); direct sun may reach this far over the floor |

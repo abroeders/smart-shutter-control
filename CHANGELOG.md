@@ -6,6 +6,11 @@ and since 2026.11.0 versions follow Home Assistant's scheme: `YEAR.MONTH.N` (bef
 
 ## [Unreleased]
 
+### Fixed
+
+- The setting *Shading position* is now called *Heat protection position* (Dutch: *Hitteweringsstand*, was
+  *Schaduwstand*), so it is clear that heat protection uses it. Entity IDs do not change.
+
 ## [2026.11.30] - 2026-11-25
 
 ### Fixed

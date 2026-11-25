@@ -223,7 +223,7 @@
             "room_temperature": "Room temperature sensor",
             "max_position": "Maximum position",
             "heat_protection": "Heat protection",
-            "shading_position": "Shading position",
+            "shading_position": "Heat protection position",
             "window_sill": "Window bottom above the floor",
             "window_height": "Window height",
             "sun_depth": "Sun into the room",
@@ -245,10 +245,10 @@
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
-            "shading_position": "Position while the sun shines on the window.",
+            "shading_position": "Position during heat protection: sun on the window, sunny and warm.",
             "window_sill": "The glass's lower edge above the floor.",
             "window_height": "The glass height. Defaults to the calibration's window height.",
-            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
+            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed heat protection or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "hot_day": "Override of the base value. Empty: the base value.",
@@ -272,7 +272,7 @@
             "room_temperature": "Room temperature sensor",
             "max_position": "Maximum position",
             "heat_protection": "Heat protection",
-            "shading_position": "Shading position",
+            "shading_position": "Heat protection position",
             "window_sill": "Window bottom above the floor",
             "window_height": "Window height",
             "sun_depth": "Sun into the room",
@@ -294,10 +294,10 @@
             "min_elevation": "Below this elevation the sun is blocked, e.g. by buildings.",
             "max_elevation": "Above this elevation the sun is blocked, e.g. by an overhang.",
             "max_position": "Automatic control never opens the shutter further; by hand it can.",
-            "shading_position": "Position while the sun shines on the window.",
+            "shading_position": "Position during heat protection: sun on the window, sunny and warm.",
             "window_sill": "The glass's lower edge above the floor.",
             "window_height": "The glass height. Defaults to the calibration's window height.",
-            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed shading or glare position.",
+            "sun_depth": "Heat and glare protection lower the shutter only as far as needed to keep direct sun within this depth, never lower than the fixed heat protection or glare position.",
             "heat_outdoor": "Leave empty to use the base controller's value.",
             "heat_room": "Leave empty to use the base controller's value.",
             "hot_day": "Override of the base value. Empty: the base value.",
@@ -518,7 +518,7 @@
         "name": "Maximum position"
       },
       "shading_position": {
-        "name": "Shading position"
+        "name": "Heat protection position"
       },
       "glare_position": {
         "name": "Glare position"

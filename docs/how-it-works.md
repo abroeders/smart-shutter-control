@@ -123,7 +123,7 @@ shows each sensor's highest value of the last 30 days.
 ## Heat protection
 
 When the sun is on the window, it is sunny, and it is warm (outdoor or room temperature at or above the
-limit), the shutter goes down to its shading position after 5 minutes. It goes up again 20 minutes after
+limit), the shutter goes down to its heat protection position after 5 minutes. It goes up again 20 minutes after
 one of these stops, or at once when the sun has moved past the window. Passing clouds do not make it move up
 and down.
 
@@ -143,7 +143,7 @@ the top of an opening `o` above the glass's lower edge `s` reaches `(s + o) / ta
 o = depth · tan φ − s          position = 100 · o / window height
 ```
 
-The position is rounded down to 10 %, never below the fixed *Shading position* / *Glare position*, and
+The position is rounded down to 10 %, never below the fixed *Heat protection position* / *Glare position*, and
 changes at most once per 15 minutes. A high summer sun thus leaves most of the window open; a low sun closes
 it to the fixed position. A sloped window keeps the fixed position. *Sun on the window* shows the computed
 position as `shading_from_depth`.
