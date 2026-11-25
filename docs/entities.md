@@ -4,6 +4,8 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 
 ## Base controller
 
+![The base controller's device page and entities](images/ha-device-base.png)
+
 | Entity | Shows or does |
 |---|---|
 | sensor *Sun factor* | PV power or illuminance as % of its learned clear-sky value for this position of the sun; attributes `source` (`learned`, `pv_peak`, `pv_peak_weather`, `lux_learned`, `lux_limit`, `weather`, `geometry`), `sun_source`, `weather`, `cloud_coverage` (%, from the weather entity, for the card), `lux`, `sun_azimuth`, `sun_elevation`, `learned_days` (days with data for the current position of the sun) and `learned_days_needed` (7: from then on `source` is `learned`) |

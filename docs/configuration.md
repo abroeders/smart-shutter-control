@@ -58,6 +58,8 @@ Sun source *Light sensors (lux)*:
 The base schedule: every shutter follows it unless it overrides a setting (see
 [Schedule overrides](#schedule-overrides)).
 
+![Base controller Schedule options](images/ha-config-schedule.png)
+
 | Setting | Default | Effect |
 |---|---|---|
 | Slit on weekdays | 08:00 | start of the slit phase on working days |
@@ -96,6 +98,8 @@ The base schedule: every shutter follows it unless it overrides a setting (see
 ### Holidays
 
 On weekend days and holidays the schedules use their weekend times. The page has two steps.
+
+![Base controller Holidays options, step 1](images/ha-config-holidays.png)
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -161,6 +165,8 @@ limit applies (see [which rule wins](how-it-works.md#which-rule-wins-examples)).
 When nobody is home the heat can be kept out earlier and glare does not matter; on holiday the schedule times
 also shift a little each day so the house looks lived in. See [Away and holiday](how-it-works.md#away-and-holiday).
 
+![Base controller Away and holiday options](images/ha-config-away.png)
+
 | Setting | Default | Effect |
 |---|---|---|
 | Presence entity | none | a `zone.home` (counts the persons in the zone), a `person` or `device_tracker`, a `group` or a `binary_sensor` (on: somebody is home). Empty: the house is never away, unless the *Holiday* switch is on |
@@ -169,6 +175,8 @@ also shift a little each day so the house looks lived in. See [Away and holiday]
 | Holiday: time shift up to | 30 min | the largest random shift of the schedule times on holiday; 0: no shift |
 
 ### Language
+
+![Base controller Language options](images/ha-config-language.png)
 
 | Setting | Default | Effect |
 |---|---|---|
@@ -222,6 +230,8 @@ it through the entity from then on.
 
 All fields are optional. The contacts keep the shutter clear of an open door or give a tilted window a gap.
 
+![A shutter's Window and door contacts](images/ha-config-contacts.png)
+
 | Setting | Default | Effect |
 |---|---|---|
 | Opened contact | – | binary sensor; on means the door or window is open |
@@ -232,6 +242,8 @@ All fields are optional. The contacts keep the shutter clear of an open door or 
 How the floors behave, with a timeline, is under [Lockout and ventilation](how-it-works.md#lockout-and-ventilation).
 
 ### Horizon
+
+![A shutter's Horizon table](images/ha-config-horizon.png)
 
 A table with a row per point: *Sun direction (°)* (0 to 360) and *Lowest elevation (°)* (0 to 60). The button
 *Sun has left the window* adds points; here you can correct, add or remove them. A direction may appear only

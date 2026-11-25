@@ -1471,6 +1471,10 @@ screenshots of Home Assistant itself: it starts a made-up demo (`scripts/demo/co
 covers and sensors) in a temporary directory, chooses the longitude so it is about 13:00 solar time, onboards
 and sets up the integration through the REST API, saves a dashboard through the websocket API and takes each
 screenshot with Playwright. Design: [`design/2026-11-22-ha-screenshots.md`](design/2026-11-22-ha-screenshots.md).
+Since #114 it also takes every base options page, a shutter's contacts and horizon, the base controller's
+device page, the card with its decision list open, and the action `set_lock` in Developer tools (filled in
+through the page's own `localStorage` keys, `panel-dev-action-state-*`). Every new or changed form, options
+page, entity group or card view gets its screenshot this way.
 
 ```mermaid
 sequenceDiagram
