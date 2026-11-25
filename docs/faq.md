@@ -75,6 +75,31 @@ Since #108 a reversal during an automatic move is recognised as manual. Stopping
 with a motor power sensor; without one the integration cannot tell a stop from a slow module and sends its
 position once more. Press the switch again, or use the button *Resume automatic control* afterwards.
 
+**Does the integration learn? How long does that take?**
+Yes. It learns the clear-sky value of your PV power or light sensors per position of the sun: about a week
+for the positions the sun passes every day now, and the positions of another season in that season. Until
+then it estimates. See [Learning](how-it-works.md#learning-the-first-weeks).
+
+**Which PV peak power do I enter: the panels or the inverter?**
+The panels: the sum of their Wp ratings (20 × 400 Wp = 8 kWp), also when the inverter is rated lower, and for
+all systems whose PV sensors you added. Too low a value makes the sun factor reach 100 % too easily in the
+first weeks. Change it under *Reconfigure* of the base controller.
+
+**It is sunny and the sun is on the window, but the shutter does not go down. Why?**
+Heat protection also needs warmth: an outdoor temperature from 22 °C or a room temperature from 24 °C (or a
+hot-day forecast). On a sunny but cool day it leaves the shutter open on purpose. For the dazzling low sun of
+autumn and winter, switch on *Glare protection*. The decision list (*Why?* in the card) shows
+`too_cold` with the values.
+
+**My calendar's holidays include days like Mother's Day.**
+A calendar from an online agenda often lists observances besides public holidays. *Configure → Holidays*,
+second step: untick the days that are working days for you.
+
+**My light sensor seems to stop at a few thousand lux.**
+Many motion detectors measure light only up to a few thousand lux: they are full in any daylight. When you
+choose light sensors, the form shows each sensor's highest value of the last 30 days and warns when one stays
+below 10 000 lx. Use an outdoor sensor that reaches 50 000 lx or more, or choose PV power.
+
 **Which wind sensor should I use?**
 A sheltered wind meter reads low. The storm page shows the highest values of the last 30 days; set the
 limits from those. A gust value from a weather service is often more representative.

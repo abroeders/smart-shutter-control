@@ -142,6 +142,39 @@ therefore does not count as bright sun. The sun factor's attributes
 
 Without values (or without a sun source) it uses the weather entity's condition, and otherwise geometry only.
 
+### Learning (the first weeks)
+
+The integration **trains itself** on your installation: it does not know beforehand how much PV power or light
+your sensors give in a clear sky. It learns that from the values it sees, per cell of the sky.
+
+- A cell is trusted after **7 days** with data. A cell only gets data while the sun is in it, so the noon
+  cells are learned first, the early morning and late evening cells later, and the positions of the sun of
+  another season only in that season: the learning goes on through the year.
+- Each cell keeps the **last 30 days**, so the reference follows the seasons, dirty or cleaned panels, a tree
+  that grew or was cut, or extra panels.
+- Until a cell is learned, the integration uses the rough curve from *PV peak power* (or the fixed lux limit)
+  and, from 10° up, the weather entity's condition (see above). The sensor *Sun factor* shows which: attribute
+  `source` is `pv_peak` or `pv_peak_weather` (light sensors: `lux_limit`) while learning, `learned` (light
+  sensors: `lux_learned`) after; `learned_days` and `learned_days_needed` show how far the current cell is.
+- The winter mode's 24-hour mean outdoor temperature starts at installation: in the first day it covers the
+  hours since then.
+
+What to do during learning:
+
+- Enter the *PV peak power* of the panels (see [Configuration](configuration.md#sources)), the *Panel tilt*
+  and the *Panel direction*, and a weather entity: the better the rough curve, the better the first weeks.
+- Do not tune *Sunny from* or *Glare from* on what happens in the first week: look again once `source` is
+  `learned` for the times of day that matter.
+- Nothing is lost on an update or restart: the learned values are stored. Removing the base controller
+  starts the learning again.
+
+Example: installed on 1 March, `cover.living_room` faces south. The cells around noon have their 7 days by
+about 8 March. A morning cell that the sun passes for half an hour a day on clear days also has 7 days of data
+by then. The integration counts days with data, not sunny days: grey days hardly lower the reference, because
+it is the high (95th percentile) value of the days. A cell learned in a week without any clear sky starts too
+low and corrects itself on the next clear days. The sun stands higher every week in spring, so in May the
+noon sun is in cells it never was in March: those learn in May.
+
 **Light sensors:** the highest of the base controller's sensors counts. A shutter can have its own
 **facade light sensor**; that sensor then decides for that shutter, with its own learned reference. Many
 motion sensors measure only up to a few thousand lux and cannot tell sun from bright cloud: the sources page

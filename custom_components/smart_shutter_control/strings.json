@@ -47,7 +47,7 @@
         },
         "data_description": {
           "pv_power": "One or more sensors; they are added up. Used as a measure of clouds.",
-          "pv_peak": "Peak power of the panels, for the expected power in clear sky.",
+          "pv_peak": "Total peak power of the panels behind the PV power sensors: the sum of their Wp ratings (20 × 400 Wp = 8 kWp), not the inverter's rating. Used for the expected clear-sky power while the integration is still learning.",
           "pv_tilt": "Degrees from horizontal: 0 = flat, 90 = vertical. For the expected power in clear sky while the integration is still learning.",
           "pv_azimuth": "Direction the panels face: 0 = north, 90 = east, 180 = south, 270 = west."
         }
