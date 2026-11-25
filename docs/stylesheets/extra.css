@@ -30,3 +30,13 @@
   max-width: 330px;
   width: 100%;
 }
+
+/* support button in the top bar: always visible, in Buy Me a Coffee's yellow on hover */
+.md-header__button.ssc-coffee {
+  display: inline-block;
+}
+
+.md-header__button.ssc-coffee:hover {
+  color: #ffdd00;
+  opacity: 1;
+}

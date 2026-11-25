@@ -17,3 +17,16 @@ the weather and the time of day, and leaves them alone when you move them by han
 | [FAQ and troubleshooting](faq.md) | common questions and problems |
 | [Architecture](architecture.md) | code structure with UML diagrams, for developers |
 | [Designs](design/) | the design of each feature, as approved before it was built |
+
+## Support the development
+
+Smart Shutter Control is free and open source, and it is built in spare time. Every release takes many hours:
+new features, fixes for problems you report, testing against each new Home Assistant version, and this
+documentation with its examples and screenshots. Next to the time there are real costs: shutter motors,
+sensors and a test installation to try every change on before it reaches your house, and the tools to build
+and test it.
+
+If the integration keeps your house cool in summer and warm in winter, please consider buying me a coffee.
+Your support lets me keep developing it actively. Thank you!
+
+<a href="https://www.buymeacoffee.com/abroeders"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="50"></a>
