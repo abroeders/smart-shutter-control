@@ -31,10 +31,16 @@ never keeps PV sensors and light sensors together. Pick the source, then fill in
 
 Sun source *PV power*:
 
+!!! tip "PV peak power: count the panels, not the inverter"
+    20 panels of 400 Wp are **8 kWp**, also when the inverter is rated 6 kW. With two systems whose sensors
+    are added up (a house roof and a garage roof), enter the panels of both. A value that is too low makes
+    the expected power too low, so the sun factor reaches 100 % on a hazy day and heat or glare protection
+    starts too easily while the integration is still learning.
+
 | Setting | Default | Effect |
 |---|---|---|
 | PV power sensors | required | one or more, added up |
-| PV peak power (kWp) | – | a rough clear-sky curve while the learned reference is young |
+| PV peak power (kWp) | – | the total peak power of **the panels** behind the PV power sensors: the sum of their Wp ratings, not the inverter's rating. Used for a rough clear-sky curve while the learned reference is young (see [Learning](how-it-works.md#learning-the-first-weeks)) |
 | Panel tilt | 35° | degrees from horizontal (0 = flat, 90 = vertical), for that curve |
 | Panel direction | 180° | where the panels face (0 = north, 90 = east, 180 = south, 270 = west), for that curve |
 

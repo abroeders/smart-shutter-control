@@ -69,7 +69,11 @@ commands count as manual at once. Moves by a wall switch or the module's own app
 - [Calibrate](calibration.md) each shutter, so positions are real positions.
 - Check the [base schedule](configuration.md#schedule) (morning and evening times).
 - Add the [card](card.md) to a dashboard.
-- Turn off any automations that already move these shutters, or they will fight each other.
+- Turn off any automations that already move these shutters, or they will fight each other. Moving over one
+  shutter at a time? Switch *Automatic control* off for the shutters your automations still move.
+- Expect a **learning period**: in the first weeks the integration learns how much sun your PV panels or
+  light sensors see in a clear sky (see [Learning](how-it-works.md#learning-the-first-weeks)). Until then it
+  estimates from the *PV peak power* and the weather, so enter the panels' peak power correctly.
 
 ## Update and remove
 

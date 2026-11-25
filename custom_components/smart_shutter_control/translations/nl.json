@@ -47,7 +47,7 @@
         },
         "data_description": {
           "pv_power": "Eén of meer sensoren; ze worden opgeteld. Dient als maat voor bewolking.",
-          "pv_peak": "Piekvermogen van de panelen, voor het verwachte vermogen bij heldere lucht.",
+          "pv_peak": "Totaal piekvermogen van de panelen achter de PV-vermogenssensoren: de som van hun Wp (20 × 400 Wp = 8 kWp), niet het vermogen van de omvormer. Gebruikt voor het verwachte vermogen bij heldere lucht zolang de integratie nog leert.",
           "pv_tilt": "Graden ten opzichte van horizontaal: 0 = plat, 90 = verticaal. Voor het verwachte vermogen bij heldere lucht zolang de integratie nog leert.",
           "pv_azimuth": "Richting waarin de panelen kijken: 0 = noord, 90 = oost, 180 = zuid, 270 = west."
         }
