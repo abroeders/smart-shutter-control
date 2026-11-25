@@ -27,7 +27,7 @@ Names follow the integration's *Language* setting (or Home Assistant's system la
 | cover *Shutter* | the real (calibrated) position; open, close, stop and set position act as a manual action. *Opening*/*closing* while it moves. Attributes `module_position`, `direction`, `calibrated`, `slit` |
 | number *Opening* | the real opening in %; setting it moves the shutter there (manual, ignores the maximum position) |
 | number *Maximum position* | automatic control never opens the shutter further |
-| number *Shading position* | position during heat protection |
+| number *Heat protection position* | position during heat protection |
 | number *Glare position* | position during glare protection |
 | number *Glare from* | sun factor (%) from which the sun counts as bright for glare protection |
 | switch *Automatic control* | off: the integration does not move this shutter; on: it moves to the wanted position at once |
